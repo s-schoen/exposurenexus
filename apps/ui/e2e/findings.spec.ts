@@ -9,14 +9,14 @@ const [, ACCOUNT_TAKEOVER] = SEED_VULNERABILITIES;
 test("previews a finding from the list and opens its page", async ({ page }) => {
   await page.goto("/findings");
 
-  await page.getByRole("cell", { name: ROOT_CONTAINER.title }).click();
+  await page.getByRole("link", { name: ROOT_CONTAINER.title }).click();
   const preview = page.getByRole("dialog", { name: "Finding details" });
   await expect(preview.getByText(ROOT_CONTAINER.title).first()).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`selected=${ROOT_CONTAINER.id}`));
 
   await page.keyboard.press("Escape");
   await expect(preview).toBeHidden();
-  await page.getByRole("cell", { name: ROOT_CONTAINER.title }).dblclick();
+  await page.getByRole("link", { name: ROOT_CONTAINER.title }).dblclick();
 
   await expect(page).toHaveURL(`/findings/${ROOT_CONTAINER.id}`);
   await expect(page.getByRole("heading", { level: 1, name: ROOT_CONTAINER.title })).toBeVisible();
@@ -59,5 +59,5 @@ test("creates a finding through the asset combobox", async ({ page }) => {
   await page.getByRole("button", { name: "Create finding" }).click();
 
   await expect(page).toHaveURL("/findings");
-  await expect(page.getByRole("cell", { name: "Hard-coded secret" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Hard-coded secret" })).toBeVisible();
 });

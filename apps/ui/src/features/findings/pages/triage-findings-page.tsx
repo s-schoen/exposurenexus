@@ -3,8 +3,8 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Inbox } from "lucide-react";
 
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { FindingList } from "@/features/findings/components/finding-list/index.tsx";
 import { FindingPreview } from "@/features/findings/components/finding-preview.tsx";
-import { FindingTable } from "@/features/findings/components/finding-table/index.tsx";
 import { useFindingTableSearchState } from "@/features/findings/hooks/use-finding-table-search-state.ts";
 import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -21,11 +21,13 @@ const defaultTriageStatusFilter = [FindingStatus.Active];
 
 export function TriageFindingsPage({ search = {}, selected }: TriageFindingsPageProps) {
   const findings = useSuspenseQuery(createListFindingsQueryOptions());
-  const { filterState, onFilterStateChange } = useFindingTableSearchState({
-    search,
-    to: "/findings/triage",
-    defaultStatusFilter: defaultTriageStatusFilter,
-  });
+  const { filterState, onFilterStateChange, grouping, onGroupingChange } =
+    useFindingTableSearchState({
+      search,
+      to: "/findings/triage",
+      defaultStatusFilter: defaultTriageStatusFilter,
+      defaultGrouping: "assetId",
+    });
   const selectedSearch = useSelectedSearchParam<Finding>({
     selectedId: selected,
     to: "/findings/triage",
@@ -41,17 +43,16 @@ export function TriageFindingsPage({ search = {}, selected }: TriageFindingsPage
 
   return (
     <>
-      <div className="flex flex-col gap-4">
-        <FindingTable
-          initialGrouping={["assetId"]}
-          filterState={filterState}
-          onFilterStateChange={onFilterStateChange}
-          selectedFindingId={selectedSearch.selectedId}
-          onSelectFinding={(finding) => {
-            void selectedSearch.selectRow(finding);
-          }}
-        />
-      </div>
+      <FindingList
+        grouping={grouping}
+        onGroupingChange={onGroupingChange}
+        filterState={filterState}
+        onFilterStateChange={onFilterStateChange}
+        selectedFindingId={selectedSearch.selectedId}
+        onSelectFinding={(finding) => {
+          void selectedSearch.selectRow(finding);
+        }}
+      />
       <DetailPreviewDialog
         selectedId={selectedSearch.selectedId}
         onClose={() => {
