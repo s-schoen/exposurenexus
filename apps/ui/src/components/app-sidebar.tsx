@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { isSettingsPath } from "@/components/settings-column.tsx";
+import { isSettingsPath } from "@/components/page-column.tsx";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Sidebar,

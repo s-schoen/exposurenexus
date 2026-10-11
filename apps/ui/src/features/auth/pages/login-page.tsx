@@ -3,13 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.tsx";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.tsx";
+import { Card, CardContent } from "@/components/ui/card.tsx";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
@@ -53,13 +47,13 @@ export function LoginPage({ auth, redirects, redirect, navigate }: LoginPageProp
   });
 
   return (
-    <div className="flex items-center justify-center w-screen h-screen">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Login</CardTitle>
-          <CardDescription>Enter your credentials below to login to your account</CardDescription>
-        </CardHeader>
+    <div className="flex min-h-dvh items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-90">
         <CardContent>
+          <h1 className="mb-6 flex items-center justify-center gap-2 text-sm font-medium text-foreground">
+            <img src="/logo.png" alt="" className="size-6 shrink-0" />
+            ExposureNexus
+          </h1>
           <form
             id="login-form"
             onSubmit={(e) => {
@@ -83,7 +77,7 @@ export function LoginPage({ auth, redirects, redirect, navigate }: LoginPageProp
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
                         aria-invalid={isInvalid}
-                        placeholder="Username"
+                        autoComplete="username"
                       />
                     </Field>
                   );
@@ -96,9 +90,7 @@ export function LoginPage({ auth, redirects, redirect, navigate }: LoginPageProp
 
                   return (
                     <Field data-invalid={isInvalid}>
-                      <div className="flex items-center">
-                        <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-                      </div>
+                      <FieldLabel htmlFor={field.name}>Password</FieldLabel>
                       <Input
                         id={field.name}
                         name={field.name}
@@ -106,22 +98,22 @@ export function LoginPage({ auth, redirects, redirect, navigate }: LoginPageProp
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
                         aria-invalid={isInvalid}
-                        placeholder="Password"
                         type="password"
+                        autoComplete="current-password"
                       />
                     </Field>
                   );
                 }}
               />
-              <Field>
-                <Button type="submit">
-                  {isLoading && <Spinner />}
-                  Login
-                </Button>
-              </Field>
-              <div className="text-center text-sm text-muted-foreground">
-                {loginFailed && <p className="text-destructive">Invalid username or password.</p>}
-              </div>
+              {loginFailed && (
+                <p role="alert" className="text-13 text-destructive">
+                  Invalid username or password.
+                </p>
+              )}
+              <Button type="submit" size="lg" className="w-full">
+                {isLoading && <Spinner />}
+                Login
+              </Button>
             </FieldGroup>
           </form>
         </CardContent>

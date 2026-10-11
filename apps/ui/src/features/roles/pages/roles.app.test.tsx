@@ -232,10 +232,12 @@ describe("role detail", () => {
 });
 
 describe("creating and editing roles", () => {
-  it("creates a role and opens it", async () => {
+  it("creates a role with the permissions ticked per resource and opens it", async () => {
     const { router, user } = renderApp({ path: "/settings/roles/new" });
 
     await user.type(await screen.findByLabelText("Name"), "triager");
+    const findings = screen.getByRole("group", { name: "Finding" });
+    await user.click(within(findings).getByRole("checkbox", { name: "Read" }));
     await user.click(screen.getByRole("button", { name: "Create role" }));
 
     const created = await waitFor(() => {
@@ -243,6 +245,9 @@ describe("creating and editing roles", () => {
       expect(role).toBeDefined();
       return role!;
     });
+    expect(created.permissions).toEqual([
+      { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
+    ]);
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/settings/roles/${created.id}`),
     );

@@ -56,6 +56,7 @@ export function AssetCombobox({
           <Button
             id={id}
             variant="outline"
+            size="lg"
             role="combobox"
             aria-expanded={open}
             aria-controls={listboxId}
@@ -64,9 +65,13 @@ export function AssetCombobox({
             className="justify-between"
             disabled={assets.isLoading}
           >
-            <div className="flex items-center gap-2 ">
+            <div className="flex items-center gap-2">
               {assets.isLoading && <Spinner />}
-              {value ? assets.data?.find((a) => a.id === value.id)?.displayName : "Select asset..."}
+              {value ? (
+                assets.data?.find((a) => a.id === value.id)?.displayName
+              ) : (
+                <span className="text-subtle-foreground">Select asset...</span>
+              )}
             </div>
             <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
