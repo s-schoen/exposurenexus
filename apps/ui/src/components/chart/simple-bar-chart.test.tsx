@@ -31,7 +31,9 @@ vi.mock("recharts", () => ({
   XAxis: ({ tickFormatter }: { tickFormatter?: (value: string) => ReactNode }) => (
     <div data-testid="x-axis">{tickFormatter?.("active")}</div>
   ),
-  YAxis: () => <div data-testid="y-axis" />,
+  YAxis: ({ tickFormatter }: { tickFormatter?: (value: string) => ReactNode }) => (
+    <div data-testid="y-axis">{tickFormatter?.("active")}</div>
+  ),
 }));
 
 const chartData = [
@@ -84,6 +86,17 @@ describe("SimpleBarChart", () => {
     await renderChart();
 
     expect(screen.getByTestId("x-axis")).toHaveTextContent("Active");
+  });
+
+  it("uses the configured label for the y-axis of horizontal bars", async () => {
+    const { SimpleBarChart } = await import("@/components/chart/simple-bar-chart.tsx");
+
+    render(
+      <SimpleBarChart chartData={chartData} chartConfig={chartConfig} orientation="horizontal" />,
+    );
+
+    expect(screen.getByTestId("y-axis")).toHaveTextContent("Active");
+    expect(screen.getByTestId("x-axis")).toBeEmptyDOMElement();
   });
 
   it("hides the chart and axes while loading", async () => {
