@@ -1,16 +1,15 @@
-import { KeyRound } from "lucide-react";
+import { Boxes, Lock, Shapes, UserCog } from "lucide-react";
 
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
-import { MetadataSidebar } from "@/components/metadata-sidebar/index.tsx";
-import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
+import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
+import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.tsx";
+  PropertiesPanel,
+  PropertyGroup,
+  PropertyRow,
+  PropertyValue,
+} from "@/components/properties-panel/properties-panel.tsx";
+import { PropertyTray, PropertyTrayRow } from "@/components/properties-panel/property-tray.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
 import {
   formatPermissionLabel,
   getRoleKindLabel,
@@ -21,133 +20,75 @@ import {
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 
-interface RoleDetailContentProps {
-  role: Role;
-}
-
-function RoleTypeBadge({ roleId }: { roleId: string }) {
-  const kind = getRoleKindLabel(roleId);
+function RolePropertiesPanel({ role }: { role: Role }) {
+  const KindIcon = isBuiltInRoleId(role.id) ? Lock : UserCog;
+  const resourceCount = getUniqueRoleResources(role.permissions).length;
 
   return (
-    <Badge variant={kind === "Built-in" ? "info" : "secondary"}>
-      <KeyRound className="size-3" />
-      {kind}
-    </Badge>
+    <PropertiesPanel>
+      <PropertyGroup>
+        <PropertyRow icon={Shapes} label="Type">
+          <PropertyValue>
+            <KindIcon
+              className="size-4 shrink-0 text-muted-foreground"
+              strokeWidth={1.5}
+              aria-hidden="true"
+            />
+            {getRoleKindLabel(role.id)}
+          </PropertyValue>
+        </PropertyRow>
+        <PropertyRow icon={Boxes} label="Resources">
+          <PropertyValue>
+            <span className="tabular-nums">{resourceCount}</span>
+          </PropertyValue>
+        </PropertyRow>
+      </PropertyGroup>
+    </PropertiesPanel>
   );
 }
 
-export function RoleDetailContent({ role: roleData }: RoleDetailContentProps) {
-  const kindLabel = getRoleKindLabel(roleData.id);
-  const resources = getUniqueRoleResources(roleData.permissions);
-  const permissionsByResource = groupRolePermissionsByResource(roleData.permissions);
+function PermissionsSection({ role }: { role: Role }) {
+  const permissionsByResource = groupRolePermissionsByResource(role.permissions);
 
-  const overview = (
-    <Card>
-      <CardHeader className="gap-4">
-        <div className="flex items-center justify-end gap-3">
-          <RoleTypeBadge roleId={roleData.id} />
-        </div>
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <CardTitle className="text-2xl">{roleData.name}</CardTitle>
-            <CardDescription className="max-w-3xl text-sm leading-6">
-              Roles define which resources a user can read, write, or delete across the platform.
-            </CardDescription>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <DetailHighlightCard
-              label="Role name"
-              value={roleData.name}
-              description="Stored identifier used by the API and auth system"
-            />
-            <DetailHighlightCard
-              label="Type"
-              value={kindLabel}
-              description="Whether the role is protected by the platform"
-            />
-            <DetailHighlightCard
-              label="Permissions"
-              value={`${roleData.permissions.length}`}
-              description="Individual grants configured for this role"
-            />
-            <DetailHighlightCard
-              label="Resources"
-              value={`${resources.length}`}
-              description="Unique resource groups covered by the role"
-            />
-          </div>
-        </div>
-      </CardHeader>
-    </Card>
-  );
-
-  const permissions = (
-    <Card>
-      <CardHeader>
-        <CardTitle>Permissions</CardTitle>
-        <CardDescription>
-          Grants are grouped by resource to show how this role maps onto the API authorization
-          model.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {permissionsByResource.map((permissionGroup) => (
-          <div
-            key={permissionGroup.resource}
-            className="rounded-lg border border-border/70 bg-muted/20 p-4"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-foreground">
-                {formatPermissionLabel(permissionGroup.resource)}
-              </div>
-              <Badge variant="outline">
-                {permissionGroup.verbs.length} grant
-                {permissionGroup.verbs.length === 1 ? "" : "s"}
-              </Badge>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {permissionGroup.verbs.map((verb) => (
+  return (
+    <DetailSection title="Permissions" count={role.permissions.length}>
+      {permissionsByResource.length > 0 ? (
+        <PropertyTray label="Permissions">
+          {permissionsByResource.map(({ resource, verbs }) => (
+            <PropertyTrayRow
+              key={resource}
+              trailing={verbs.map((verb) => (
                 <Badge key={verb} variant="secondary">
                   {formatPermissionLabel(verb)}
                 </Badge>
               ))}
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+            >
+              <span className="truncate font-medium">{formatPermissionLabel(resource)}</span>
+            </PropertyTrayRow>
+          ))}
+        </PropertyTray>
+      ) : (
+        <p className="text-13 text-subtle-foreground">No permissions granted.</p>
+      )}
+    </DetailSection>
   );
+}
 
-  const sidebar = (
-    <MetadataSidebar title="Role details" icon={KeyRound}>
-      <div className="space-y-3">
-        <MetadataDetailRow label="Name" value={roleData.name} />
-        <MetadataDetailRow label="Type" value={kindLabel} />
-        <MetadataDetailRow label="Protected" value={isBuiltInRoleId(roleData.id) ? "Yes" : "No"} />
-        <MetadataDetailRow
-          label="Resources"
-          value={
-            <div className="flex max-w-[16rem] flex-wrap justify-end gap-1">
-              {resources.map((resource) => (
-                <Badge key={resource} variant="outline">
-                  {formatPermissionLabel(resource)}
-                </Badge>
-              ))}
-            </div>
-          }
-        />
-        <MetadataDetailRow label="Permissions" value={`${roleData.permissions.length}`} />
-      </div>
-    </MetadataSidebar>
-  );
+interface RoleDetailContentProps {
+  role: Role;
+}
 
+export function RoleDetailContent({ role }: RoleDetailContentProps) {
   return (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="flex min-w-0 flex-col gap-4">
-        {overview}
-        {permissions}
-      </div>
-      {sidebar}
-    </div>
+    <DetailLayout
+      header={
+        <h2 className="text-2xl leading-tight font-semibold break-words text-foreground">
+          {role.name}
+        </h2>
+      }
+      panel={<RolePropertiesPanel role={role} />}
+    >
+      <PermissionsSection role={role} />
+    </DetailLayout>
   );
 }

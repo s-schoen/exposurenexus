@@ -9,6 +9,7 @@ test("creates, opens and edits a role", async ({ page }) => {
   await page.getByLabel("Name").fill("triager");
   await page.getByRole("button", { name: "Create role" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "triager" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Properties" })).toContainText("Custom");
 
   await page.getByRole("button", { name: "Edit role" }).click();
   await page.getByLabel("Name").fill("lead-triager");
@@ -35,6 +36,7 @@ test("creates, opens and edits a user", async ({ page }) => {
     .getByRole("link", { name: /^Jamie Tester/ })
     .dblclick();
   await expect(page.getByRole("heading", { level: 1, name: "Jamie Tester" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Properties" })).toContainText("jamie@example.com");
   await page.getByRole("button", { name: "Edit user" }).click();
   await page.getByLabel("Display name").fill("Jamie Lead");
   await page.getByRole("button", { name: "Save changes" }).click();
@@ -53,6 +55,7 @@ test("creates, opens and edits a custom field", async ({ page }) => {
   await page.getByRole("option", { name: "Number" }).click();
   await page.getByRole("button", { name: "Create custom field" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Risk score" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Properties" })).toContainText("risk_score");
 
   await page.getByRole("button", { name: "Edit custom field" }).click();
   await page.getByRole("textbox", { name: "Name" }).fill("Business risk score");

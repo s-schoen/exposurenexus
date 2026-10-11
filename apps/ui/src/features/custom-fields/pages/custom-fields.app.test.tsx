@@ -110,6 +110,36 @@ describe("custom field detail", () => {
     );
   });
 
+  it("shows a select field's rules, allowed values, key and type", async () => {
+    renderApp({ path: `/settings/custom-fields/${DEPLOYMENT_TIER.id}` });
+
+    const rules = (await screen.findByRole("heading", { name: "Rules" })).closest("section")!;
+    expect(within(rules).getByText("Yes")).toBeVisible();
+    expect(within(rules).getByText("Production")).toBeVisible();
+
+    expect(screen.getByRole("heading", { name: "Allowed values 2" })).toBeVisible();
+    const values = within(screen.getByRole("list", { name: "Allowed values" })).getAllByRole(
+      "listitem",
+    );
+    expect(values.map((value) => value.textContent)).toEqual([
+      "Productionproduction",
+      "Stagingstaging",
+    ]);
+
+    const properties = screen.getByRole("region", { name: "Properties" });
+    expect(within(properties).getByText(DEPLOYMENT_TIER.key)).toBeVisible();
+    expect(within(properties).getByText("Select")).toBeVisible();
+  });
+
+  it("shows no allowed values for a text field without a default", async () => {
+    renderApp({ path: `/settings/custom-fields/${CATEGORY.id}` });
+
+    const rules = (await screen.findByRole("heading", { name: "Rules" })).closest("section")!;
+    expect(within(rules).getByText("No")).toBeVisible();
+    expect(within(rules).getByText("None")).toBeVisible();
+    expect(screen.queryByRole("heading", { name: /Allowed values/ })).not.toBeInTheDocument();
+  });
+
   it("goes back to the list with its filters but without a selection", async () => {
     const { router, user } = renderApp({
       path: `/settings/custom-fields/${PRIORITY.id}?filter=pri&selected=${PRIORITY.id}`,
