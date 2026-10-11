@@ -2,13 +2,21 @@
 
 @plugin "@tailwindcss/typography";
 
-@import "tw-animate-css";
-
 @import "@fontsource-variable/inter";
 @import "@fontsource/ibm-plex-mono/400.css";
 @import "@fontsource/ibm-plex-mono/500.css";
 
 @custom-variant dark (&:is(.dark *));
+
+/* Base UI sets --collapsible-panel-height on a Collapsible panel while it opens or closes. */
+@utility h-collapsible-panel {
+  height: var(--collapsible-panel-height);
+}
+
+/* animate-nav-enter comes in from the right by default; this flips it to come in from the left. */
+@utility nav-enter-from-left {
+  --nav-enter-offset: -0.5rem;
+}
 
 @utility no-scrollbar {
   -ms-overflow-style: none;
@@ -160,6 +168,16 @@ body {
   --shadow-raised: 0 1px 2px -1px rgb(41 47 61 / 0.06), 0 1px 3px rgb(41 47 61 / 0.05);
   --shadow-overlay: 0 10px 10px -10px rgb(41 47 61 / 0.04), 0 30px 60px -12px rgb(41 47 61 / 0.1);
   --shadow-peek: -10px 0 30px -5px rgb(41 47 61 / 0.02), -5px 0 80px -5px rgb(41 47 61 / 0.04);
+  /* Motion timings re-declared from Twenty's twenty-ui (PRD A7). Durations use Tailwind's 75/150/300. */
+  --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-nav-enter: nav-enter 180ms var(--ease-snappy);
+
+  @keyframes nav-enter {
+    from {
+      opacity: 0;
+      transform: translateX(var(--nav-enter-offset, 0.5rem));
+    }
+  }
 }
 
 @theme inline {
@@ -246,5 +264,16 @@ body {
   h3,
   h4 {
     line-height: 1.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
   }
 }

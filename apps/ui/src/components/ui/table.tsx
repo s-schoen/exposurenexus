@@ -56,7 +56,7 @@ function TableRow({
       data-slot="table-row"
       data-variant={variant}
       className={cn(
-        "border-b border-border/60 transition-colors hover:bg-muted/40 data-[active=true]:bg-accent/60 data-[state=selected]:bg-primary/6 data-[variant=group]:bg-muted/25 data-[variant=group]:hover:bg-muted/30 data-[variant=header]:hover:bg-transparent",
+        "border-b border-border/60 transition-colors duration-100 hover:bg-muted/40 data-[active=true]:bg-accent/60 data-[state=selected]:bg-primary/6 data-[variant=group]:bg-muted/25 data-[variant=group]:hover:bg-muted/30 data-[variant=header]:hover:bg-transparent",
         className,
       )}
       {...props}
