@@ -10,6 +10,11 @@ export function formatDate(date: Date) {
   return date.toLocaleDateString();
 }
 
+/** A date with its time, such as "Jan 8, 2026, 1:30 PM", for audit lines and timestamps. */
+export function formatDateTime(date: Date) {
+  return date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}
+
 /**
  * A compact date for list chips: "Feb 1", with the year only when it isn't the current one.
  * Pass `timeZone: "UTC"` for date-only values such as due dates.

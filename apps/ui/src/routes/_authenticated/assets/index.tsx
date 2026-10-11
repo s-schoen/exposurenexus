@@ -8,7 +8,7 @@ import {
   validateAssetTableSearch,
 } from "@/features/assets";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields";
-import { createFindingStatsQueryOptions } from "@/features/findings";
+import { AssetFindingsSection, createFindingStatsQueryOptions } from "@/features/findings";
 import { createListUsersQueryOptions } from "@/features/users";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
 
@@ -40,7 +40,8 @@ export const Route = createFileRoute("/_authenticated/assets/")({
 
 function RouteComponent() {
   const search = Route.useSearch();
-  // The assets feature doesn't depend on findings, so the route hands it the finding counts.
+  // The assets feature doesn't depend on findings, so the route hands it the finding counts and
+  // the findings section of the peek.
   const findingStats = useSuspenseQuery(createFindingStatsQueryOptions());
 
   return (
@@ -48,6 +49,7 @@ function RouteComponent() {
       search={search}
       selected={search.selected}
       findingCountByAssetId={findingStats.data.assets}
+      renderAssetFindings={(assetId) => <AssetFindingsSection assetId={assetId} />}
     />
   );
 }

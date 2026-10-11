@@ -5,11 +5,15 @@ import { AssetDetailContent } from "@/features/assets/components/asset-detail-co
 import { createAssetByIDQueryOptions } from "@/features/assets/queries/assets.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 
+import type { ReactNode } from "react";
+
 interface AssetDetailPageProps {
   assetId: string;
+  /** The findings on the asset. The route reads them from the findings feature. */
+  findingsSection?: ReactNode;
 }
 
-export function AssetDetailPage({ assetId }: AssetDetailPageProps) {
+export function AssetDetailPage({ assetId, findingsSection }: AssetDetailPageProps) {
   const asset = useSuspenseQuery(createAssetByIDQueryOptions(assetId));
 
   usePageMeta({
@@ -18,5 +22,5 @@ export function AssetDetailPage({ assetId }: AssetDetailPageProps) {
     breadcrumbs: [{ label: "Assets", to: "/assets" }],
   });
 
-  return <AssetDetailContent asset={asset.data} />;
+  return <AssetDetailContent asset={asset.data} findingsSection={findingsSection} />;
 }

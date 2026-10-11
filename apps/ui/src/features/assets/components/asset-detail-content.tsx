@@ -8,17 +8,20 @@ import {
   AssetCustomFieldValueSource,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, Plus, RotateCcw, Server, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Activity, Globe, Plus, RotateCcw, Shapes, UserRound, X } from "lucide-react";
+import { useState } from "react";
 
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
 import { Inplace } from "@/components/inplace.tsx";
-import { MetadataSidebar } from "@/components/metadata-sidebar/index.tsx";
-import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
+import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
+import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
+import {
+  PropertiesAuditLines,
+  PropertiesPanel,
+  PropertyGroup,
+  PropertyRow,
+} from "@/components/properties-panel/properties-panel.tsx";
+import { PropertySelect } from "@/components/properties-panel/property-select.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import {
   Command,
   CommandEmpty,
@@ -28,42 +31,61 @@ import {
   CommandList,
 } from "@/components/ui/command.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
-import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { AssetIdentifierTable } from "@/features/assets/components/asset-identifier-table.tsx";
+import { AssetIdentifiersSection } from "@/features/assets/components/asset-identifiers-section.tsx";
+import { AssetTypeIcon } from "@/features/assets/components/asset-type-icon.tsx";
 import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
 import { formatAssetCustomFieldValue } from "@/features/assets/lib/asset-custom-fields.ts";
+import { formatAssetType } from "@/features/assets/lib/asset-type.ts";
 import {
   createAssetCustomFieldValuesQueryOptions,
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
 } from "@/features/assets/queries/assets.ts";
 import {
-  UserLabel,
+  UserAvatar,
   createListUsersQueryOptions,
   createUserProfileById,
   formatUserProfileReference,
+  getUserProfileDisplayName,
 } from "@/features/users";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 import { cn } from "@/lib/utils.ts";
 
+import type { PropertyOption } from "@/components/properties-panel/property-select.tsx";
 import type { Asset, UpdateAsset } from "@exposurenexus/contracts/model/asset";
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   AssetCustomFieldValueLiteral,
 } from "@exposurenexus/contracts/model/asset-custom-field";
-
-interface AssetDetailContentProps {
-  asset: Asset;
-}
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { ReactNode } from "react";
 
 const noOwnerValue = "__no_owner__";
 
-export function getAssetCustomFieldDraftValue(field: AssetCustomFieldValue): string {
+function formatAssetValue(value: string) {
+  return capitalizeFirstLetter(value.replace(/([a-z])([A-Z])/gu, "$1 $2"));
+}
+
+const typeOptions: Array<PropertyOption<AssetType>> = Object.values(AssetType).map((type) => ({
+  value: type,
+  label: formatAssetType(type),
+  icon: <AssetTypeIcon type={type} decorative />,
+}));
+
+const environmentOptions: Array<PropertyOption<AssetEnvironment>> = Object.values(
+  AssetEnvironment,
+).map((environment) => ({ value: environment, label: formatAssetValue(environment) }));
+
+const lifecycleStateOptions: Array<PropertyOption<AssetLifecycleState>> = Object.values(
+  AssetLifecycleState,
+).map((state) => ({ value: state, label: formatAssetValue(state) }));
+
+function getAssetCustomFieldDraftValue(field: AssetCustomFieldValue): string {
   return field.value === null ? "" : String(field.value);
 }
 
-export function createAssetCustomFieldValuePayload(
+function createAssetCustomFieldValuePayload(
   field: AssetCustomFieldValue,
   value: string,
 ): AssetCustomFieldValueLiteral {
@@ -91,483 +113,198 @@ function createAssetCustomFieldValueReplacement(
   }));
 }
 
-export function AssetDetailContent({ asset }: AssetDetailContentProps) {
-  const assetId = asset.id;
+function decorativeAvatar(userId: string | null, user: UserProfile | null | undefined) {
+  return (
+    <span aria-hidden="true" className="flex shrink-0">
+      <UserAvatar userId={userId} user={user} />
+    </span>
+  );
+}
+
+function ownerOptions(
+  asset: Asset,
+  users: Array<UserProfile> | undefined,
+): Array<PropertyOption<string>> {
+  const options: Array<PropertyOption<string>> = [
+    { value: noOwnerValue, label: "No Owner", icon: decorativeAvatar(null, null) },
+    ...(users ?? []).map((user) => ({
+      value: user.id,
+      label: getUserProfileDisplayName(user),
+      icon: decorativeAvatar(user.id, user),
+    })),
+  ];
+
+  // Keep the current owner pickable while users load, or when it is no longer listed.
+  if (asset.ownerId && !options.some(({ value }) => value === asset.ownerId)) {
+    options.push({
+      value: asset.ownerId,
+      label: users ? "Unknown Owner" : "Loading…",
+      icon: decorativeAvatar(asset.ownerId, users ? null : undefined),
+    });
+  }
+
+  return options;
+}
+
+function AssetPropertiesPanel({ asset }: { asset: Asset }) {
   const assetLifecycle = useAssetLifecycle();
   const users = useQuery(createListUsersQueryOptions());
-  const customFieldValuesQueryOptions = createAssetCustomFieldValuesQueryOptions(assetId);
-  const availableCustomFieldDefinitionsQueryOptions =
-    createAvailableAssetCustomFieldDefinitionsQueryOptions(assetId);
-  const customFields = useQuery(customFieldValuesQueryOptions);
-  const availableCustomFields = useQuery(availableCustomFieldDefinitionsQueryOptions);
-  const userProfileById = useMemo(() => createUserProfileById(users.data), [users.data]);
+  const userProfileById = createUserProfileById(users.data);
+  const userName = (userId: string) =>
+    users.isPending ? "…" : formatUserProfileReference(userId, userProfileById);
 
-  function AssetOwnerText({ assetData, className }: { assetData: Asset; className?: string }) {
-    return (
-      <UserLabel
-        userId={assetData.ownerId}
-        user={
-          assetData.ownerId && users.isPending
-            ? undefined
-            : assetData.ownerId
-              ? (userProfileById.get(assetData.ownerId) ?? null)
-              : null
-        }
-        emptyLabel="No Owner"
-        unknownLabel="Unknown Owner"
-        className={className}
-      />
-    );
-  }
+  const update = async (field: UpdateAsset) =>
+    (await assetLifecycle.updateAsset(asset.id, field)) !== null;
 
-  function getAssetOwnerEditValue(assetData: Asset) {
-    return assetData.ownerId ?? noOwnerValue;
-  }
-
-  function AssetOwnerPicker({
-    value,
-    onCancel,
-    onCommit,
-  }: {
-    value: string;
-    onCancel: () => void;
-    onCommit: (value: string) => void;
-  }) {
-    const [open, setOpen] = useState(false);
-    const ownerId = value === noOwnerValue ? null : value;
-    const ownerLabel =
-      ownerId && users.isPending
-        ? "Loading owner"
-        : formatUserProfileReference(ownerId, userProfileById, {
-            emptyLabel: "No Owner",
-            unknownLabel: "Unknown Owner",
-          });
-
-    return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          render={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              aria-label="Asset owner"
-              disabled={users.isPending}
-              className="max-w-full min-w-36 justify-between"
-            >
-              <span className="min-w-0 truncate">{ownerLabel}</span>
-            </Button>
-          }
+  return (
+    <PropertiesPanel
+      footer={
+        <PropertiesAuditLines
+          createdBy={userName(asset.createdBy)}
+          createdAt={asset.createdAt}
+          updatedBy={userName(asset.updatedBy)}
+          updatedAt={asset.updatedAt}
         />
-        <PopoverContent align="end" className="w-72 p-0">
-          <Command>
-            <CommandInput placeholder="Search owners..." />
-            <CommandList>
-              <CommandEmpty>No owners found</CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  value={noOwnerValue}
-                  onSelect={() => {
-                    setOpen(false);
-                    onCommit(noOwnerValue);
-                  }}
-                >
-                  No Owner
-                </CommandItem>
-                {users.data?.map((user) => (
-                  <CommandItem
-                    key={user.id}
-                    value={`${user.displayName} ${user.username}`}
-                    onSelect={() => {
-                      setOpen(false);
-                      onCommit(user.id);
-                    }}
-                  >
-                    <div className="min-w-0">
-                      <span className="block truncate">{user.displayName}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {user.username}
-                      </span>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          aria-label="Cancel asset owner edit"
-          title="Cancel"
-          onClick={onCancel}
-        >
-          <X />
-        </Button>
-      </Popover>
-    );
-  }
+      }
+    >
+      <PropertyGroup>
+        <PropertyRow icon={Shapes} label="Type">
+          <PropertySelect
+            value={asset.type}
+            options={typeOptions}
+            searchPlaceholder="Search types…"
+            onCommit={(type) => update({ type })}
+          />
+        </PropertyRow>
+        <PropertyRow icon={UserRound} label="Owner">
+          <PropertySelect
+            value={asset.ownerId ?? noOwnerValue}
+            options={ownerOptions(asset, users.data)}
+            searchPlaceholder="Search users…"
+            onCommit={(ownerId) => update({ ownerId: ownerId === noOwnerValue ? null : ownerId })}
+          />
+        </PropertyRow>
+        <PropertyRow icon={Globe} label="Environment">
+          <PropertySelect
+            value={asset.environment}
+            options={environmentOptions}
+            searchPlaceholder="Search environments…"
+            onCommit={(environment) => update({ environment })}
+          />
+        </PropertyRow>
+        <PropertyRow icon={Activity} label="Lifecycle">
+          <PropertySelect
+            value={asset.lifecycleState}
+            options={lifecycleStateOptions}
+            searchPlaceholder="Search states…"
+            onCommit={(lifecycleState) => update({ lifecycleState })}
+          />
+        </PropertyRow>
+      </PropertyGroup>
+    </PropertiesPanel>
+  );
+}
 
-  async function handleSaveAssetOwner(assetData: Asset, value: string) {
-    const ownerId = value === noOwnerValue ? null : value;
+function AssetTitle({ asset }: { asset: Asset }) {
+  const assetLifecycle = useAssetLifecycle();
 
-    if (assetData.ownerId === ownerId) {
-      return;
-    }
+  return (
+    <h2 className="min-w-0 text-2xl leading-tight font-semibold break-words text-foreground">
+      <Inplace
+        value={asset.displayName}
+        onSave={async (displayName) => {
+          await assetLifecycle.updateAsset(asset.id, { displayName });
+        }}
+        displayElement={(displayName) => <span>{displayName}</span>}
+        editOnClick
+        showEditIcon={false}
+      />
+    </h2>
+  );
+}
 
-    await assetLifecycle.updateAsset(assetId, { ownerId });
-  }
+function AssetCustomFieldsSection({ asset }: { asset: Asset }) {
+  const assetLifecycle = useAssetLifecycle();
+  const customFields = useQuery(createAssetCustomFieldValuesQueryOptions(asset.id));
+  const availableCustomFields = useQuery(
+    createAvailableAssetCustomFieldDefinitionsQueryOptions(asset.id),
+  );
+  const fields = customFields.data ?? [];
 
-  async function handleSaveAssetField(field: UpdateAsset) {
-    await assetLifecycle.updateAsset(assetId, field);
-  }
-
-  async function handleAddAssetIdentifier(
-    identifier: Parameters<typeof assetLifecycle.addAssetIdentifier>[1],
-  ) {
-    return await assetLifecycle.addAssetIdentifier(assetId, identifier);
-  }
-
-  async function handleUpdateAssetIdentifier(
-    identifierId: string,
-    identifier: Parameters<typeof assetLifecycle.updateAssetIdentifier>[2],
-  ) {
-    return await assetLifecycle.updateAssetIdentifier(assetId, identifierId, identifier);
-  }
-
-  async function handleRemoveAssetIdentifier(identifierId: string) {
-    return await assetLifecycle.deleteAssetIdentifier(assetId, identifierId);
-  }
-
-  function formatAssetValue(value: string) {
-    return capitalizeFirstLetter(value.replace(/([a-z])([A-Z])/gu, "$1 $2"));
-  }
-
-  async function handleSaveCustomFieldValue(field: AssetCustomFieldValue, value: string) {
-    const payload = createAssetCustomFieldValuePayload(field, value);
-
+  async function handleSave(field: AssetCustomFieldValue, value: string) {
     await assetLifecycle.updateAssetCustomFieldValues(
-      assetId,
-      createAssetCustomFieldValueReplacement(customFields.data ?? [], field.fieldId, payload),
+      asset.id,
+      createAssetCustomFieldValueReplacement(
+        fields,
+        field.fieldId,
+        createAssetCustomFieldValuePayload(field, value),
+      ),
     );
   }
 
-  async function handleResetCustomFieldValue(field: AssetCustomFieldValue) {
+  async function handleReset(field: AssetCustomFieldValue) {
     await assetLifecycle.resetAssetCustomFieldValues(
-      assetId,
-      createAssetCustomFieldValueReplacement(customFields.data ?? [], field.fieldId, null),
+      asset.id,
+      createAssetCustomFieldValueReplacement(fields, field.fieldId, null),
     );
   }
 
-  async function handleAssignCustomField(field: AssetCustomFieldDefinition) {
-    await assetLifecycle.assignAssetCustomField(assetId, [
-      ...(customFields.data ?? []).map((customField) => customField.fieldId),
+  async function handleAssign(field: AssetCustomFieldDefinition) {
+    await assetLifecycle.assignAssetCustomField(asset.id, [
+      ...fields.map((customField) => customField.fieldId),
       field.id,
     ]);
   }
 
-  async function handleDetachCustomField(field: AssetCustomFieldValue) {
+  async function handleDetach(field: AssetCustomFieldValue) {
     await assetLifecycle.detachAssetCustomField(
-      assetId,
-      (customFields.data ?? [])
-        .map((customField) => customField.fieldId)
-        .filter((fieldId) => fieldId !== field.fieldId),
+      asset.id,
+      fields.map((customField) => customField.fieldId).filter((id) => id !== field.fieldId),
     );
   }
 
-  function renderAssetOverviewCard({ assetData }: { assetData: Asset }) {
-    return (
-      <Card>
-        <CardHeader className="gap-4">
-          <div className="flex items-center justify-end gap-3">
-            <Badge variant="outline">
-              <Server className="size-3" />
-              {capitalizeFirstLetter(assetData.type)}
-            </Badge>
-          </div>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <CardTitle className="text-2xl">{assetData.displayName}</CardTitle>
-              <CardDescription className="max-w-3xl text-sm leading-6">
-                Inventory record representing a tracked platform asset that can be linked to
-                findings and vulnerability exposure.
-              </CardDescription>
-            </div>
-            <div className="grid gap-3 xl:grid-cols-3">
-              <DetailHighlightCard
-                label="Asset display name"
-                value={assetData.displayName}
-                description="Human-readable label for this asset"
-              />
-              <DetailHighlightCard
-                label="Asset type"
-                value={capitalizeFirstLetter(assetData.type)}
-                description="Inventory classification for this asset"
-              />
-              <DetailHighlightCard
-                label="Asset owner"
-                value={<AssetOwnerText assetData={assetData} />}
-                description="User profile responsible for findings on this asset"
-              />
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+  let content: ReactNode;
+  if (customFields.isPending) {
+    content = (
+      <div className="flex flex-col gap-2" aria-label="Custom fields loading">
+        <Skeleton className="h-7 w-full" />
+        <Skeleton className="h-7 w-3/4" />
+      </div>
+    );
+  } else if (customFields.isError) {
+    content = <p className="text-13 text-destructive">Unable to load custom fields.</p>;
+  } else if (fields.length === 0) {
+    content = <p className="text-13 text-subtle-foreground">No custom fields are assigned.</p>;
+  } else {
+    content = (
+      <dl className="flex flex-col">
+        {fields.map((field) => (
+          <AssetCustomFieldRow
+            key={field.fieldId}
+            field={field}
+            onDetach={handleDetach}
+            onReset={handleReset}
+            onSave={handleSave}
+          />
+        ))}
+      </dl>
     );
   }
 
-  function renderAssetSidebar({ assetData }: { assetData: Asset }) {
-    return (
-      <MetadataSidebar title="Asset details" icon={Server}>
-        <div className="space-y-3">
-          <MetadataDetailRow
-            label="Display name"
-            editable={{
-              value: assetData.displayName,
-              onSave: (value) => handleSaveAssetField({ displayName: value }),
-              editOnClick: true,
-              showEditIcon: false,
-            }}
-          />
-          <MetadataDetailRow
-            label="Type"
-            editable={{
-              value: assetData.type,
-              onSave: (value) => handleSaveAssetField({ type: value }),
-              displayElement: (value) => formatAssetValue(value),
-              editElement: {
-                type: "select",
-                options: Object.values(AssetType).map((value) => ({
-                  label: formatAssetValue(value),
-                  value,
-                })),
-              },
-              editOnClick: true,
-              showEditIcon: false,
-            }}
-          />
-          <MetadataDetailRow
-            label="Environment"
-            editable={{
-              value: assetData.environment,
-              onSave: (value) => handleSaveAssetField({ environment: value }),
-              displayElement: (value) => formatAssetValue(value),
-              editElement: {
-                type: "select",
-                options: Object.values(AssetEnvironment).map((value) => ({
-                  label: formatAssetValue(value),
-                  value,
-                })),
-              },
-              editOnClick: true,
-              showEditIcon: false,
-            }}
-          />
-          <MetadataDetailRow
-            label="Lifecycle state"
-            editable={{
-              value: assetData.lifecycleState,
-              onSave: (value) => handleSaveAssetField({ lifecycleState: value }),
-              displayElement: (value) => formatAssetValue(value),
-              editElement: {
-                type: "select",
-                options: Object.values(AssetLifecycleState).map((value) => ({
-                  label: formatAssetValue(value),
-                  value,
-                })),
-              },
-              editOnClick: true,
-              showEditIcon: false,
-            }}
-          />
-          <MetadataDetailRow
-            label="Owner"
-            editable={{
-              value: getAssetOwnerEditValue(assetData),
-              onSave: (value) => handleSaveAssetOwner(assetData, value),
-              displayElement: () => <AssetOwnerText assetData={assetData} />,
-              editElement: {
-                type: "custom",
-                hideActions: true,
-                render: ({ value, onCancel, onCommit }) => (
-                  <AssetOwnerPicker value={value} onCancel={onCancel} onCommit={onCommit} />
-                ),
-              },
-              editOnClick: true,
-              showEditIcon: false,
-            }}
-          />
-        </div>
-        <Separator />
-        <div className="space-y-3">
-          <MetadataDetailRow label="Created" value={assetData.createdAt.toLocaleString()} />
-          <MetadataDetailRow
-            label="Created by"
-            value={
-              <UserLabel
-                userId={assetData.createdBy}
-                user={
-                  users.isPending ? undefined : (userProfileById.get(assetData.createdBy) ?? null)
-                }
-                unknownLabel="Unknown User"
-              />
-            }
-          />
-          <MetadataDetailRow label="Updated" value={assetData.updatedAt.toLocaleString()} />
-          <MetadataDetailRow
-            label="Updated by"
-            value={
-              <UserLabel
-                userId={assetData.updatedBy}
-                user={
-                  users.isPending ? undefined : (userProfileById.get(assetData.updatedBy) ?? null)
-                }
-                unknownLabel="Unknown User"
-              />
-            }
-          />
-        </div>
-        <Separator />
-        <AssetCustomFieldsSidebarSection
+  return (
+    <DetailSection
+      title="Custom fields"
+      count={customFields.data?.length}
+      action={
+        <AssetCustomFieldAssignmentPicker
           availableCustomFields={availableCustomFields.data}
-          customFields={customFields.data}
-          isAvailablePending={availableCustomFields.isPending}
-          isError={customFields.isError}
-          isPending={customFields.isPending}
-          onAssign={handleAssignCustomField}
-          onDetach={handleDetachCustomField}
-          onReset={handleResetCustomFieldValue}
-          onSave={handleSaveCustomFieldValue}
+          isPending={availableCustomFields.isPending}
+          onAssign={handleAssign}
         />
-      </MetadataSidebar>
-    );
-  }
-
-  return (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="flex min-w-0 flex-col gap-4">
-        {renderAssetOverviewCard({ assetData: asset })}
-        <AssetIdentifierTable
-          identifiers={asset.identifiers}
-          onAdd={handleAddAssetIdentifier}
-          onUpdate={handleUpdateAssetIdentifier}
-          onRemove={handleRemoveAssetIdentifier}
-        />
-      </div>
-      {renderAssetSidebar({ assetData: asset })}
-    </div>
-  );
-}
-
-interface AssetCustomFieldsSidebarSectionProps {
-  availableCustomFields?: Array<AssetCustomFieldDefinition>;
-  customFields?: Array<AssetCustomFieldValue>;
-  isAvailablePending: boolean;
-  isError: boolean;
-  isPending: boolean;
-  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>;
-  onDetach: (field: AssetCustomFieldValue) => void | Promise<void>;
-  onReset: (field: AssetCustomFieldValue) => void | Promise<void>;
-  onSave: (field: AssetCustomFieldValue, value: string) => void | Promise<void>;
-}
-
-function AssetCustomFieldsSidebarSection({
-  availableCustomFields,
-  customFields,
-  isAvailablePending,
-  isError,
-  isPending,
-  onAssign,
-  onDetach,
-  onReset,
-  onSave,
-}: AssetCustomFieldsSidebarSectionProps) {
-  if (isPending) {
-    return (
-      <div className="space-y-3" aria-label="Custom fields loading">
-        <CustomFieldsSectionTitle
-          availableCustomFields={availableCustomFields}
-          isAvailablePending={isAvailablePending}
-          onAssign={onAssign}
-        />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-3/4" />
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="space-y-3">
-        <CustomFieldsSectionTitle
-          availableCustomFields={availableCustomFields}
-          isAvailablePending={isAvailablePending}
-          onAssign={onAssign}
-        />
-        <Alert variant="destructive">
-          <AlertCircle className="size-4" />
-          <AlertTitle>Unable to load custom fields</AlertTitle>
-          <AlertDescription>The asset details are still available.</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (!customFields || customFields.length === 0) {
-    return (
-      <div className="space-y-3">
-        <CustomFieldsSectionTitle
-          availableCustomFields={availableCustomFields}
-          isAvailablePending={isAvailablePending}
-          onAssign={onAssign}
-        />
-        <p className="text-sm text-muted-foreground">No custom fields</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <CustomFieldsSectionTitle
-        availableCustomFields={availableCustomFields}
-        isAvailablePending={isAvailablePending}
-        onAssign={onAssign}
-      />
-      {customFields.map((field) => (
-        <AssetCustomFieldSidebarRow
-          key={field.fieldId}
-          field={field}
-          onDetach={onDetach}
-          onReset={onReset}
-          onSave={onSave}
-        />
-      ))}
-    </div>
-  );
-}
-
-interface CustomFieldsSectionTitleProps {
-  availableCustomFields?: Array<AssetCustomFieldDefinition>;
-  isAvailablePending: boolean;
-  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>;
-}
-
-function CustomFieldsSectionTitle({
-  availableCustomFields,
-  isAvailablePending,
-  onAssign,
-}: CustomFieldsSectionTitleProps) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <h3 className="text-13 font-semibold text-subtle-foreground">Custom fields</h3>
-      <AssetCustomFieldAssignmentPicker
-        availableCustomFields={availableCustomFields}
-        isPending={isAvailablePending}
-        onAssign={onAssign}
-      />
-    </div>
+      }
+    >
+      {content}
+    </DetailSection>
   );
 }
 
@@ -592,20 +329,20 @@ function AssetCustomFieldAssignmentPicker({
           <Button
             type="button"
             variant="ghost"
-            size="icon-xs"
+            size="icon-sm"
             aria-label="Add custom field"
             title="Add custom field"
             disabled={isPending || !hasAvailableFields}
           >
-            <Plus />
+            <Plus strokeWidth={1.5} />
           </Button>
         }
       />
-      <PopoverContent align="end" className="w-72 p-0">
+      <PopoverContent align="end" className="w-72 gap-0 p-0">
         <Command>
-          <CommandInput placeholder="Search custom fields..." />
+          <CommandInput aria-label="Search custom fields" placeholder="Search custom fields…" />
           <CommandList>
-            <CommandEmpty>No custom fields available</CommandEmpty>
+            <CommandEmpty>No custom fields available.</CommandEmpty>
             <CommandGroup>
               {availableCustomFields.map((field) => (
                 <CommandItem
@@ -632,36 +369,29 @@ function AssetCustomFieldAssignmentPicker({
   );
 }
 
-interface AssetCustomFieldSidebarRowProps {
+interface AssetCustomFieldRowProps {
   field: AssetCustomFieldValue;
   onDetach: (field: AssetCustomFieldValue) => void | Promise<void>;
   onReset: (field: AssetCustomFieldValue) => void | Promise<void>;
   onSave: (field: AssetCustomFieldValue, value: string) => void | Promise<void>;
 }
 
-function AssetCustomFieldSidebarRow({
-  field,
-  onDetach,
-  onReset,
-  onSave,
-}: AssetCustomFieldSidebarRowProps) {
+function AssetCustomFieldRow({ field, onDetach, onReset, onSave }: AssetCustomFieldRowProps) {
   const isAssetValue = field.source === AssetCustomFieldValueSource.Asset;
   const [isEditing, setIsEditing] = useState(false);
 
   return (
-    <div className="space-y-2">
-      <span className="block min-w-0 text-13 font-semibold text-subtle-foreground">
-        {field.name}
-      </span>
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0 flex-1 text-sm text-foreground">
+    <div className="-mx-2 flex min-h-9 items-center gap-3 rounded-md px-2 transition-colors duration-100 hover:bg-accent">
+      <dt className="w-32 shrink-0 truncate text-13 text-muted-foreground">{field.name}</dt>
+      <dd className="flex min-w-0 flex-1 items-center gap-2 text-13 text-foreground">
+        <div className="min-w-0 flex-1">
           <Inplace
             value={getAssetCustomFieldDraftValue(field)}
             onSave={(value) => onSave(field, value)}
             displayElement={() => (
               <span
                 className={cn("block truncate", {
-                  "text-muted-foreground": field.value === null,
+                  "text-subtle-foreground": field.value === null,
                 })}
               >
                 {formatAssetCustomFieldValue(field)}
@@ -673,33 +403,33 @@ function AssetCustomFieldSidebarRow({
             onEditingChange={setIsEditing}
           />
         </div>
-        {!isEditing ? (
-          <div className="flex shrink-0 items-center gap-1">
-            {isAssetValue ? (
+        {!isEditing && (
+          <div className="flex shrink-0 items-center gap-0.5">
+            {isAssetValue && (
               <Button
                 type="button"
                 variant="ghost"
-                size="icon-xs"
+                size="icon-sm"
                 aria-label={`Reset ${field.name}`}
                 title="Reset to default"
-                onClick={() => onReset(field)}
+                onClick={() => void onReset(field)}
               >
-                <RotateCcw />
+                <RotateCcw strokeWidth={1.5} />
               </Button>
-            ) : null}
+            )}
             <Button
               type="button"
               variant="ghost"
-              size="icon-xs"
+              size="icon-sm"
               aria-label={`Remove ${field.name}`}
               title="Remove custom field"
-              onClick={() => onDetach(field)}
+              onClick={() => void onDetach(field)}
             >
-              <X />
+              <X strokeWidth={1.5} />
             </Button>
           </div>
-        ) : null}
-      </div>
+        )}
+      </dd>
     </div>
   );
 }
@@ -719,4 +449,32 @@ function getCustomFieldEditElement(field: AssetCustomFieldValue) {
     type: "input" as const,
     inputType: field.type === AssetCustomFieldType.Number ? ("number" as const) : "text",
   };
+}
+
+interface AssetDetailContentProps {
+  asset: Asset;
+  /** The findings on the asset. The findings feature renders them, so the route hands them in. */
+  findingsSection?: ReactNode;
+}
+
+export function AssetDetailContent({ asset, findingsSection }: AssetDetailContentProps) {
+  const assetLifecycle = useAssetLifecycle();
+
+  return (
+    <DetailLayout
+      header={<AssetTitle asset={asset} />}
+      panel={<AssetPropertiesPanel asset={asset} />}
+    >
+      <AssetIdentifiersSection
+        identifiers={asset.identifiers}
+        onAdd={(identifier) => assetLifecycle.addAssetIdentifier(asset.id, identifier)}
+        onUpdate={(identifierId, identifier) =>
+          assetLifecycle.updateAssetIdentifier(asset.id, identifierId, identifier)
+        }
+        onRemove={(identifierId) => assetLifecycle.deleteAssetIdentifier(asset.id, identifierId)}
+      />
+      <AssetCustomFieldsSection asset={asset} />
+      {findingsSection}
+    </DetailLayout>
+  );
 }

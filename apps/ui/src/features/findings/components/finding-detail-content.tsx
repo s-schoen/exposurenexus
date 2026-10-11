@@ -20,7 +20,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import {
-  PropertiesFooterLine,
+  PropertiesAuditLines,
   PropertiesPanel,
   PropertyGroup,
   PropertyRow,
@@ -63,6 +63,7 @@ import {
   createListVulnerabilitiesQueryOptions,
   formatSeverity,
 } from "@/features/vulnerabilities";
+import { formatDateTime } from "@/lib/format.ts";
 
 import type { PropertyOption } from "@/components/properties-panel/property-select.tsx";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
@@ -89,10 +90,6 @@ const severityOptions: Array<PropertyOption<VulnerabilitySeverity>> = SEVERITY_O
     icon: <SeverityIcon severity={severity} decorative />,
   }),
 );
-
-function formatDateTime(value: Date) {
-  return value.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
 
 function decorativeAvatar(userId: string | null, user: UserProfile | null | undefined) {
   return (
@@ -141,14 +138,12 @@ function FindingPropertiesPanel({ finding, asset }: { finding: Finding; asset: A
   return (
     <PropertiesPanel
       footer={
-        <>
-          <PropertiesFooterLine icon={Clock3}>
-            Created by {userName(finding.createdBy)} · {formatDateTime(finding.createdAt)}
-          </PropertiesFooterLine>
-          <PropertiesFooterLine icon={Clock3}>
-            Updated by {userName(finding.updatedBy)} · {formatDateTime(finding.updatedAt)}
-          </PropertiesFooterLine>
-        </>
+        <PropertiesAuditLines
+          createdBy={userName(finding.createdBy)}
+          createdAt={finding.createdAt}
+          updatedBy={userName(finding.updatedBy)}
+          updatedAt={finding.updatedAt}
+        />
       }
     >
       <PropertyGroup>

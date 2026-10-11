@@ -2,7 +2,7 @@ import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { AssetIdentifierTable } from "@/features/assets/components/asset-identifier-table.tsx";
+import { AssetIdentifiersSection } from "@/features/assets/components/asset-identifiers-section.tsx";
 
 import type { AssetIdentifierRecord } from "@exposurenexus/contracts/model/asset";
 
@@ -41,10 +41,10 @@ afterEach(() => {
   confirmMock.mockReset();
 });
 
-describe("AssetIdentifierTable", () => {
-  it("renders identifiers in a compact embedded table", () => {
+describe("AssetIdentifiersSection", () => {
+  it("lists identifiers in a collapsible section", () => {
     render(
-      <AssetIdentifierTable
+      <AssetIdentifiersSection
         identifiers={[identifier]}
         onAdd={vi.fn()}
         onUpdate={vi.fn()}
@@ -52,11 +52,10 @@ describe("AssetIdentifierTable", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Asset identifiers" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Identifiers 1" })).toBeInTheDocument();
     expect(screen.getByText("DNS name")).toBeInTheDocument();
     expect(screen.getByText("Global")).toBeInTheDocument();
     expect(screen.getByText(identifier.value)).toBeInTheDocument();
-    expect(screen.queryByRole("textbox", { name: /search across visible columns/i })).toBeNull();
   });
 
   it("opens the add dialog and submits normalized values", async () => {
@@ -65,7 +64,12 @@ describe("AssetIdentifierTable", () => {
       value: "new.example.com",
     });
     render(
-      <AssetIdentifierTable identifiers={[]} onAdd={onAdd} onUpdate={vi.fn()} onRemove={vi.fn()} />,
+      <AssetIdentifiersSection
+        identifiers={[]}
+        onAdd={onAdd}
+        onUpdate={vi.fn()}
+        onRemove={vi.fn()}
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Add identifier" }));
@@ -91,7 +95,7 @@ describe("AssetIdentifierTable", () => {
       value: "internal.example.com",
     });
     render(
-      <AssetIdentifierTable
+      <AssetIdentifiersSection
         identifiers={[identifier]}
         onAdd={vi.fn()}
         onUpdate={onUpdate}
@@ -122,7 +126,7 @@ describe("AssetIdentifierTable", () => {
       value: "192.0.2.11",
     });
     render(
-      <AssetIdentifierTable
+      <AssetIdentifiersSection
         identifiers={[namespacedIpIdentifier]}
         onAdd={vi.fn()}
         onUpdate={onUpdate}
@@ -152,7 +156,12 @@ describe("AssetIdentifierTable", () => {
   it("keeps the add dialog open when the lifecycle rejects the mutation", async () => {
     const onAdd = vi.fn().mockResolvedValue(null);
     render(
-      <AssetIdentifierTable identifiers={[]} onAdd={onAdd} onUpdate={vi.fn()} onRemove={vi.fn()} />,
+      <AssetIdentifiersSection
+        identifiers={[]}
+        onAdd={onAdd}
+        onUpdate={vi.fn()}
+        onRemove={vi.fn()}
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Add identifier" }));
@@ -170,7 +179,12 @@ describe("AssetIdentifierTable", () => {
     const pending = deferred<AssetIdentifierRecord | null>();
     const onAdd = vi.fn().mockReturnValue(pending.promise);
     render(
-      <AssetIdentifierTable identifiers={[]} onAdd={onAdd} onUpdate={vi.fn()} onRemove={vi.fn()} />,
+      <AssetIdentifiersSection
+        identifiers={[]}
+        onAdd={onAdd}
+        onUpdate={vi.fn()}
+        onRemove={vi.fn()}
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Add identifier" }));
@@ -189,12 +203,12 @@ describe("AssetIdentifierTable", () => {
     );
   });
 
-  it("disables table actions while a deletion is pending", async () => {
+  it("disables identifier actions while a deletion is pending", async () => {
     const pending = deferred<AssetIdentifierRecord | null>();
     const onRemove = vi.fn().mockReturnValue(pending.promise);
     confirmMock.mockResolvedValueOnce(true);
     render(
-      <AssetIdentifierTable
+      <AssetIdentifiersSection
         identifiers={[identifier]}
         onAdd={vi.fn()}
         onUpdate={vi.fn()}
@@ -226,7 +240,7 @@ describe("AssetIdentifierTable", () => {
     confirmMock.mockResolvedValueOnce(true);
     const onRemove = vi.fn().mockResolvedValue(identifier);
     render(
-      <AssetIdentifierTable
+      <AssetIdentifiersSection
         identifiers={[identifier]}
         onAdd={vi.fn()}
         onUpdate={vi.fn()}
@@ -251,7 +265,7 @@ describe("AssetIdentifierTable", () => {
     confirmMock.mockResolvedValueOnce(false);
     const onRemove = vi.fn();
     render(
-      <AssetIdentifierTable
+      <AssetIdentifiersSection
         identifiers={[identifier]}
         onAdd={vi.fn()}
         onUpdate={vi.fn()}

@@ -79,6 +79,21 @@ describe("Inplace", () => {
     expect(screen.getByText("api-01")).toBeTruthy();
   });
 
+  it("keeps the draft when a space or click inside the open editor bubbles up", async () => {
+    const onSave = vi.fn();
+    render(<Inplace value="api-01" onSave={onSave} editOnClick />);
+
+    fireEvent.click(screen.getByText("api-01"));
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "api 02" } });
+    fireEvent.keyDown(input, { key: " " });
+    fireEvent.click(input);
+    expect(input).toHaveValue("api 02");
+
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith("api 02"));
+  });
+
   it("enters edit mode by clicking the display value", () => {
     render(<Inplace value="api-01" onSave={vi.fn()} editOnClick />);
 

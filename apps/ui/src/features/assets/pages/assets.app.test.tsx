@@ -1,5 +1,9 @@
-import { AssetType } from "@exposurenexus/contracts/model/asset";
-import { screen, waitFor, within } from "@testing-library/react";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -16,6 +20,8 @@ import { renderApp } from "@/test/render-app.tsx";
 
 const [WEB_01, CONTAINER_01, API_WORKER] = SEED_ASSETS;
 const [CATEGORY] = SEED_CUSTOM_FIELDS;
+const [ADMIN_ENDPOINT, , , WEAK_TLS] = SEED_FINDINGS;
+const [ROBIN] = SEED_USERS;
 
 async function findRow(name: string) {
   return (
@@ -254,6 +260,100 @@ describe("asset detail", () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/assets"));
     expect(router.state.location.search).toEqual({ filter: "web" });
+  });
+
+  it("shows identifiers, custom fields and findings as sections, core fields in the panel", async () => {
+    renderApp({ path: `/assets/${WEB_01.id}` });
+
+    expect(
+      await screen.findByRole("heading", { level: 2, name: WEB_01.displayName }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: `Identifiers ${WEB_01.identifiers.length}` }),
+    ).toBeVisible();
+    expect(await screen.findByText(CATEGORY.name)).toBeVisible();
+
+    // The asset's findings, most severe first, each linking to its page.
+    const findings = within(
+      (await screen.findByRole("heading", { name: "Findings 2" })).closest("section")!,
+    ).getAllByRole("link");
+    expect(findings.map((link) => link.textContent)).toEqual([
+      ADMIN_ENDPOINT.title,
+      WEAK_TLS.title,
+    ]);
+    expect(findings[0]).toHaveAttribute("href", `/findings/${ADMIN_ENDPOINT.id}`);
+
+    const properties = screen.getByRole("region", { name: "Properties" });
+    expect(within(properties).getByRole("button", { name: /^Type/ })).toHaveTextContent("Host");
+    expect(
+      await within(properties).findByRole("button", { name: `Owner ${ROBIN.displayName}` }),
+    ).toBeVisible();
+    expect(within(properties).getByRole("button", { name: /^Environment/ })).toHaveTextContent(
+      "Production",
+    );
+    expect(await within(properties).findByText(/^Created by/)).toBeVisible();
+    expect(screen.queryByText(/Inventory record/)).not.toBeInTheDocument();
+  });
+
+  it("edits type, owner, environment and lifecycle in place", async () => {
+    const { user } = renderApp({ path: `/assets/${WEB_01.id}` });
+    const properties = await screen.findByRole("region", { name: "Properties" });
+
+    const type = within(properties).getByRole("button", { name: /^Type/ });
+    await user.click(type);
+    await user.click(await screen.findByRole("option", { name: "Software" }));
+    expect(type).toHaveTextContent("Software");
+    await waitFor(() => expect(db.assets.get(WEB_01.id)?.type).toBe(AssetType.Software));
+
+    await user.click(within(properties).getByRole("button", { name: /^Owner/ }));
+    await user.click(await screen.findByRole("option", { name: "No Owner" }));
+    await waitFor(() => expect(db.assets.get(WEB_01.id)?.ownerId).toBeNull());
+
+    await user.click(within(properties).getByRole("button", { name: /^Environment/ }));
+    await user.click(await screen.findByRole("option", { name: "Staging" }));
+    await waitFor(() =>
+      expect(db.assets.get(WEB_01.id)?.environment).toBe(AssetEnvironment.Staging),
+    );
+
+    await user.click(within(properties).getByRole("button", { name: /^Lifecycle/ }));
+    await user.click(await screen.findByRole("option", { name: "Archived" }));
+    await waitFor(() =>
+      expect(db.assets.get(WEB_01.id)?.lifecycleState).toBe(AssetLifecycleState.Archived),
+    );
+  });
+
+  it("reverts a failed edit in the panel and shows the error", async () => {
+    mockApiError("patch", "/assets/:id", 500);
+    const { user } = renderApp({ path: `/assets/${WEB_01.id}` });
+    const properties = await screen.findByRole("region", { name: "Properties" });
+    const type = within(properties).getByRole("button", { name: /^Type/ });
+
+    await user.click(type);
+    await user.click(await screen.findByRole("option", { name: "Software" }));
+
+    expect(await screen.findByText("Failed to update asset")).toBeVisible();
+    await waitFor(() => expect(type).toHaveTextContent("Host"));
+    expect(db.assets.get(WEB_01.id)?.type).toBe(AssetType.Host);
+  });
+
+  it("renames the asset from its title", async () => {
+    const { user } = renderApp({ path: `/assets/${WEB_01.id}` });
+
+    const title = await screen.findByRole("heading", { level: 2, name: WEB_01.displayName });
+    await user.click(within(title).getByRole("button", { name: WEB_01.displayName }));
+    const input = await screen.findByRole("textbox", { name: "Edit value" });
+    fireEvent.change(input, { target: { value: "web" } });
+    // A space must reach the input instead of reopening the editor.
+    await user.type(input, " 01{Enter}");
+
+    await waitFor(() => expect(db.assets.get(WEB_01.id)?.displayName).toBe("web 01"));
+  });
+
+  it("shows the asset's findings in the peek", async () => {
+    renderApp({ path: `/assets?selected=${WEB_01.id}` });
+
+    const peek = await screen.findByRole("dialog", { name: "Asset details" });
+    expect(await within(peek).findByRole("link", { name: ADMIN_ENDPOINT.title })).toBeVisible();
   });
 
   it("adds and deletes identifiers", async () => {

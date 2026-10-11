@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCount, formatDate, formatRelativeTime, formatShortDate } from "@/lib/format.ts";
+import {
+  formatCount,
+  formatDate,
+  formatDateTime,
+  formatRelativeTime,
+  formatShortDate,
+} from "@/lib/format.ts";
 
 describe("formatCount", () => {
   it("uses the singular label for one item", () => {
@@ -22,6 +28,16 @@ describe("formatDate", () => {
     const date = new Date("2026-06-07T09:00:00.000Z");
 
     expect(formatDate(date)).toBe(date.toLocaleDateString());
+  });
+});
+
+describe("formatDateTime", () => {
+  it("shows the medium date with a short time", () => {
+    const date = new Date(2026, 0, 8, 13, 30);
+
+    expect(formatDateTime(date)).toBe(
+      date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }),
+    );
   });
 });
 
