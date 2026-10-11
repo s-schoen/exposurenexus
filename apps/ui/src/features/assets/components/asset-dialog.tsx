@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button.tsx";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -89,7 +88,6 @@ export const AssetDialog = ({
         <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
             <DialogTitle>Create Asset</DialogTitle>
-            <DialogDescription>Create a new asset</DialogDescription>
           </DialogHeader>
           <FieldGroup>
             <form.Field
