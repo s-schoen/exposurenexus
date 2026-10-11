@@ -2,7 +2,7 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Plus, Server } from "lucide-react";
 import { useCallback, useMemo } from "react";
 
-import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { DetailPeek } from "@/components/detail-peek.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { AssetDetailContent } from "@/features/assets/components/asset-detail-content.tsx";
 import { AssetDialog } from "@/features/assets/components/asset-dialog.tsx";
@@ -94,17 +94,16 @@ export function AssetsPage({ search = {}, selected, findingCountByAssetId }: Ass
           void handleCreateAsset();
         }}
       />
-      <DetailPreviewDialog
+      <DetailPeek
         selectedId={selectedSearch.selectedId}
+        label="Asset details"
+        getFullPageHref={(id) => `/assets/${id}`}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}
-        title="Asset details"
-        description="Review the selected asset without leaving the asset list."
-        fullPageHref={selected ? `/assets/${selected}` : undefined}
       >
-        {selected && <AssetDetailPreview assetId={selected} />}
-      </DetailPreviewDialog>
+        {(id) => <AssetDetailPreview assetId={id} />}
+      </DetailPeek>
     </>
   );
 }

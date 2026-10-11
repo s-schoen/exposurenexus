@@ -1,11 +1,11 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { KeyRound, Plus } from "lucide-react";
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, useMemo } from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
-import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { DetailPeek } from "@/components/detail-peek.tsx";
 import { RoleList } from "@/features/roles/components/role-list/index.tsx";
 import { useRoleLifecycle } from "@/features/roles/hooks/use-role-lifecycle.ts";
 import { useRoleTableSearchState } from "@/features/roles/hooks/use-role-table-search-state.ts";
@@ -115,21 +115,16 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
         }}
         onDeleteRoles={handleDeleteRoles}
       />
-      <DetailPreviewDialog
+      <DetailPeek
         selectedId={selectedSearch.selectedId}
+        label="Role details"
+        getFullPageHref={(id) => `/settings/roles/${id}`}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}
-        title="Role details"
-        description="Review the selected role without leaving the role list."
-        fullPageHref={selected ? `/settings/roles/${selected}` : undefined}
       >
-        {selected && (
-          <Suspense fallback={null}>
-            <RolePreview roleId={selected} />
-          </Suspense>
-        )}
-      </DetailPreviewDialog>
+        {(id) => <RolePreview roleId={id} />}
+      </DetailPeek>
     </>
   );
 }

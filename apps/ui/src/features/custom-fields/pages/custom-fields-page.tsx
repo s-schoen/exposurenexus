@@ -1,10 +1,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus, Tags } from "lucide-react";
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, useMemo } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
-import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { DetailPeek } from "@/components/detail-peek.tsx";
 import { CustomFieldList } from "@/features/custom-fields/components/custom-field-list/index.tsx";
 import { useAssetCustomFieldDefinitionLifecycle } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
 import { useCustomFieldTableSearchState } from "@/features/custom-fields/hooks/use-custom-field-table-search-state.ts";
@@ -104,21 +104,16 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
         }}
         onDeleteCustomFields={handleDeleteCustomFields}
       />
-      <DetailPreviewDialog
+      <DetailPeek
         selectedId={selectedSearch.selectedId}
-        title="Custom field details"
-        description="Preview asset custom field configuration."
-        fullPageHref={selected ? `/settings/custom-fields/${selected}` : undefined}
+        label="Custom field details"
+        getFullPageHref={(id) => `/settings/custom-fields/${id}`}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}
       >
-        {selected ? (
-          <Suspense fallback={null}>
-            <CustomFieldPreview customFieldId={selected} />
-          </Suspense>
-        ) : null}
-      </DetailPreviewDialog>
+        {(id) => <CustomFieldPreview customFieldId={id} />}
+      </DetailPeek>
     </>
   );
 }

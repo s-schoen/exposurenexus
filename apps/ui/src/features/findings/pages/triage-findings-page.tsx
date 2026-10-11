@@ -2,7 +2,7 @@ import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Inbox } from "lucide-react";
 
-import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { DetailPeek } from "@/components/detail-peek.tsx";
 import { FindingList } from "@/features/findings/components/finding-list/index.tsx";
 import { FindingPreview } from "@/features/findings/components/finding-preview.tsx";
 import { useFindingTableSearchState } from "@/features/findings/hooks/use-finding-table-search-state.ts";
@@ -53,17 +53,16 @@ export function TriageFindingsPage({ search = {}, selected }: TriageFindingsPage
           void selectedSearch.selectRow(finding);
         }}
       />
-      <DetailPreviewDialog
+      <DetailPeek
         selectedId={selectedSearch.selectedId}
+        label="Finding details"
+        getFullPageHref={(id) => `/findings/${id}`}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}
-        title="Finding details"
-        description="Review and update the selected finding without leaving the triage queue."
-        fullPageHref={selected ? `/findings/${selected}` : undefined}
       >
-        {selected && <FindingPreview findingId={selected} />}
-      </DetailPreviewDialog>
+        {(id) => <FindingPreview findingId={id} />}
+      </DetailPeek>
     </>
   );
 }

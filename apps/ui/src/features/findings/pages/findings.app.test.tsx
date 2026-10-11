@@ -162,6 +162,56 @@ describe("findings list", () => {
 
     await user.keyboard("{Escape}");
     await waitFor(() => expect(router.state.location.search).not.toHaveProperty("selected"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("keeps the peek open over the list and swaps it to another row", async () => {
+    const { router, user } = renderApp({ path: `/findings?selected=${ROOT_CONTAINER.id}` });
+    const dialog = await screen.findByRole("dialog", { name: "Finding details" });
+
+    // The peek is not modal: the list stays in the accessibility tree and clickable.
+    const list = screen.getByRole("list", { name: "Findings" });
+    await user.click(within(list).getByRole("link", { name: WEAK_TLS.title }));
+
+    await waitFor(() =>
+      expect(router.state.location.search).toMatchObject({ selected: WEAK_TLS.id }),
+    );
+    expect(screen.getByRole("dialog", { name: "Finding details" })).toBe(dialog);
+    expect((await within(dialog).findAllByText(WEAK_TLS.title)).length).toBeGreaterThan(0);
+    const rowOf = (title: string) => within(list).getByText(title).closest("li");
+    expect(rowOf(WEAK_TLS.title)).toHaveAttribute("aria-current", "true");
+    expect(rowOf(ROOT_CONTAINER.title)).not.toHaveAttribute("aria-current");
+    expect(within(dialog).getByRole("link", { name: "Open full page" })).toHaveAttribute(
+      "href",
+      `/findings/${WEAK_TLS.id}`,
+    );
+  });
+
+  it("moves focus into the peek and back to the row when it closes", async () => {
+    const { router, user } = renderApp({ path: "/findings" });
+    const rowLink = await screen.findByRole("link", { name: ROOT_CONTAINER.title });
+
+    await user.click(rowLink);
+
+    const dialog = await screen.findByRole("dialog", { name: "Finding details" });
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
+
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty("selected"));
+    await waitFor(() => expect(rowLink).toHaveFocus());
+  });
+
+  it("copies a link to the finding's page from the peek", async () => {
+    const { user } = renderApp({ path: `/findings?selected=${ROOT_CONTAINER.id}` });
+    const dialog = await screen.findByRole("dialog", { name: "Finding details" });
+
+    await user.click(within(dialog).getByRole("button", { name: "Copy link" }));
+
+    expect(await screen.findByText("Link copied")).toBeVisible();
+    expect(await navigator.clipboard.readText()).toBe(
+      `${window.location.origin}/findings/${ROOT_CONTAINER.id}`,
+    );
   });
 
   it("keeps a preview failure inside the dialog", async () => {

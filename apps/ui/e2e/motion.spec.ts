@@ -6,7 +6,7 @@ import type { Locator, Page } from "@playwright/test";
 
 const [ROBIN] = SEED_USERS;
 const [ADMIN_ENDPOINT] = SEED_VULNERABILITIES;
-const [ADMIN_ENDPOINT_FINDING] = SEED_FINDINGS;
+const [ADMIN_ENDPOINT_FINDING, , ROOT_CONTAINER_FINDING] = SEED_FINDINGS;
 
 // jsdom runs no CSS, so the motion rules (PRD A7) are checked here on computed styles.
 
@@ -16,6 +16,7 @@ function motionOf(locator: Locator) {
     return {
       transitionProperty: style.transitionProperty,
       transitionDuration: style.transitionDuration,
+      transitionTimingFunction: style.transitionTimingFunction,
       animationName: style.animationName,
       animationDuration: style.animationDuration,
       animationTimingFunction: style.animationTimingFunction,
@@ -106,6 +107,27 @@ test("collapses list groups by height and opacity over 300ms", async ({ page }) 
   });
 });
 
+test("slides the peek in over 300ms and crossfades it to another row", async ({ page }) => {
+  await page.goto("/findings");
+  const list = page.getByRole("list", { name: "Findings" });
+  await list.getByRole("link", { name: ROOT_CONTAINER_FINDING.title }).click();
+  const peek = page.locator("[data-slot=detail-peek]");
+  await expect(peek).toBeVisible();
+
+  expect(await motionOf(peek)).toMatchObject({
+    transitionDuration: "0.3s",
+    transitionTimingFunction: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+  });
+  expect((await motionOf(peek)).transitionProperty).toContain("translate");
+
+  await list.getByRole("link", { name: ADMIN_ENDPOINT_FINDING.title }).click();
+  await expect(peek.getByText(ADMIN_ENDPOINT_FINDING.title).first()).toBeVisible();
+  expect(await motionOf(peek.locator("> div").last())).toMatchObject({
+    animationName: "fade-in",
+    animationDuration: "0.15s",
+  });
+});
+
 test.describe("with reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
 
@@ -116,6 +138,14 @@ test.describe("with reduced motion", () => {
     expect(await motionOf(page.getByRole("menuitem", { name: "Sign Out" }))).toMatchObject({
       transitionDuration: "0s",
     });
+  });
+
+  test("opens the peek without sliding", async ({ page }) => {
+    await page.goto(`/findings?selected=${ROOT_CONTAINER_FINDING.id}`);
+    const peek = page.locator("[data-slot=detail-peek]");
+    await expect(peek).toBeVisible();
+
+    expect(await motionOf(peek)).toMatchObject({ transitionDuration: "0s" });
   });
 
   test("switches the sidebar mode without animating", async ({ page }) => {

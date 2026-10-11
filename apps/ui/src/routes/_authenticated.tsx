@@ -4,6 +4,7 @@ import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-
 import AppHeader from "@/components/app-header.tsx";
 import { AppSidebar } from "@/components/app-sidebar.tsx";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { DetailPeekContainer } from "@/components/detail-peek.tsx";
 import { PageHeader } from "@/components/page-header.tsx";
 import { isSettingsPath } from "@/components/settings-column.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
@@ -31,10 +32,12 @@ function Layout() {
             <AppSidebar triageCount={triageCount} />
             <main className="flex min-w-0 flex-1 flex-col">
               <PageHeader {...page} titleAsHeading={!isSettingsPath(pathname)} />
-              {/* List pages render full-bleed rows under a sticky toolbar, without page padding. */}
-              <div className="flex-1 overflow-y-auto p-5 has-data-full-bleed:p-0">
-                <Outlet />
-              </div>
+              <DetailPeekContainer>
+                {/* List pages render full-bleed rows under a sticky toolbar, without page padding. */}
+                <div className="h-full overflow-y-auto p-5 has-data-full-bleed:p-0">
+                  <Outlet />
+                </div>
+              </DetailPeekContainer>
             </main>
           </div>
         </div>

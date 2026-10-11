@@ -1,9 +1,9 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus, Users } from "lucide-react";
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, useMemo } from "react";
 
-import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { DetailPeek } from "@/components/detail-peek.tsx";
 import { UserList } from "@/features/users/components/user-list/index.tsx";
 import { useUserTableSearchState } from "@/features/users/hooks/use-user-table-search-state.ts";
 import { createListUsersQueryOptions } from "@/features/users/queries/users.ts";
@@ -68,21 +68,16 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
           void navigate({ to: "/settings/users/new" });
         }}
       />
-      <DetailPreviewDialog
+      <DetailPeek
         selectedId={selectedSearch.selectedId}
+        label="User details"
+        getFullPageHref={(id) => `/settings/users/${id}`}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}
-        title="User details"
-        description="Review the selected user without leaving the user list."
-        fullPageHref={selected ? `/settings/users/${selected}` : undefined}
       >
-        {selected && (
-          <Suspense fallback={null}>
-            <UserPreview userId={selected} />
-          </Suspense>
-        )}
-      </DetailPreviewDialog>
+        {(id) => <UserPreview userId={id} />}
+      </DetailPeek>
     </>
   );
 }

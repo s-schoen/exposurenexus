@@ -6,20 +6,42 @@ const [ADMIN_ENDPOINT, , ROOT_CONTAINER] = SEED_FINDINGS;
 const [, , API_WORKER] = SEED_ASSETS;
 const [, ACCOUNT_TAKEOVER] = SEED_VULNERABILITIES;
 
-test("previews a finding from the list and opens its page", async ({ page }) => {
+test("peeks at findings from the list and opens one's page", async ({ page }) => {
   await page.goto("/findings");
+  const list = page.getByRole("list", { name: "Findings" });
 
-  await page.getByRole("link", { name: ROOT_CONTAINER.title }).click();
-  const preview = page.getByRole("dialog", { name: "Finding details" });
-  await expect(preview.getByText(ROOT_CONTAINER.title).first()).toBeVisible();
+  await list.getByRole("link", { name: ROOT_CONTAINER.title }).click();
+  const peek = page.getByRole("dialog", { name: "Finding details" });
+  await expect(peek.getByText(ROOT_CONTAINER.title).first()).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`selected=${ROOT_CONTAINER.id}`));
 
+  // The list stays clickable under the peek; another row swaps its content.
+  await list.getByRole("link", { name: ADMIN_ENDPOINT.title }).click();
+  await expect(page).toHaveURL(new RegExp(`selected=${ADMIN_ENDPOINT.id}`));
+  await expect(peek.getByText(ADMIN_ENDPOINT.title).first()).toBeVisible();
+
   await page.keyboard.press("Escape");
-  await expect(preview).toBeHidden();
-  await page.getByRole("link", { name: ROOT_CONTAINER.title }).dblclick();
+  await expect(peek).toBeHidden();
+  await expect(list.getByRole("link", { name: ADMIN_ENDPOINT.title })).toBeFocused();
+  await list.getByRole("link", { name: ROOT_CONTAINER.title }).dblclick();
 
   await expect(page).toHaveURL(`/findings/${ROOT_CONTAINER.id}`);
   await expect(page.getByRole("heading", { level: 1, name: ROOT_CONTAINER.title })).toBeVisible();
+});
+
+test("covers the full width with the peek on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/findings?selected=${ROOT_CONTAINER.id}`);
+  const peek = page.getByRole("dialog", { name: "Finding details" });
+  await expect(peek.getByText(ROOT_CONTAINER.title).first()).toBeVisible();
+
+  // The page header spans the content area the peek slides over.
+  const header = await page
+    .getByRole("heading", { level: 1, name: "Findings" })
+    .locator("xpath=ancestor::header")
+    .boundingBox();
+  await expect.poll(async () => (await peek.boundingBox())?.width).toBe(header?.width);
+  expect((await peek.boundingBox())?.x).toBe(header?.x);
 });
 
 test("saves a correction from the detail page", async ({ page }) => {
