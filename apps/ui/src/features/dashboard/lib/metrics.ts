@@ -30,14 +30,12 @@ export function computeDashboardOverview(stats: FindingStatistics, assetList: Ar
 
   const priorityItems: Array<{
     label: string;
-    description: string;
     value: number;
     tone: MetricTone;
     href: string;
   }> = [
     {
       label: "Needs review",
-      description: "Critical and high severity findings",
       value: criticalHighFindings,
       tone: criticalHighFindings > 0 ? "destructive" : "success",
       href: buildFilterHref("/findings", {
@@ -47,7 +45,6 @@ export function computeDashboardOverview(stats: FindingStatistics, assetList: Ar
     },
     {
       label: "Triage queue",
-      description: "Findings still awaiting triage",
       value: activeFindings,
       tone: "default",
       href: buildFilterHref("/findings/triage", {
@@ -56,7 +53,6 @@ export function computeDashboardOverview(stats: FindingStatistics, assetList: Ar
     },
     {
       label: "Needs mitigation",
-      description: "Confirmed findings awaiting mitigation",
       value: confirmedFindings,
       tone: "default",
       href: buildFilterHref("/findings", {
@@ -65,7 +61,6 @@ export function computeDashboardOverview(stats: FindingStatistics, assetList: Ar
     },
     {
       label: "Blast radius",
-      description: "Assets currently affected",
       value: affectedAssets,
       tone: "default",
       href: buildFilterHref("/findings", {

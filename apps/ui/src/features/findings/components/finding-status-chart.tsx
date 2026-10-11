@@ -71,7 +71,7 @@ export function FindingStatusChart({ data, loading, className, height }: Finding
   return (
     <Card className={cn(className)}>
       <CardHeader>
-        <CardTitle>Findings by Status</CardTitle>
+        <CardTitle>Findings by status</CardTitle>
       </CardHeader>
       <CardContent>
         <SimpleBarChart

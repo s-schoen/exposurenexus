@@ -44,7 +44,7 @@ export function SimpleBarChart({
       >
         <BarChart accessibilityLayer data={chartData}>
           <CartesianGrid vertical={false} />
-          <YAxis tickLine={false} tickMargin={8} axisLine={false} />
+          <YAxis allowDecimals={false} tickLine={false} tickMargin={8} axisLine={false} />
           <XAxis
             dataKey="label"
             tickLine={false}

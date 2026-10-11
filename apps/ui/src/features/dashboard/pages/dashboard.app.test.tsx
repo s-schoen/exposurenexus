@@ -7,7 +7,7 @@ import { renderApp } from "@/test/render-app.tsx";
 // behind them, including edge cases, are covered by lib/metrics.test.ts.
 
 describe("dashboard", () => {
-  it("summarizes the seeded findings with priority links", async () => {
+  it("links each KPI card to its filtered list", async () => {
     renderApp({ path: "/" });
 
     const main = within((await screen.findAllByRole("main")).at(-1)!);
@@ -24,17 +24,28 @@ describe("dashboard", () => {
       "href",
       "/findings?status=confirmed",
     );
+    expect(main.getByRole("link", { name: /blast radius/i })).toHaveAttribute(
+      "href",
+      "/findings?status=active%2Cconfirmed",
+    );
+  });
+
+  it("shows coverage next to the top affected assets", async () => {
+    renderApp({ path: "/" });
+
+    const main = within((await screen.findAllByRole("main")).at(-1)!);
+    expect(await main.findByText("Top affected assets")).toBeVisible();
     // Seed: 4 findings, one mitigated.
-    expect(main.getByText("25% of findings currently mitigated")).toBeVisible();
-    expect(main.getByText("Top affected assets")).toBeVisible();
+    expect(main.getByText("Mitigated rate")).toBeVisible();
+    expect(main.getByText("25%")).toBeVisible();
   });
 
   it("shows empty states without findings", async () => {
     renderApp({ path: "/", scenario: "empty" });
 
     const main = within((await screen.findAllByRole("main")).at(-1)!);
-    expect(await main.findByText("0% of findings currently mitigated")).toBeVisible();
-    expect(main.getByText("No affected assets to display.")).toBeVisible();
+    expect(await main.findByText("No affected assets.")).toBeVisible();
+    expect(main.getByText("0%")).toBeVisible();
     expect(main.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 });
