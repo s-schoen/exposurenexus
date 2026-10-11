@@ -172,6 +172,7 @@ body {
   --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
   --animate-nav-enter: nav-enter 180ms var(--ease-snappy);
   --animate-fade-in: fade-in 150ms ease-out;
+  --animate-property-swap: property-swap 150ms ease-out;
 
   @keyframes nav-enter {
     from {
@@ -183,6 +184,14 @@ body {
   @keyframes fade-in {
     from {
       opacity: 0;
+    }
+  }
+
+  /* A property value crossfades in after an inline edit. */
+  @keyframes property-swap {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
     }
   }
 }

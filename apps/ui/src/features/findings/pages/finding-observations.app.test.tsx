@@ -5,6 +5,8 @@ import { SEED_FINDINGS, SEED_OBSERVATIONS } from "@/mocks/fixtures/index.ts";
 import { db, mockApiError } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
 
+import type { UserEvent } from "@testing-library/user-event";
+
 // Observation flows on the finding detail page, against the MSW mock API.
 
 const [ADMIN_ENDPOINT, OUTDATED_DEPENDENCY] = SEED_FINDINGS;
@@ -13,15 +15,20 @@ const [MANUAL_REPORT, SCANNER_REPORT] = SEED_OBSERVATIONS;
 const observationsOf = (findingId: string) =>
   db.observations.all().filter((observation) => observation.findingId === findingId);
 
+const actionsFor = (title: string) => ({ name: `Actions for observation ${title}` });
+
+async function chooseAction(user: UserEvent, title: string, action: "Edit" | "Move" | "Delete") {
+  await user.click(await screen.findByRole("button", actionsFor(title)));
+  await user.click(await screen.findByRole("menuitem", { name: action }));
+}
+
 describe("finding observations", () => {
   it("lists the finding's observations", async () => {
     renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
 
     expect(await screen.findByText(MANUAL_REPORT.title)).toBeVisible();
     // The scanner report shares the finding's title, so look for its own actions.
-    expect(
-      screen.getByRole("button", { name: `Move observation ${SCANNER_REPORT.title}` }),
-    ).toBeVisible();
+    expect(screen.getByRole("button", actionsFor(SCANNER_REPORT.title))).toBeVisible();
   });
 
   it("adds a manual observation", async () => {
@@ -57,9 +64,7 @@ describe("finding observations", () => {
   it("corrects an observation", async () => {
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
 
-    await user.click(
-      await screen.findByRole("button", { name: `Edit observation ${MANUAL_REPORT.title}` }),
-    );
+    await chooseAction(user, MANUAL_REPORT.title, "Edit");
     const dialog = await screen.findByRole("dialog", { name: "Correct observation" });
     const title = within(dialog).getByLabelText("Title");
     await user.clear(title);
@@ -74,9 +79,7 @@ describe("finding observations", () => {
   it("moves an observation to another finding", async () => {
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
 
-    await user.click(
-      await screen.findByRole("button", { name: `Move observation ${SCANNER_REPORT.title}` }),
-    );
+    await chooseAction(user, SCANNER_REPORT.title, "Move");
     const dialog = await screen.findByRole("dialog", { name: "Move observation" });
     const target = within(dialog).getByLabelText("Target finding");
     await waitFor(() => expect(target).not.toHaveAttribute("data-disabled"));
@@ -89,29 +92,22 @@ describe("finding observations", () => {
     );
     await waitFor(() =>
       expect(
-        screen.queryByRole("button", { name: `Move observation ${SCANNER_REPORT.title}` }),
+        screen.queryByRole("button", actionsFor(SCANNER_REPORT.title)),
       ).not.toBeInTheDocument(),
     );
   });
 
   it("deletes an observation only after confirmation", async () => {
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
-    const deleteButton = await screen.findByRole("button", {
-      name: `Delete observation ${MANUAL_REPORT.title}`,
-    });
 
-    await user.click(deleteButton);
+    await chooseAction(user, MANUAL_REPORT.title, "Delete");
     await user.click(await screen.findByRole("button", { name: "Keep observation" }));
     expect(db.observations.get(MANUAL_REPORT.id)).toBeDefined();
 
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: `Delete observation ${MANUAL_REPORT.title}` }),
-      ).toBeVisible(),
+      expect(screen.getByRole("button", actionsFor(MANUAL_REPORT.title))).toBeVisible(),
     );
-    await user.click(
-      screen.getByRole("button", { name: `Delete observation ${MANUAL_REPORT.title}` }),
-    );
+    await chooseAction(user, MANUAL_REPORT.title, "Delete");
     await user.click(await screen.findByRole("button", { name: "Delete observation" }));
 
     await waitFor(() => expect(db.observations.get(MANUAL_REPORT.id)).toBeUndefined());

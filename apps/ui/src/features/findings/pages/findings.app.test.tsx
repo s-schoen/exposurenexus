@@ -1,6 +1,7 @@
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
-import { screen, waitFor, within } from "@testing-library/react";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -307,12 +308,17 @@ describe("finding detail", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: ADMIN_ENDPOINT.title }),
     ).toBeVisible();
-    expect(await screen.findByRole("link", { name: `Open ${WEB_01.displayName}` })).toHaveAttribute(
+    const properties = screen.getByRole("region", { name: "Properties" });
+    expect(within(properties).getByRole("link", { name: WEB_01.displayName })).toHaveAttribute(
       "href",
       `/assets/${WEB_01.id}`,
     );
-    expect((await screen.findAllByText(MORGAN.displayName)).length).toBeGreaterThan(0);
-    expect(screen.getByText(ADMIN_ENDPOINT_CVE.title)).toBeVisible();
+    await waitFor(() =>
+      expect(within(properties).getByRole("button", { name: /^Assignee/ })).toHaveTextContent(
+        MORGAN.displayName,
+      ),
+    );
+    expect(screen.getByRole("link", { name: ADMIN_ENDPOINT_CVE.title })).toBeVisible();
   });
 
   it("goes back to the findings list", async () => {
@@ -327,15 +333,102 @@ describe("finding detail", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/findings"));
   });
 
-  it("saves a correction and closes the dialog", async () => {
+  it("edits status, severity and assignee in place", async () => {
+    const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
+    const properties = await screen.findByRole("region", { name: "Properties" });
+
+    const status = within(properties).getByRole("button", { name: /^Status/ });
+    await user.click(status);
+    await user.click(await screen.findByRole("option", { name: "Mitigated" }));
+    expect(status).toHaveTextContent("Mitigated");
+    await waitFor(() =>
+      expect(db.findings.get(ADMIN_ENDPOINT.id)?.status).toBe(FindingStatus.Mitigated),
+    );
+
+    await user.click(within(properties).getByRole("button", { name: /^Severity/ }));
+    await user.click(await screen.findByRole("option", { name: "Low" }));
+    await waitFor(() =>
+      expect(db.findings.get(ADMIN_ENDPOINT.id)?.severity).toBe(VulnerabilitySeverity.Low),
+    );
+
+    await user.click(within(properties).getByRole("button", { name: /^Assignee/ }));
+    await user.click(await screen.findByRole("option", { name: "Unassigned" }));
+    await waitFor(() => expect(db.findings.get(ADMIN_ENDPOINT.id)?.assigneeId).toBeNull());
+    expect(within(properties).getByRole("button", { name: /^Assignee/ })).toHaveTextContent(
+      "Unassigned",
+    );
+  });
+
+  it("sets and clears the due date in place, discarding it on Escape", async () => {
+    const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
+    const properties = await screen.findByRole("region", { name: "Properties" });
+    const dueDate = within(properties).getByRole("button", { name: /^Due date/ });
+
+    await user.click(dueDate);
+    fireEvent.change(await screen.findByLabelText("Due date", { selector: "input" }), {
+      target: { value: "2026-04-15" },
+    });
+    await user.keyboard("{Escape}");
+    expect(db.findings.get(ADMIN_ENDPOINT.id)?.dueDate).toEqual(ADMIN_ENDPOINT.dueDate);
+
+    await user.click(dueDate);
+    fireEvent.change(await screen.findByLabelText("Due date", { selector: "input" }), {
+      target: { value: "2026-04-15" },
+    });
+    await user.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(db.findings.get(ADMIN_ENDPOINT.id)?.dueDate).toEqual(
+        new Date("2026-04-15T00:00:00.000Z"),
+      ),
+    );
+
+    await user.click(dueDate);
+    await user.click(await screen.findByRole("button", { name: "Clear" }));
+    await waitFor(() => expect(db.findings.get(ADMIN_ENDPOINT.id)?.dueDate).toBeNull());
+    expect(dueDate).toHaveTextContent("No due date");
+  });
+
+  it("updates the list row and the triage count after an inline edit in the peek", async () => {
+    const { user } = renderApp({ path: `/findings?selected=${ADMIN_ENDPOINT.id}` });
+    const triage = await screen.findByRole("link", { name: /Triage/ });
+    await waitFor(() => expect(triage).toHaveTextContent("2"));
+    const peek = await screen.findByRole("dialog", { name: "Finding details" });
+
+    await user.click(await within(peek).findByRole("button", { name: /^Status/ }));
+    await user.click(await screen.findByRole("option", { name: "Mitigated" }));
+
+    await waitFor(() => expect(triage).toHaveTextContent("1"));
+    const row = within(screen.getByRole("list", { name: "Findings" }))
+      .getByText(ADMIN_ENDPOINT.title)
+      .closest("li")!;
+    expect(within(row).getByText("Mitigated")).toBeVisible();
+  });
+
+  it("reverts a failed inline edit and shows the error", async () => {
+    mockApiError("put", "/findings/:id", 500);
+    const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
+    const properties = await screen.findByRole("region", { name: "Properties" });
+    const status = within(properties).getByRole("button", { name: /^Status/ });
+
+    await user.click(status);
+    await user.click(await screen.findByRole("option", { name: "Mitigated" }));
+
+    expect(await screen.findByText("Failed to update finding")).toBeVisible();
+    await waitFor(() => expect(status).toHaveTextContent("Active"));
+    expect(db.findings.get(ADMIN_ENDPOINT.id)?.status).toBe(FindingStatus.Active);
+  });
+
+  it("edits the details from the header menu and closes the dialog", async () => {
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
 
-    await user.click(await screen.findByRole("button", { name: "Edit finding" }));
-    const dialog = await screen.findByRole("dialog", { name: "Correct finding" });
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit details" }));
+    const dialog = await screen.findByRole("dialog", { name: "Edit details" });
+    expect(within(dialog).queryByLabelText("Status")).not.toBeInTheDocument();
     const title = within(dialog).getByLabelText("Title");
     await user.clear(title);
     await user.type(title, "Exposed admin console");
-    await user.click(within(dialog).getByRole("button", { name: "Save correction" }));
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
 
     await waitFor(() =>
       expect(db.findings.get(ADMIN_ENDPOINT.id)?.title).toBe("Exposed admin console"),
@@ -346,20 +439,48 @@ describe("finding detail", () => {
     ).toBeVisible();
   });
 
-  it("keeps the correction open on validation errors and failed saves", async () => {
+  it("edits the details from the peek's menu", async () => {
+    const { user } = renderApp({ path: `/findings?selected=${ADMIN_ENDPOINT.id}` });
+    const peek = await screen.findByRole("dialog", { name: "Finding details" });
+
+    await user.click(await within(peek).findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit details" }));
+    const dialog = await screen.findByRole("dialog", { name: "Edit details" });
+    await user.clear(within(dialog).getByLabelText("Title"));
+    await user.type(within(dialog).getByLabelText("Title"), "Exposed admin console");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(db.findings.get(ADMIN_ENDPOINT.id)?.title).toBe("Exposed admin console"),
+    );
+  });
+
+  it("keeps the details dialog open on validation errors and failed saves", async () => {
     mockApiError("put", "/findings/:id", 500);
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
 
-    await user.click(await screen.findByRole("button", { name: "Edit finding" }));
-    const dialog = await screen.findByRole("dialog", { name: "Correct finding" });
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit details" }));
+    const dialog = await screen.findByRole("dialog", { name: "Edit details" });
     await user.clear(within(dialog).getByLabelText("Title"));
-    await user.click(within(dialog).getByRole("button", { name: "Save correction" }));
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
     expect(await within(dialog).findByText(/^Unable to save correction\. title:/)).toBeVisible();
 
     await user.type(within(dialog).getByLabelText("Title"), "Exposed admin console");
-    await user.click(within(dialog).getByRole("button", { name: "Save correction" }));
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
     expect(await within(dialog).findByText("Unable to save correction. Try again.")).toBeVisible();
     expect(db.findings.get(ADMIN_ENDPOINT.id)?.title).toBe(ADMIN_ENDPOINT.title);
+  });
+
+  it("collapses a section", async () => {
+    const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
+    const section = await screen.findByRole("button", { name: /^Vulnerabilities/ });
+    expect(screen.getByRole("link", { name: ADMIN_ENDPOINT_CVE.title })).toBeVisible();
+
+    await user.click(section);
+
+    expect(section).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("link", { name: ADMIN_ENDPOINT_CVE.title })).not.toBeInTheDocument();
   });
 
   it("links a catalog entry, guarding against duplicate submits while pending", async () => {
@@ -367,41 +488,37 @@ describe("finding detail", () => {
     const requests = recordApiRequests();
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
 
-    // The select stays disabled until the catalog has loaded.
-    const catalog = await screen.findByLabelText("Link catalog entry");
-    await waitFor(() => expect(catalog).not.toHaveAttribute("data-disabled"));
-    await user.click(catalog);
+    const link = await screen.findByRole("button", { name: "Link catalog entry" });
+    await user.click(link);
     await user.click(
       await screen.findByRole("option", { name: new RegExp(ACCOUNT_TAKEOVER.identifier) }),
     );
-    await user.click(screen.getByRole("button", { name: "Link entry" }));
-    // While pending the button shows a spinner instead of its label and cannot be used again.
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "Link entry" })).not.toBeInTheDocument(),
-    );
+    // While pending the button is disabled and cannot be used again.
+    await waitFor(() => expect(link).toBeDisabled());
 
     pending.release();
-    expect(await screen.findByText(ACCOUNT_TAKEOVER.title)).toBeVisible();
+    expect(await screen.findByRole("link", { name: ACCOUNT_TAKEOVER.title })).toBeVisible();
     expect(db.findings.get(ADMIN_ENDPOINT.id)?.vulnerabilityIds).toEqual([
       ADMIN_ENDPOINT_CVE.id,
       ACCOUNT_TAKEOVER.id,
     ]);
-    expect(screen.getByLabelText("Link catalog entry")).toHaveTextContent("Select a catalog entry");
+    await waitFor(() => expect(link).toBeEnabled());
     expect(requests.filter((request) => request.startsWith("PUT"))).toHaveLength(1);
   });
 
   it("unlinks a catalog entry only after confirmation", async () => {
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
+    const unlink = await screen.findByRole("button", {
+      name: `Unlink ${ADMIN_ENDPOINT_CVE.identifier}`,
+    });
 
-    await user.click(await screen.findByRole("button", { name: "Unlink" }));
+    await user.click(unlink);
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
     expect(db.findings.get(ADMIN_ENDPOINT.id)?.vulnerabilityIds).toEqual([ADMIN_ENDPOINT_CVE.id]);
 
-    await waitFor(() => expect(screen.getAllByRole("button", { name: "Unlink" })).toHaveLength(1));
-    await user.click(screen.getByRole("button", { name: "Unlink" }));
-    // The modal confirmation hides the row's button, leaving only its own "Unlink".
-    await screen.findByRole("button", { name: "Cancel" });
-    await user.click(screen.getByRole("button", { name: "Unlink" }));
+    await waitFor(() => expect(unlink).toBeVisible());
+    await user.click(unlink);
+    await user.click(await screen.findByRole("button", { name: "Unlink" }));
 
     await waitFor(() => expect(db.findings.get(ADMIN_ENDPOINT.id)?.vulnerabilityIds).toEqual([]));
     expect(await screen.findByText("No catalog entries are linked.")).toBeVisible();
