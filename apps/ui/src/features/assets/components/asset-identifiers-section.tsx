@@ -4,13 +4,7 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import {
   AssetIdentifierForm,
@@ -188,11 +182,6 @@ export function AssetIdentifiersSection({
             <DialogTitle>
               {dialog?.mode === "edit" ? "Edit asset identifier" : "Add asset identifier"}
             </DialogTitle>
-            <DialogDescription>
-              {dialog?.mode === "edit"
-                ? "Update the complete identity claim. The identifier keeps its existing ID."
-                : "Add a normalized identity claim to this asset."}
-            </DialogDescription>
           </DialogHeader>
           {dialog ? (
             <AssetIdentifierForm

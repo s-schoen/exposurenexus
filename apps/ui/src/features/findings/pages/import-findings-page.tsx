@@ -3,13 +3,7 @@ import { useId, useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import { Button, buttonVariants } from "@/components/ui/button.tsx";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { cn } from "@/lib/utils.ts";
@@ -54,9 +48,6 @@ export function ImportFindingsPage() {
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Upload file</CardTitle>
-          <CardDescription>
-            Select a scan export file to prepare for the future import workflow.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <Alert>
@@ -79,28 +70,19 @@ export function ImportFindingsPage() {
 
           <label
             htmlFor={inputId}
-            className="group flex w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/30 px-6 py-10 text-center transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="flex w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted px-6 py-10 text-center transition-colors duration-100 hover:border-border-strong hover:bg-accent focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20 focus-visible:outline-none"
           >
-            <div className="flex size-14 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
-              <UploadCloud className="size-7" />
-            </div>
-            <div className="space-y-1">
-              <div className="text-base font-medium">
-                {file ? "Replace selected file" : "Choose a file to import"}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Pick a scan result file from your machine.
-              </p>
+            <UploadCloud className="size-8 text-muted-foreground" strokeWidth={1.5} />
+            <div className="text-sm font-medium text-foreground-secondary">
+              {file ? "Replace selected file" : "Choose a file to import"}
             </div>
           </label>
 
           {file ? (
-            <div className="rounded-lg border border-border/80 bg-background p-4">
+            <div className="rounded-lg border border-border bg-card p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <FileJson2 className="size-5" />
-                  </div>
+                  <FileJson2 className="mt-0.5 size-4 text-muted-foreground" strokeWidth={1.5} />
                   <div className="space-y-1">
                     <div className="font-medium break-all">{file.name}</div>
                     <div className="text-sm text-muted-foreground">
