@@ -12,16 +12,24 @@ import { renderApp } from "@/test/render-app.tsx";
 const VIEWER_ROLE = SEED_ROLES.find((role) => role.id === builtInRoleIds.viewer)!;
 
 async function findRoleRow(name: string) {
-  return (await screen.findByText(name)).closest("tr")!;
+  return (
+    await within(await screen.findByRole("list", { name: "Roles" })).findByText(name)
+  ).closest("li")!;
 }
 
 describe("roles list", () => {
-  it("lists the seeded roles", async () => {
+  it("lists the seeded roles with their type and permission count", async () => {
     renderApp({ path: "/settings/roles" });
 
+    const list = await screen.findByRole("list", { name: "Roles" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(SEED_ROLES.length);
     for (const role of SEED_ROLES) {
-      expect(await screen.findByText(role.name)).toBeVisible();
+      expect(within(list).getByText(role.name)).toBeVisible();
     }
+    const viewerRow = await findRoleRow(VIEWER_ROLE.name);
+    expect(viewerRow).toHaveTextContent("Built-in");
+    expect(viewerRow).toHaveTextContent(`${VIEWER_ROLE.permissions.length} permissions`);
+    expect(await findRoleRow(CUSTOM_AUDITOR_ROLE.name)).toHaveTextContent("Custom");
   });
 
   it("shows the route error state when the role list fails", async () => {
@@ -37,7 +45,7 @@ describe("roles list", () => {
     const { router, user } = renderApp({ path: "/settings/roles?kind=Custom" });
 
     // Paste: the input is driven by the URL, so per-keystroke typing races the navigation.
-    await user.click(await screen.findByLabelText("Search across visible columns"));
+    await user.click(await screen.findByLabelText("Search"));
     await user.paste("audit");
 
     await waitFor(() =>
@@ -47,7 +55,7 @@ describe("roles list", () => {
     await waitFor(() => expect(screen.queryByText(VIEWER_ROLE.name)).not.toBeInTheDocument());
   });
 
-  it("opens the create page from the toolbar", async () => {
+  it("opens the create page from the header", async () => {
     const { router, user } = renderApp({ path: "/settings/roles" });
 
     await user.click(await screen.findByRole("button", { name: "New role" }));

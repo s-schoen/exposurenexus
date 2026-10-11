@@ -29,7 +29,11 @@ test("creates, opens and edits a user", async ({ page }) => {
   await page.getByRole("button", { name: "Create user" }).click();
   await expect(page).toHaveURL("/settings/users");
 
-  await page.getByRole("cell", { name: "Jamie Tester" }).dblclick();
+  // The row's title link also shows the email, so match the name as a prefix.
+  await page
+    .getByRole("list", { name: "Users" })
+    .getByRole("link", { name: /^Jamie Tester/ })
+    .dblclick();
   await expect(page.getByRole("heading", { level: 1, name: "Jamie Tester" })).toBeVisible();
   await page.getByRole("button", { name: "Edit user" }).click();
   await page.getByLabel("Display name").fill("Jamie Lead");

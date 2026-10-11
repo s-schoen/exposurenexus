@@ -18,19 +18,24 @@ async function fillTextField(user: ReturnType<typeof renderApp>["user"]) {
 }
 
 describe("custom fields list", () => {
-  it("lists the definitions", async () => {
+  it("lists the definitions with their type", async () => {
     renderApp({ path: "/settings/custom-fields" });
 
+    const list = await screen.findByRole("list", { name: "Custom fields" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(SEED_CUSTOM_FIELDS.length);
     for (const field of SEED_CUSTOM_FIELDS) {
-      expect(await screen.findByText(field.name)).toBeVisible();
+      expect(within(list).getByText(field.name)).toBeVisible();
     }
+    const priorityRow = within(list).getByText(PRIORITY.name).closest("li")!;
+    expect(priorityRow).toHaveTextContent("Number");
+    expect(priorityRow).toHaveTextContent("Required");
   });
 
   it("keeps the search filter in the URL", async () => {
     const { router, user } = renderApp({ path: "/settings/custom-fields" });
 
     // Paste: the input is driven by the URL, so per-keystroke typing races the navigation.
-    await user.click(await screen.findByLabelText("Search across visible columns"));
+    await user.click(await screen.findByLabelText("Search"));
     await user.paste("tier");
 
     await waitFor(() => expect(router.state.location.search).toMatchObject({ filter: "tier" }));
@@ -38,7 +43,7 @@ describe("custom fields list", () => {
     expect(screen.getByText(DEPLOYMENT_TIER.name)).toBeVisible();
   });
 
-  it("opens the create page from the toolbar", async () => {
+  it("opens the create page from the header", async () => {
     const { router, user } = renderApp({ path: "/settings/custom-fields" });
 
     await user.click(await screen.findByRole("button", { name: "New custom field" }));
@@ -80,7 +85,7 @@ describe("custom fields list", () => {
     const { user } = renderApp({ path: "/settings/custom-fields" });
 
     for (const field of [CATEGORY, PRIORITY]) {
-      const row = (await screen.findByText(field.name)).closest("tr")!;
+      const row = (await screen.findByText(field.name)).closest("li")!;
       await user.click(within(row).getByRole("checkbox", { name: "Select row" }));
     }
     await user.click(screen.getByRole("button", { name: "Delete" }));

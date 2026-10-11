@@ -69,10 +69,13 @@ interface DataListProps<TData extends RowData> {
   contextMenu?: (rows: Array<TData>, children: ReactElement, key: string) => ReactNode;
   /** Shown when there is no data at all; filtered-out data gets a "Clear filters" state. */
   emptyState?: ReactNode;
+  /** Renders the rows in a bordered container under the toolbar, as in the centered settings column. */
+  inset?: boolean;
 }
 
 // Plane-style list rows over the headless data-table setup: a toolbar with search, filter chips
 // and the Filters and Display popovers, then full-bleed rows, optionally in collapsible groups.
+// Inset lists keep the page padding and put the rows in a bordered container instead.
 export function DataList<TData extends RowData>({
   label,
   columns,
@@ -93,6 +96,7 @@ export function DataList<TData extends RowData>({
   isRowActive,
   contextMenu,
   emptyState,
+  inset = false,
 }: DataListProps<TData>) {
   const listRows = rows ?? query?.data ?? [];
   const isPending = query?.isPending ?? false;
@@ -346,11 +350,12 @@ export function DataList<TData extends RowData>({
 
   return (
     <div
-      data-full-bleed
+      data-full-bleed={!inset || undefined}
       data-selecting={selectedRows.length > 0 || undefined}
       className="group/list flex flex-col"
     >
       <DataListToolbar
+        inset={inset}
         table={table}
         filterState={resolvedFilterState}
         groupingOptions={groupingOptions}
@@ -360,7 +365,11 @@ export function DataList<TData extends RowData>({
         onDeleteSelected={onRowDelete ? () => onRowDelete(selectedRows) : undefined}
         onClearSelection={() => table.resetRowSelection()}
       />
-      {renderBody()}
+      {inset ? (
+        <div className="overflow-hidden rounded-lg border border-border">{renderBody()}</div>
+      ) : (
+        renderBody()
+      )}
     </div>
   );
 }

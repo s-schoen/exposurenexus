@@ -5,6 +5,7 @@ import { DisplayPopover } from "@/components/data-list/display-popover.tsx";
 import { FiltersPopover } from "@/components/data-list/filters-popover.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { cn } from "@/lib/utils.ts";
 
 import type {
   DataTableColumn,
@@ -16,6 +17,8 @@ import type { RowData } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 
 interface DataListToolbarProps<TData extends RowData> {
+  /** Sits above a bordered list instead of sticking to the top of a full-bleed one. */
+  inset: boolean;
   table: DataTableTable<TData>;
   filterState: DataTableFilterState;
   groupingOptions: Array<GroupingOption>;
@@ -27,6 +30,7 @@ interface DataListToolbarProps<TData extends RowData> {
 }
 
 export function DataListToolbar<TData extends RowData>({
+  inset,
   table,
   filterState,
   groupingOptions,
@@ -41,7 +45,12 @@ export function DataListToolbar<TData extends RowData>({
     .filter((column) => column.getCanFilter() && column.columnDef.meta?.filterVariant);
 
   return (
-    <div className="sticky top-0 z-10 flex min-h-11 flex-wrap items-center gap-2 border-b border-border bg-card px-5 py-2">
+    <div
+      className={cn(
+        "flex min-h-11 flex-wrap items-center gap-2",
+        inset ? "pb-3" : "sticky top-0 z-10 border-b border-border bg-card px-5 py-2",
+      )}
+    >
       <SearchInput
         value={filterState.globalFilter}
         onChange={(value) => table.setGlobalFilter(value || undefined)}
