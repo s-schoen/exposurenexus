@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
-import { cn } from "@/lib/utils.ts";
 
 import type { ReactNode } from "react";
 
@@ -53,7 +52,7 @@ export function DetailPreviewDialog({
               {fullPageHref && (
                 <a
                   href={fullPageHref}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-xl")}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
                 >
                   <Expand />
                   {fullPageLabel}

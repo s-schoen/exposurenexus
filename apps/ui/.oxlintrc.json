@@ -113,7 +113,7 @@
               },
               {
                 "pattern": "^(CardTitle|CardDescription)$",
-                "allow": ["layout", "typography", "tracking-eyebrow"],
+                "allow": ["layout", "typography"],
                 "deny": ["font-*"]
               },
               { "pattern": "^Skeleton$", "allow": ["layout", "shape"] },

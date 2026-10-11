@@ -291,7 +291,7 @@ export function AssetDetailContent({ asset, titleAction }: AssetDetailContentPro
           </div>
           <div className="space-y-3">
             <div className="space-y-2">
-              <CardTitle className="text-2xl tracking-tight">{assetData.displayName}</CardTitle>
+              <CardTitle className="text-2xl">{assetData.displayName}</CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
                 Inventory record representing a tracked platform asset that can be linked to
                 findings and vulnerability exposure.
@@ -564,9 +564,7 @@ function CustomFieldsSectionTitle({
 }: CustomFieldsSectionTitleProps) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <h3 className="text-xs font-medium uppercase tracking-eyebrow text-muted-foreground">
-        Custom fields
-      </h3>
+      <h3 className="text-13 font-semibold text-subtle-foreground">Custom fields</h3>
       <AssetCustomFieldAssignmentPicker
         availableCustomFields={availableCustomFields}
         isPending={isAvailablePending}
@@ -655,7 +653,7 @@ function AssetCustomFieldSidebarRow({
 
   return (
     <div className="space-y-2">
-      <span className="block min-w-0 text-xs font-medium uppercase tracking-eyebrow text-muted-foreground">
+      <span className="block min-w-0 text-13 font-semibold text-subtle-foreground">
         {field.name}
       </span>
       <div className="flex items-center justify-between gap-2">

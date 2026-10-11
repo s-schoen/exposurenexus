@@ -52,7 +52,7 @@ export function DashboardPage() {
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
             <div className="space-y-2">
               <div className="space-y-1">
-                <CardTitle className="text-2xl tracking-tight">Overview</CardTitle>
+                <CardTitle className="text-2xl">Overview</CardTitle>
               </div>
             </div>
           </div>
@@ -71,7 +71,6 @@ export function DashboardPage() {
                 variant="panel"
                 className="h-full"
                 tone={item.tone}
-                eyebrowTitle
               />
             </Link>
           ))}
@@ -202,7 +201,7 @@ function OverviewChartCard({
       </CardHeader>
       <CardContent>
         {chartData.length === 0 ? (
-          <div className="flex h-96 items-center justify-center rounded-xl border border-dashed border-border/70 bg-background/60 text-sm text-muted-foreground">
+          <div className="flex h-96 items-center justify-center rounded-lg border border-dashed border-border/70 bg-card text-sm text-muted-foreground">
             {emptyMessage}
           </div>
         ) : (

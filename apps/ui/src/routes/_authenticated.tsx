@@ -32,11 +32,11 @@ function Layout() {
             <SidebarInset className="w-auto min-w-0 overflow-hidden">
               <main className="flex flex-1 flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-5 lg:px-7">
-                  <section className="rounded-3xl border border-border/70 bg-shell-panel-strong/90 p-4 shadow-sm sm:p-5">
+                  <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                       <div className="min-w-0 space-y-2">
                         <div className="space-y-1">
-                          <h1 className="truncate text-3xl font-semibold tracking-tight text-foreground">
+                          <h1 className="truncate text-2xl font-semibold text-foreground">
                             {title}
                           </h1>
                           {description && (

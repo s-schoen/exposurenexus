@@ -27,7 +27,7 @@ export function AssetDetailPage({ assetId }: AssetDetailPageProps) {
         <Link
           to="/assets"
           search={{ filter: undefined, selected: undefined }}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 rounded-xl")}
+          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2")}
         >
           <ArrowLeft />
           Back to assets

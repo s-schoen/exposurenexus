@@ -1000,7 +1000,7 @@ function ObservationCard({ observation }: { observation: Observation }) {
   const identifiers = Object.entries(observation.weakness.identifiers);
 
   return (
-    <article className="rounded-2xl border border-border/70 bg-muted/10 p-4 sm:p-5">
+    <article className="rounded-lg border border-border/70 bg-muted/10 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-semibold">{observation.title}</h3>
@@ -1023,17 +1023,13 @@ function ObservationCard({ observation }: { observation: Observation }) {
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {observation.evidence ? (
           <div>
-            <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              Evidence
-            </h4>
+            <h4 className="text-13 font-semibold text-subtle-foreground">Evidence</h4>
             <SafeMarkdown className="mt-1">{observation.evidence}</SafeMarkdown>
           </div>
         ) : null}
         {observation.remediation ? (
           <div>
-            <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              Remediation
-            </h4>
+            <h4 className="text-13 font-semibold text-subtle-foreground">Remediation</h4>
             <SafeMarkdown className="mt-1">{observation.remediation}</SafeMarkdown>
           </div>
         ) : null}
@@ -1041,9 +1037,7 @@ function ObservationCard({ observation }: { observation: Observation }) {
       <Separator className="my-4" />
       <div className="grid gap-4 lg:grid-cols-2">
         <div>
-          <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Weakness
-          </h4>
+          <h4 className="text-13 font-semibold text-subtle-foreground">Weakness</h4>
           <p className="mt-1 text-sm">
             {identifiers.length
               ? identifiers
@@ -1053,9 +1047,7 @@ function ObservationCard({ observation }: { observation: Observation }) {
           </p>
         </div>
         <div>
-          <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Affected resource
-          </h4>
+          <h4 className="text-13 font-semibold text-subtle-foreground">Affected resource</h4>
           <p className="mt-1 text-sm font-medium">
             {formatResourceType(observation.affectedResource.type)}
           </p>
@@ -1316,7 +1308,7 @@ export function FindingObservationsSection({ finding }: FindingObservationsSecti
         ) : observations.isError ? (
           <div
             role="alert"
-            className="rounded-xl border border-destructive/30 bg-destructive/5 p-4"
+            className="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
           >
             <p className="font-medium">Unable to load observations</p>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -1339,7 +1331,7 @@ export function FindingObservationsSection({ finding }: FindingObservationsSecti
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border p-6 text-center">
+          <div className="rounded-lg border border-dashed border-border p-6 text-center">
             <p className="font-medium">No observations recorded</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Add manual evidence to support this finding.

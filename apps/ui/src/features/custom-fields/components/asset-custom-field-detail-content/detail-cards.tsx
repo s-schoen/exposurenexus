@@ -16,7 +16,7 @@ import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/
 import type { ReactNode } from "react";
 
 const FIELD_VALUE_CLASS =
-  "rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground";
+  "rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground";
 
 export function CustomFieldRequiredBadge({ required }: { required: boolean }) {
   return (
@@ -42,7 +42,7 @@ export function CustomFieldOverviewCard({
         </div>
         <div className="space-y-3">
           <div className="space-y-2">
-            <CardTitle className="text-2xl tracking-tight">{field.name}</CardTitle>
+            <CardTitle className="text-2xl">{field.name}</CardTitle>
             <CardDescription className="max-w-3xl text-sm leading-6">
               Asset metadata field definition used to capture additional registry information.
             </CardDescription>
@@ -123,7 +123,7 @@ export function SelectOptionsCard({ field }: { field: AssetCustomFieldDefinition
         {field.options.map((option) => (
           <div
             key={option.id}
-            className="grid gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3 md:grid-cols-2"
+            className="grid gap-3 rounded-lg border border-border/70 bg-muted/20 px-4 py-3 md:grid-cols-2"
           >
             <DefinitionValue label="Value" value={option.value} mono />
             <DefinitionValue label="Label" value={option.label} />

@@ -34,8 +34,8 @@ export function AccountMenu() {
           status === "loading" ? (
             <Spinner />
           ) : (
-            <div className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border/70 bg-background/75 px-4 py-2 shadow-sm transition-colors hover:bg-muted/70">
-              <Avatar className="size-9">
+            <div className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent">
+              <Avatar size="sm">
                 <AvatarFallback className="select-none">{initial}</AvatarFallback>
               </Avatar>
               <div className="hidden min-w-0 text-left sm:block">
