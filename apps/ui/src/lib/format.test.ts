@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCount, formatDate } from "@/lib/format.ts";
+import { formatCount, formatDate, formatShortDate } from "@/lib/format.ts";
 
 describe("formatCount", () => {
   it("uses the singular label for one item", () => {
@@ -22,5 +22,33 @@ describe("formatDate", () => {
     const date = new Date("2026-06-07T09:00:00.000Z");
 
     expect(formatDate(date)).toBe(date.toLocaleDateString());
+  });
+});
+
+describe("formatShortDate", () => {
+  const today = new Date("2026-06-07T09:00:00.000Z");
+
+  it("leaves out the current year", () => {
+    const date = new Date("2026-02-01T12:00:00.000Z");
+
+    expect(formatShortDate(date, { today })).toBe(
+      date.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    );
+  });
+
+  it("shows other years", () => {
+    const date = new Date("2025-02-01T12:00:00.000Z");
+
+    expect(formatShortDate(date, { today })).toBe(
+      date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }),
+    );
+  });
+
+  it("reads date-only values in UTC", () => {
+    const date = new Date("2026-05-06T00:00:00.000Z");
+
+    expect(formatShortDate(date, { timeZone: "UTC", today })).toBe(
+      date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }),
+    );
   });
 });
