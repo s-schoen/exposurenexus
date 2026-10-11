@@ -1,7 +1,7 @@
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { Link } from "@tanstack/react-router";
 import { Link2, Maximize2, X } from "lucide-react";
-import { Suspense, createContext, use, useState } from "react";
+import { Suspense, createContext, use, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { findDataListRowFocusTarget } from "@/components/data-list/data-list.tsx";
@@ -44,6 +44,7 @@ export function DetailPeek({
   onClose,
 }: DetailPeekProps) {
   const container = use(PeekContainerContext);
+  const popupRef = useRef<HTMLDivElement>(null);
   // Keeps the last id after the selection clears, so the panel slides out with its content.
   const [shownId, setShownId] = useState(selectedId);
 
@@ -80,7 +81,10 @@ export function DetailPeek({
     >
       <DialogPrimitive.Portal container={container}>
         <DialogPrimitive.Popup
+          ref={popupRef}
           data-slot="detail-peek"
+          // Focus the panel, not its first button, so opening it shows no focus ring.
+          initialFocus={popupRef}
           finalFocus={() => (shownId ? findDataListRowFocusTarget(shownId) : null) ?? true}
           className="absolute inset-y-0 right-0 z-20 flex w-full flex-col border-l border-border bg-card shadow-peek transition duration-300 ease-snappy outline-none data-ending-style:translate-x-full data-ending-style:opacity-0 data-ending-style:duration-150 data-ending-style:ease-in data-starting-style:translate-x-full data-starting-style:opacity-0 md:w-1/2 md:min-w-96"
         >
