@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 import type { LucideIcon } from "lucide-react";
 
@@ -10,50 +10,47 @@ export interface PageAction {
   disabled?: boolean;
 }
 
-export interface PageState {
-  title: string;
-  setTitle: (title: string) => void;
-  description: string;
-  setDescription: (description: string) => void;
-  actions: Array<PageAction>;
-  setActions: (actions: Array<PageAction>) => void;
+/** A parent page in the header breadcrumbs. The current page is the title. */
+export interface PageBreadcrumb {
+  label: string;
+  to: string;
 }
 
-interface UsePageMetaOptions {
+export interface PageMeta {
   title: string;
-  description?: string;
-  actions?: Array<PageAction>;
+  icon?: LucideIcon;
+  breadcrumbs: Array<PageBreadcrumb>;
+  count?: number;
+  actions: Array<PageAction>;
+  /** Less common actions, listed in the header's ⋯ menu. */
+  menu: Array<PageAction>;
 }
+
+type UsePageMetaOptions = Partial<Omit<PageMeta, "title">> & Pick<PageMeta, "title">;
 
 const EMPTY_PAGE_ACTIONS: Array<PageAction> = [];
+const EMPTY_BREADCRUMBS: Array<PageBreadcrumb> = [];
+const EMPTY_PAGE_META: PageMeta = {
+  title: "",
+  breadcrumbs: EMPTY_BREADCRUMBS,
+  actions: EMPTY_PAGE_ACTIONS,
+  menu: EMPTY_PAGE_ACTIONS,
+};
 
-type PageSetters = Pick<PageState, "setTitle" | "setDescription" | "setActions">;
+type SetPageMeta = React.Dispatch<React.SetStateAction<PageMeta>>;
 
-const PageContext = createContext<PageState | undefined>(undefined);
-// Setters get their own context so pages that publish meta don't re-render when it changes:
+const PageContext = createContext<PageMeta | undefined>(undefined);
+// The setter gets its own context so pages that publish meta don't re-render when it changes:
 // with a single context, a page passing a new `actions` array each render re-rendered forever.
-const PageSettersContext = createContext<PageSetters | undefined>(undefined);
+const SetPageMetaContext = createContext<SetPageMeta | undefined>(undefined);
 
 export function PageProvider({ children }: { children: React.ReactNode }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [actions, setActions] = useState<Array<PageAction>>([]);
-  // `useState` setters are stable, so this value never changes.
-  const setters = useMemo(() => ({ setTitle, setDescription, setActions }), []);
+  const [meta, setMeta] = useState<PageMeta>(EMPTY_PAGE_META);
 
   return (
-    <PageSettersContext.Provider value={setters}>
-      <PageContext.Provider
-        value={{
-          title,
-          description,
-          actions,
-          ...setters,
-        }}
-      >
-        {children}
-      </PageContext.Provider>
-    </PageSettersContext.Provider>
+    <SetPageMetaContext.Provider value={setMeta}>
+      <PageContext.Provider value={meta}>{children}</PageContext.Provider>
+    </SetPageMetaContext.Provider>
   );
 }
 
@@ -65,8 +62,8 @@ export function usePage() {
   return context;
 }
 
-function usePageSetters() {
-  const context = useContext(PageSettersContext);
+function useSetPageMeta() {
+  const context = useContext(SetPageMetaContext);
   if (context === undefined) {
     throw new Error("usePageMeta must be used within an PageProvider");
   }
@@ -75,20 +72,26 @@ function usePageSetters() {
 
 export function usePageMeta({
   title,
-  description = "",
+  icon,
+  breadcrumbs = EMPTY_BREADCRUMBS,
+  count,
   actions = EMPTY_PAGE_ACTIONS,
+  menu = EMPTY_PAGE_ACTIONS,
 }: UsePageMetaOptions) {
-  const { setTitle, setDescription, setActions } = usePageSetters();
+  const setMeta = useSetPageMeta();
 
   useEffect(() => {
-    setTitle(title);
-    setDescription(description);
-  }, [description, setDescription, setTitle, title]);
+    setMeta((previous) => ({ ...previous, title, icon, breadcrumbs, count }));
+  }, [breadcrumbs, count, icon, setMeta, title]);
 
   useEffect(() => {
-    setActions(actions);
+    setMeta((previous) => ({ ...previous, actions, menu }));
     return () => {
-      setActions([]);
+      setMeta((previous) => ({
+        ...previous,
+        actions: EMPTY_PAGE_ACTIONS,
+        menu: EMPTY_PAGE_ACTIONS,
+      }));
     };
-  }, [actions, setActions]);
+  }, [actions, menu, setMeta]);
 }

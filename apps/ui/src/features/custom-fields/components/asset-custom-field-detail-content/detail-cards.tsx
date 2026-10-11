@@ -13,7 +13,6 @@ import {
 
 import type { CustomFieldSummary } from "@/features/custom-fields/components/asset-custom-field-detail-content/helpers.ts";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
-import type { ReactNode } from "react";
 
 const FIELD_VALUE_CLASS =
   "rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground";
@@ -27,17 +26,14 @@ export function CustomFieldRequiredBadge({ required }: { required: boolean }) {
 export function CustomFieldOverviewCard({
   field,
   summary,
-  titleAction,
 }: {
   field: AssetCustomFieldDefinition;
   summary: CustomFieldSummary;
-  titleAction?: ReactNode;
 }) {
   return (
     <Card>
       <CardHeader className="gap-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">{titleAction}</div>
+        <div className="flex items-center justify-end gap-3">
           <CustomFieldRequiredBadge required={field.required} />
         </div>
         <div className="space-y-3">

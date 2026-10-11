@@ -110,7 +110,11 @@ describe("custom field detail", () => {
       path: `/custom-fields/${PRIORITY.id}?filter=pri&selected=${PRIORITY.id}`,
     });
 
-    await user.click(await screen.findByRole("link", { name: "Back to custom fields" }));
+    await user.click(
+      within(await screen.findByRole("navigation", { name: "Breadcrumb" })).getByRole("link", {
+        name: "Custom Fields",
+      }),
+    );
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/custom-fields"));
     expect(router.state.location.search).toEqual({ filter: "pri" });

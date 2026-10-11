@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { KeyRound } from "lucide-react";
 
 import {
   RoleForm,
@@ -25,8 +26,12 @@ export function EditRolePage({ roleId }: EditRolePageProps) {
   const roles = useSuspenseQuery(createListRolesQueryOptions());
 
   usePageMeta({
-    title: role.data.name ? `Edit ${role.data.name}` : "Edit Role",
-    description: "Update the role name and permission grants.",
+    title: "Edit",
+    icon: KeyRound,
+    breadcrumbs: [
+      { label: "Roles", to: "/roles" },
+      { label: role.data.name, to: `/roles/${roleId}` },
+    ],
   });
 
   const handleCancel = async () => {

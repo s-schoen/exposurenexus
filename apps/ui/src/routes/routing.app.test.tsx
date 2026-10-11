@@ -22,7 +22,7 @@ describe("list routes", () => {
   it.each([
     ["/assets", "Assets", SEED_ASSETS[0].id, "Asset details"],
     ["/findings", "Findings", SEED_FINDINGS[0].id, "Finding details"],
-    ["/findings/triage", "Triage Queue", SEED_FINDINGS[0].id, "Finding details"],
+    ["/findings/triage", "Triage", SEED_FINDINGS[0].id, "Finding details"],
     ["/users", "Users", SEED_USERS[1].id, "User details"],
     ["/vulnerabilities", "Vulnerabilities", SEED_VULNERABILITIES[0].id, "Catalog entry details"],
     ["/custom-fields", "Custom Fields", SEED_CUSTOM_FIELDS[0].id, "Custom field details"],
@@ -57,25 +57,28 @@ describe("list routes", () => {
 });
 
 describe("authenticated shell", () => {
-  it("shows navigation with finding counts for triage and findings", async () => {
+  it("shows the navigation with a triage count", async () => {
     renderApp({ path: "/roles" });
-    const nav = await screen.findByRole("link", { name: /Triage queue/ });
+    const triage = await screen.findByRole("link", { name: /Triage/ });
 
-    expect(screen.getByText("Explore")).toBeVisible();
-    expect(screen.getByText("Manage")).toBeVisible();
-    // Seed: two active findings to triage, one confirmed finding awaiting mitigation.
-    await waitFor(() => expect(nav).toHaveTextContent("2"));
-    expect(screen.getByRole("link", { name: /Findings on your assets/ })).toHaveTextContent("1");
-    expect(screen.getByRole("link", { name: /Import/ })).toHaveAttribute(
+    expect(screen.getByText("Exposure")).toBeVisible();
+    for (const label of ["Dashboard", "Findings", "Assets", "Vulnerabilities"]) {
+      expect(screen.getByRole("link", { name: label })).toBeVisible();
+    }
+    // Seed: two active findings to triage.
+    await waitFor(() => expect(triage).toHaveTextContent("2"));
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/users");
+    expect(screen.getByRole("link", { name: "New finding" })).toHaveAttribute(
       "href",
-      "/findings/import",
+      "/findings/new",
     );
+    expect(screen.queryByRole("link", { name: /Import/ })).not.toBeInTheDocument();
   });
 
   it("hides zero counts", async () => {
     renderApp({ path: "/roles", scenario: "empty" });
 
-    const triage = await screen.findByRole("link", { name: /Triage queue/ });
+    const triage = await screen.findByRole("link", { name: /Triage/ });
     await screen.findByRole("heading", { level: 1, name: "Roles" });
     expect(within(triage).queryByText("0")).not.toBeInTheDocument();
   });
@@ -83,17 +86,49 @@ describe("authenticated shell", () => {
   it.each([
     ["/", "Dashboard"],
     [`/assets/${SEED_ASSETS[0].id}`, "Assets"],
-    ["/findings/triage", "Triage queue"],
+    ["/findings/triage", "Triage"],
     ["/findings", "Findings"],
     [`/findings/${SEED_FINDINGS[0].id}`, "Findings"],
+    ["/findings/import", "Findings"],
     [`/vulnerabilities/${SEED_VULNERABILITIES[0].id}`, "Vulnerabilities"],
-    [`/users/${SEED_USERS[0].id}`, "Users"],
-    [`/roles/${CUSTOM_AUDITOR_ROLE.id}`, "Roles"],
-    [`/custom-fields/${SEED_CUSTOM_FIELDS[0].id}`, "Custom Fields"],
-    ["/findings/import", "Import"],
+    [`/users/${SEED_USERS[0].id}`, "Settings"],
+    [`/roles/${CUSTOM_AUDITOR_ROLE.id}`, "Settings"],
+    [`/custom-fields/${SEED_CUSTOM_FIELDS[0].id}`, "Settings"],
   ])("marks the navigation item for %s as active", async (path, label) => {
     renderApp({ path });
 
     await waitFor(() => expect(activeNavItem()).toHaveTextContent(label));
+  });
+
+  it("shows the list count in the page header", async () => {
+    renderApp({ path: "/vulnerabilities" });
+
+    const heading = await screen.findByRole("heading", { level: 1, name: "Vulnerabilities" });
+    expect(heading.parentElement).toHaveTextContent(String(SEED_VULNERABILITIES.length));
+  });
+
+  it("opens the import page from the findings header menu", async () => {
+    const { router, user } = renderApp({ path: "/findings" });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Import findings" }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/findings/import"));
+    expect(await screen.findByRole("heading", { level: 1, name: "Import Findings" })).toBeVisible();
+  });
+
+  it("links detail pages back to their list through breadcrumbs", async () => {
+    const [ROBIN] = SEED_USERS;
+    const { router, user } = renderApp({ path: `/users/${ROBIN.id}/edit` });
+    const breadcrumb = () => screen.findByRole("navigation", { name: "Breadcrumb" });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Edit" })).toBeVisible();
+    await user.click(within(await breadcrumb()).getByRole("link", { name: ROBIN.displayName }));
+    expect(await screen.findByRole("heading", { level: 1, name: ROBIN.displayName })).toBeVisible();
+    expect(router.state.location.pathname).toBe(`/users/${ROBIN.id}`);
+
+    await user.click(within(await breadcrumb()).getByRole("link", { name: "Users" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Users" })).toBeVisible();
+    expect(router.state.location.pathname).toBe("/users");
   });
 });

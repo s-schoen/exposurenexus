@@ -153,7 +153,11 @@ describe("finding detail", () => {
   it("goes back to the findings list", async () => {
     const { router, user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
 
-    await user.click(await screen.findByRole("link", { name: "Back to findings" }));
+    await user.click(
+      within(await screen.findByRole("navigation", { name: "Breadcrumb" })).getByRole("link", {
+        name: "Findings",
+      }),
+    );
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/findings"));
   });

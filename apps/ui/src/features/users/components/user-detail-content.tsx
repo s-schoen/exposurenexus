@@ -14,12 +14,10 @@ import {
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
-import type { ReactNode } from "react";
 
 interface UserDetailContentProps {
   user: UserProfile;
   roles: Array<Role>;
-  titleAction?: ReactNode;
 }
 
 function UserStatusBadge({ enabled }: { enabled: boolean }) {
@@ -28,7 +26,7 @@ function UserStatusBadge({ enabled }: { enabled: boolean }) {
   );
 }
 
-export function UserDetailContent({ user: userData, roles, titleAction }: UserDetailContentProps) {
+export function UserDetailContent({ user: userData, roles }: UserDetailContentProps) {
   const displayName = userData.displayName;
   const roleLabelById = new Map(roles.map((role) => [role.id, role.name]));
   const resolvedRoleLabels = userData.roleIds.flatMap((roleId) => {
@@ -66,8 +64,7 @@ export function UserDetailContent({ user: userData, roles, titleAction }: UserDe
     return (
       <Card>
         <CardHeader className="gap-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">{titleAction}</div>
+          <div className="flex items-center justify-end gap-3">
             <UserStatusBadge enabled={userData.enabled} />
           </div>
           <div className="space-y-3">

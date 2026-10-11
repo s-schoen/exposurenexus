@@ -23,35 +23,32 @@ export function AccountMenu() {
     void navigate({ to: "/login", search: { redirect: "/" } });
   };
 
+  if (status === "loading") {
+    return <Spinner />;
+  }
+
   const displayName = user?.displayName ?? user?.email ?? "Account";
   const initial = displayName.at(0)?.toUpperCase() ?? "?";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        nativeButton={false}
         render={
-          status === "loading" ? (
-            <Spinner />
-          ) : (
-            <div className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors duration-100 hover:bg-accent">
-              <Avatar size="sm">
-                <AvatarFallback className="select-none">{initial}</AvatarFallback>
-              </Avatar>
-              <div className="hidden min-w-0 text-left sm:block">
-                <p className="truncate text-sm font-medium text-foreground select-none">
-                  {displayName}
-                </p>
-                <p className="truncate text-xs text-muted-foreground select-none">Account</p>
-              </div>
-            </div>
-          )
+          <button
+            type="button"
+            aria-label={displayName}
+            className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/20"
+          />
         }
-      ></DropdownMenuTrigger>
+      >
+        <Avatar className="size-7">
+          <AvatarFallback>{initial}</AvatarFallback>
+        </Avatar>
+      </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-56" align="start">
+      <DropdownMenuContent align="end">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Profile</DropdownMenuLabel>
+          <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
           <DropdownMenuItem onClick={onSignOut}>Sign Out</DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

@@ -1,4 +1,4 @@
-import { CircleAlert, FileJson2, UploadCloud, X } from "lucide-react";
+import { CircleAlert, FileJson2, ShieldAlert, UploadCloud, X } from "lucide-react";
 import { useId, useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
@@ -35,7 +35,8 @@ export function ImportFindingsPage() {
 
   usePageMeta({
     title: "Import Findings",
-    description: "Automated scan imports are currently work in progress.",
+    icon: ShieldAlert,
+    breadcrumbs: [{ label: "Findings", to: "/findings" }],
   });
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {

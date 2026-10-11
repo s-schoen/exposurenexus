@@ -3,6 +3,7 @@ import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { ShieldAlert } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.tsx";
@@ -362,7 +363,8 @@ function renderResourceFields(
 export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
   usePageMeta({
     title: "Create Finding",
-    description: "Create a new finding manually.",
+    icon: ShieldAlert,
+    breadcrumbs: [{ label: "Findings", to: "/findings" }],
   });
 
   const findingLifecycle = useFindingLifecycle();

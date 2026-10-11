@@ -1,4 +1,6 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { Bug } from "lucide-react";
 import { lazy, Suspense } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
@@ -6,6 +8,7 @@ import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
 import { VulnerabilityTable } from "@/features/vulnerabilities/components/vulnerability-table/index.tsx";
 import { useVulnerabilityLifecycle } from "@/features/vulnerabilities/hooks/use-vulnerability-lifecycle.ts";
 import { useVulnerabilityTableSearchState } from "@/features/vulnerabilities/hooks/use-vulnerability-table-search-state.ts";
+import { createListVulnerabilitiesQueryOptions } from "@/features/vulnerabilities/queries/vulnerabilities.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
@@ -28,6 +31,7 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
   const { filterState, onFilterStateChange } = useVulnerabilityTableSearchState({
     search,
   });
+  const vulnerabilitiesQuery = useSuspenseQuery(createListVulnerabilitiesQueryOptions());
   const selectedSearch = useSelectedSearchParam<VulnerabilityCatalog>({
     selectedId: selected,
     to: "/vulnerabilities",
@@ -36,7 +40,8 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
 
   usePageMeta({
     title: "Vulnerabilities",
-    description: "Browse catalog entries and inspect their enrichment metadata.",
+    icon: Bug,
+    count: vulnerabilitiesQuery.data.length,
   });
 
   const handleDeleteVulnerabilities = async (vulnerabilities: Array<VulnerabilityCatalog>) => {

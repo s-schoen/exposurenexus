@@ -45,7 +45,10 @@ test("goes from the detail page back to the list", async ({ page }) => {
 
   await expect(page.getByRole("heading", { level: 1, name: WEB_01.displayName })).toBeVisible();
   await expect(page.getByText(WEB_01.identifiers[0].value)).toBeVisible();
-  await page.getByRole("link", { name: "Back to assets" }).click();
+  await page
+    .getByRole("navigation", { name: "Breadcrumb" })
+    .getByRole("link", { name: "Assets" })
+    .click();
 
   await expect(page).toHaveURL("/assets");
   await expect(page.getByRole("cell", { name: API_WORKER.displayName, exact: true })).toBeVisible();

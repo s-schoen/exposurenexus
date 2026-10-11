@@ -87,7 +87,11 @@ describe("user detail", () => {
       path: `/users/${MORGAN.id}?filter=morgan&selected=${MORGAN.id}`,
     });
 
-    await user.click(await screen.findByRole("link", { name: "Back to users" }));
+    await user.click(
+      within(await screen.findByRole("navigation", { name: "Breadcrumb" })).getByRole("link", {
+        name: "Users",
+      }),
+    );
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/users"));
     expect(router.state.location.search).toEqual({ filter: "morgan" });

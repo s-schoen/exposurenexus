@@ -1,7 +1,13 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { ShieldAlert, Upload } from "lucide-react";
+import { useMemo } from "react";
+
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
 import { FindingPreview } from "@/features/findings/components/finding-preview.tsx";
 import { FindingTable } from "@/features/findings/components/finding-table/index.tsx";
 import { useFindingTableSearchState } from "@/features/findings/hooks/use-finding-table-search-state.ts";
+import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
@@ -13,6 +19,8 @@ interface FindingsPageProps {
 }
 
 export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
+  const navigate = useNavigate();
+  const findings = useSuspenseQuery(createListFindingsQueryOptions());
   const { filterState, onFilterStateChange } = useFindingTableSearchState({
     search,
     to: "/findings",
@@ -24,10 +32,24 @@ export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
     getId: (finding) => finding.id,
   });
 
+  const menu = useMemo(
+    () => [
+      {
+        label: "Import findings",
+        icon: Upload,
+        onClick: () => {
+          void navigate({ to: "/findings/import" });
+        },
+      },
+    ],
+    [navigate],
+  );
+
   usePageMeta({
     title: "Findings",
-    description:
-      "Track active findings, assignment, severity, and mitigation status across assets.",
+    icon: ShieldAlert,
+    count: findings.data.length,
+    menu,
   });
 
   return (

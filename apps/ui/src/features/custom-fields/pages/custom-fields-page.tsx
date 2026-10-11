@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { Tags } from "lucide-react";
 import { lazy, Suspense } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
@@ -40,7 +41,8 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
 
   usePageMeta({
     title: "Custom Fields",
-    description: "Manage asset metadata fields.",
+    icon: Tags,
+    count: customFieldsQuery.data.length,
   });
 
   const handleOpenCustomField = async (field: AssetCustomFieldDefinition) => {

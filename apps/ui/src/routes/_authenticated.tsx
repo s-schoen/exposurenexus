@@ -4,8 +4,8 @@ import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import AppHeader from "@/components/app-header.tsx";
 import { AppSidebar } from "@/components/app-sidebar.tsx";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar.tsx";
+import { PageHeader } from "@/components/page-header.tsx";
+import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
 import { AssetDialog } from "@/features/assets";
 import { AccountMenu } from "@/features/auth";
@@ -14,66 +14,25 @@ import { usePage } from "@/hooks/use-page-meta.tsx";
 
 function Layout() {
   const findingStats = useQuery(createFindingStatsQueryOptions());
-  const { triageCount, mitigationCount } = getFindingNavigationCounts(findingStats.data);
-  const { title, description, actions } = usePage();
+  const { triageCount } = getFindingNavigationCounts(findingStats.data);
+  const page = usePage();
 
   return (
     <>
       <ConfirmDialog.Root />
       <AssetDialog.Root />
       <Toaster />
-      <SidebarProvider className="flex-col">
-        <div className="flex h-dvh w-full flex-col overflow-hidden antialiased">
-          <header className="shrink-0">
-            <AppHeader accountMenu={<AccountMenu />} />
-          </header>
-          <div className="flex flex-1 overflow-hidden">
-            <AppSidebar triageCount={triageCount} mitigationCount={mitigationCount} />
-            <SidebarInset className="w-auto min-w-0 overflow-hidden">
-              <main className="flex flex-1 flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-5 lg:px-7">
-                  <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                      <div className="min-w-0 space-y-2">
-                        <div className="space-y-1">
-                          <h1 className="truncate text-2xl font-semibold text-foreground">
-                            {title}
-                          </h1>
-                          {description && (
-                            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                              {description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      {actions.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          {actions.map((action, index) => (
-                            <Button
-                              key={action.label}
-                              variant={
-                                index === 0
-                                  ? (action.variant ?? "default")
-                                  : (action.variant ?? "outline")
-                              }
-                              size="sm"
-                              disabled={action.disabled}
-                              onClick={action.onClick}
-                            >
-                              {action.icon && <action.icon />}
-                              {action.label}
-                            </Button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </section>
-                  <div className="mt-5">
-                    <Outlet />
-                  </div>
-                </div>
-              </main>
-            </SidebarInset>
+      <SidebarProvider className="h-dvh min-h-0 flex-col overflow-hidden">
+        <AppHeader accountMenu={<AccountMenu />} />
+        <div className="flex min-h-0 flex-1 px-2 pb-2">
+          <div className="flex min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
+            <AppSidebar triageCount={triageCount} />
+            <main className="flex min-w-0 flex-1 flex-col">
+              <PageHeader {...page} />
+              <div className="flex-1 overflow-y-auto p-5">
+                <Outlet />
+              </div>
+            </main>
           </div>
         </div>
       </SidebarProvider>

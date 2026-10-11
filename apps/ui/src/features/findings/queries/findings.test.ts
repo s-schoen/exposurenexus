@@ -49,11 +49,10 @@ describe("finding queries", () => {
   it("derives zero navigation counts without finding statistics", () => {
     expect(getFindingNavigationCounts(undefined)).toEqual({
       triageCount: 0,
-      mitigationCount: 0,
     });
   });
 
-  it("derives navigation counts from active and confirmed findings", () => {
+  it("derives the triage count from active findings", () => {
     expect(
       getFindingNavigationCounts({
         total: 3,
@@ -78,7 +77,6 @@ describe("finding queries", () => {
       }),
     ).toEqual({
       triageCount: 2,
-      mitigationCount: 1,
     });
   });
 });

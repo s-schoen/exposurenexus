@@ -139,7 +139,11 @@ describe("vulnerability detail", () => {
       path: `/vulnerabilities/${ADMIN_ENDPOINT.id}?severity=high&selected=${ADMIN_ENDPOINT.id}`,
     });
 
-    await user.click(await screen.findByRole("link", { name: "Back to vulnerabilities" }));
+    await user.click(
+      within(await screen.findByRole("navigation", { name: "Breadcrumb" })).getByRole("link", {
+        name: "Vulnerabilities",
+      }),
+    );
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/vulnerabilities"));
     expect(router.state.location.search).toEqual({ severity: "high" });

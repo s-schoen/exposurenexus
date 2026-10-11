@@ -177,7 +177,11 @@ describe("role detail", () => {
     });
     await screen.findByRole("heading", { level: 1, name: CUSTOM_AUDITOR_ROLE.name });
 
-    await user.click(screen.getByRole("link", { name: "Back to roles" }));
+    await user.click(
+      within(screen.getByRole("navigation", { name: "Breadcrumb" })).getByRole("link", {
+        name: "Roles",
+      }),
+    );
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/roles"));
     expect(router.state.location.search).toEqual({ kind: "Custom" });

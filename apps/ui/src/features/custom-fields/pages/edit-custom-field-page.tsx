@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { Tags } from "lucide-react";
 
 import {
   AssetCustomFieldForm,
@@ -22,8 +23,12 @@ export function EditCustomFieldPage({ customFieldId }: EditCustomFieldPageProps)
   );
 
   usePageMeta({
-    title: `Edit ${customField.data.name}`,
-    description: "Update the asset custom field definition and allowed values.",
+    title: "Edit",
+    icon: Tags,
+    breadcrumbs: [
+      { label: "Custom Fields", to: "/custom-fields" },
+      { label: customField.data.name, to: `/custom-fields/${customFieldId}` },
+    ],
   });
 
   const handleCancel = async () => {

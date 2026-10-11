@@ -1,13 +1,11 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Pencil, Tags } from "lucide-react";
 import { useMemo } from "react";
 
-import { buttonVariants } from "@/components/ui/button.tsx";
 import { AssetCustomFieldDetailContent } from "@/features/custom-fields/components/asset-custom-field-detail-content";
 import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/features/custom-fields/queries/definitions.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
-import { cn } from "@/lib/utils.ts";
 
 interface CustomFieldDetailPageProps {
   customFieldId: string;
@@ -35,28 +33,10 @@ export function CustomFieldDetailPage({ customFieldId }: CustomFieldDetailPagePr
 
   usePageMeta({
     title: customField.data.name,
-    description: "Review asset custom field settings and allowed values.",
+    icon: Tags,
+    breadcrumbs: [{ label: "Custom Fields", to: "/custom-fields" }],
     actions,
   });
 
-  return (
-    <AssetCustomFieldDetailContent
-      field={customField.data}
-      titleAction={
-        <Link
-          to="/custom-fields"
-          search={(previous) => ({
-            filter: previous.filter,
-            type: previous.type,
-            required: previous.required,
-            selected: undefined,
-          })}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2")}
-        >
-          <ArrowLeft />
-          Back to custom fields
-        </Link>
-      }
-    />
-  );
+  return <AssetCustomFieldDetailContent field={customField.data} />;
 }

@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { KeyRound } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { toast } from "sonner";
 
@@ -42,7 +43,8 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
 
   usePageMeta({
     title: "Roles",
-    description: "Browse roles and permissions.",
+    icon: KeyRound,
+    count: rolesQuery.data.length,
   });
 
   const handleOpenRole = async (role: Role) => {
