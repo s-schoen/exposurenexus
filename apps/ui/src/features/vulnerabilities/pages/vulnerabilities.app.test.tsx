@@ -182,13 +182,14 @@ describe("vulnerabilities list", () => {
 });
 
 describe("vulnerability detail", () => {
-  it("shows the entry and opens the edit page", async () => {
+  it("shows the entry and opens the edit page from the ⋯ menu", async () => {
     const { router, user } = renderApp({ path: `/vulnerabilities/${ADMIN_ENDPOINT.id}` });
 
     expect(
       await screen.findByRole("heading", { level: 1, name: ADMIN_ENDPOINT.title }),
     ).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Edit catalog entry" }));
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit catalog entry" }));
 
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/vulnerabilities/${ADMIN_ENDPOINT.id}/edit`),
@@ -198,7 +199,8 @@ describe("vulnerability detail", () => {
   it("deletes the entry after confirmation and returns to the list", async () => {
     const { router, user } = renderApp({ path: `/vulnerabilities/${ADMIN_ENDPOINT.id}` });
 
-    await user.click(await screen.findByRole("button", { name: "Delete catalog entry" }));
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry" }));
     await user.click(await screen.findByRole("button", { name: "Confirm" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/vulnerabilities"));
@@ -209,9 +211,11 @@ describe("vulnerability detail", () => {
     mockApiError("delete", "/vulnerabilities/:id", 500);
     const { router, user } = renderApp({ path: `/vulnerabilities/${ADMIN_ENDPOINT.id}` });
 
-    await user.click(await screen.findByRole("button", { name: "Delete catalog entry" }));
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry" }));
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
-    await user.click(screen.getByRole("button", { name: "Delete catalog entry" }));
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry" }));
     await user.click(await screen.findByRole("button", { name: "Confirm" }));
 
     expect((await screen.findAllByText(/Failed to delete/)).length).toBeGreaterThan(0);

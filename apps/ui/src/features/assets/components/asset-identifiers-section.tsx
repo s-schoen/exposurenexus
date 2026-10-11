@@ -2,8 +2,8 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card.tsx";
 import {
   Dialog,
   DialogContent,
@@ -12,14 +12,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table.tsx";
 import {
   AssetIdentifierForm,
   identifierTypeLabel,
@@ -37,7 +29,7 @@ type PendingAction =
   | { type: "edit"; identifierId: string }
   | { type: "delete"; identifierId: string };
 
-export interface AssetIdentifierTableProps {
+export interface AssetIdentifiersSectionProps {
   identifiers: ReadonlyArray<AssetIdentifierRecord>;
   onAdd: (identifier: CreateAssetIdentifier) => Promise<AssetIdentifierRecord | null>;
   onUpdate: (
@@ -51,12 +43,12 @@ function identifierLabel(identifier: AssetIdentifierRecord): string {
   return `${identifierTypeLabel(identifier.type)} ${identifier.value}`;
 }
 
-export function AssetIdentifierTable({
+export function AssetIdentifiersSection({
   identifiers,
   onAdd,
   onUpdate,
   onRemove,
-}: AssetIdentifierTableProps) {
+}: AssetIdentifiersSectionProps) {
   const [dialog, setDialog] = useState<IdentifierDialogState | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const isDialogPending = pendingAction?.type === "add" || pendingAction?.type === "edit";
@@ -68,7 +60,7 @@ export function AssetIdentifierTable({
     const isBusy = pendingAction !== null;
 
     return (
-      <div className="flex justify-end gap-1">
+      <div className="flex shrink-0 gap-0.5">
         <Button
           type="button"
           variant="ghost"
@@ -78,7 +70,7 @@ export function AssetIdentifierTable({
           onClick={() => setDialog({ mode: "edit", identifier })}
           disabled={isBusy}
         >
-          <Pencil />
+          <Pencil strokeWidth={1.5} />
         </Button>
         <Button
           type="button"
@@ -89,7 +81,7 @@ export function AssetIdentifierTable({
           onClick={() => void handleDelete(identifier)}
           disabled={isBusy}
         >
-          {isDeleting ? <Spinner /> : <Trash2 />}
+          {isDeleting ? <Spinner /> : <Trash2 strokeWidth={1.5} />}
         </Button>
       </div>
     );
@@ -138,82 +130,51 @@ export function AssetIdentifierTable({
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader className="gap-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold">Asset identifiers</h2>
-            <CardDescription>
-              External identity claims used to recognize this asset across security sources.
-            </CardDescription>
-          </div>
+    <>
+      <DetailSection
+        title="Identifiers"
+        count={identifiers.length}
+        action={
           <Button
             type="button"
-            size="sm"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Add identifier"
+            title="Add identifier"
             onClick={() => setDialog({ mode: "add" })}
             disabled={pendingAction !== null}
           >
-            <Plus />
-            Add identifier
+            <Plus strokeWidth={1.5} />
           </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-hidden rounded-lg border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow variant="header">
-                <TableHead>Type</TableHead>
-                <TableHead>Namespace</TableHead>
-                <TableHead>Canonical value</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {identifiers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="px-4 py-8">
-                    <div className="space-y-1 text-center">
-                      <p className="text-sm font-medium text-foreground">No identifiers yet</p>
-                      <p className="text-sm text-muted-foreground">
-                        Add an external identity when one is known for this asset.
-                      </p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                identifiers.map((identifier) => (
-                  <TableRow key={identifier.id}>
-                    <TableCell>
-                      <span className="font-medium text-foreground">
-                        {identifierTypeLabel(identifier.type)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {identifier.namespace ? (
-                        <span className="text-muted-foreground">{identifier.namespace}</span>
-                      ) : (
-                        <span className="text-muted-foreground italic">Global</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className="block max-w-80 truncate font-mono text-xs"
-                        title={identifier.value}
-                      >
-                        {identifier.value}
-                      </span>
-                    </TableCell>
-                    <TableCell>{renderActions(identifier)}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
+        }
+      >
+        {identifiers.length > 0 ? (
+          <ul className="flex flex-col">
+            {identifiers.map((identifier) => (
+              <li
+                key={identifier.id}
+                className="-mx-2 flex h-9 items-center gap-3 rounded-md px-2 transition-colors duration-100 hover:bg-accent"
+              >
+                <span className="w-32 shrink-0 truncate text-13 text-muted-foreground">
+                  {identifierTypeLabel(identifier.type)}
+                </span>
+                <span
+                  className="min-w-0 flex-1 truncate font-mono text-xs text-foreground"
+                  title={identifier.value}
+                >
+                  {identifier.value}
+                </span>
+                <span className="shrink-0 truncate text-13 text-subtle-foreground">
+                  {identifier.namespace ?? "Global"}
+                </span>
+                {renderActions(identifier)}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-13 text-subtle-foreground">No identifiers are recorded.</p>
+        )}
+      </DetailSection>
       <Dialog
         open={dialog !== null}
         onOpenChange={(open) => {
@@ -245,6 +206,6 @@ export function AssetIdentifierTable({
           ) : null}
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   );
 }

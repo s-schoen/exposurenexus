@@ -50,7 +50,8 @@ test("fades menus in over 150ms without zoom or slide", async ({ page }) => {
 
 test("fades dialogs over 300ms on a plain 30% backdrop", async ({ page }) => {
   await page.goto(`/vulnerabilities/${ADMIN_ENDPOINT.id}`);
-  await page.getByRole("button", { name: "Delete catalog entry" }).click();
+  await page.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Delete catalog entry" }).click();
   await expect(page.getByRole("button", { name: "Confirm" })).toBeVisible();
 
   expect(await motionOf(page.locator("[data-slot=dialog-content]"))).toMatchObject({

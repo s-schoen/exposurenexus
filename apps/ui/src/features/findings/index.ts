@@ -1,3 +1,4 @@
+export { AssetFindingsSection } from "@/features/findings/components/asset-findings-section.tsx";
 export { FindingSeverityChart } from "@/features/findings/components/finding-severity-chart.tsx";
 export { FindingStatusChart } from "@/features/findings/components/finding-status-chart.tsx";
 export { CreateFindingPage } from "@/features/findings/pages/create-finding-page.tsx";

@@ -1,9 +1,10 @@
-import { SEED_ASSETS, SEED_USERS } from "@/mocks/fixtures/index.ts";
+import { SEED_ASSETS, SEED_FINDINGS, SEED_USERS } from "@/mocks/fixtures/index.ts";
 
 import { expect, pageContent, test } from "./fixtures.ts";
 
 const [WEB_01, , API_WORKER] = SEED_ASSETS;
 const [, MORGAN] = SEED_USERS;
+const [ADMIN_ENDPOINT] = SEED_FINDINGS;
 
 test("creates an asset through the type, environment and owner selects", async ({ page }) => {
   await page.goto("/assets");
@@ -55,4 +56,24 @@ test("goes from the detail page back to the list", async ({ page }) => {
 
   await expect(page).toHaveURL("/assets");
   await expect(page.getByRole("link", { name: API_WORKER.displayName, exact: true })).toBeVisible();
+});
+
+test("edits the asset's properties in place and opens a finding from its section", async ({
+  page,
+}) => {
+  await page.goto(`/assets/${WEB_01.id}`);
+  const properties = page.getByRole("region", { name: "Properties" });
+
+  const owner = properties.getByRole("button", { name: /^Owner/ });
+  await owner.click();
+  await page.getByRole("option", { name: MORGAN.displayName }).click();
+  await expect(owner).toHaveText(new RegExp(MORGAN.displayName));
+
+  const environment = properties.getByRole("button", { name: /^Environment/ });
+  await environment.click();
+  await page.getByRole("option", { name: "Staging" }).click();
+  await expect(environment).toHaveText("Staging");
+
+  await pageContent(page).getByRole("link", { name: ADMIN_ENDPOINT.title }).click();
+  await expect(page).toHaveURL(`/findings/${ADMIN_ENDPOINT.id}`);
 });

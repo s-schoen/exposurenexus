@@ -218,12 +218,13 @@ export function Inplace<T>({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Only the closed value opens the editor: keys and clicks inside the open editor bubble here. */}
       <div
-        role={editOnClick ? "button" : undefined}
-        tabIndex={editOnClick ? 0 : undefined}
-        onClick={editOnClick ? enterEdit : undefined}
+        role={editOnClick && !editing ? "button" : undefined}
+        tabIndex={editOnClick && !editing ? 0 : undefined}
+        onClick={editOnClick && !editing ? enterEdit : undefined}
         onKeyDown={
-          editOnClick
+          editOnClick && !editing
             ? (event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();

@@ -1,5 +1,7 @@
+import { Clock3 } from "lucide-react";
 import { createContext, use, useId } from "react";
 
+import { formatDateTime } from "@/lib/format.ts";
 import { cn } from "@/lib/utils.ts";
 
 import type { LucideIcon } from "lucide-react";
@@ -90,5 +92,32 @@ export function PropertiesFooterLine({ icon: Icon, children }: PropertiesFooterL
       <Icon className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden="true" />
       <span className="min-w-0">{children}</span>
     </p>
+  );
+}
+
+interface PropertiesAuditLinesProps {
+  /** Who created the record, already resolved to a display name. */
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
+}
+
+/** The footer's "Created by … · …" and "Updated by … · …" lines. */
+export function PropertiesAuditLines({
+  createdBy,
+  createdAt,
+  updatedBy,
+  updatedAt,
+}: PropertiesAuditLinesProps) {
+  return (
+    <>
+      <PropertiesFooterLine icon={Clock3}>
+        Created by {createdBy} · {formatDateTime(createdAt)}
+      </PropertiesFooterLine>
+      <PropertiesFooterLine icon={Clock3}>
+        Updated by {updatedBy} · {formatDateTime(updatedAt)}
+      </PropertiesFooterLine>
+    </>
   );
 }

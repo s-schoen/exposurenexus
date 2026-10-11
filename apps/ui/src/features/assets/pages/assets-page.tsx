@@ -22,15 +22,23 @@ import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
 import type { FindingCountByAssetId } from "@/features/assets/components/asset-list/columns.tsx";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
+import type { ReactNode } from "react";
 
 interface AssetsPageProps {
   search?: Record<string, unknown>;
   selected?: string;
   /** Each asset's finding count. The route reads it from the findings feature. */
   findingCountByAssetId?: FindingCountByAssetId;
+  /** The findings section for an asset's peek. The route renders it from the findings feature. */
+  renderAssetFindings?: (assetId: string) => ReactNode;
 }
 
-export function AssetsPage({ search = {}, selected, findingCountByAssetId }: AssetsPageProps) {
+export function AssetsPage({
+  search = {},
+  selected,
+  findingCountByAssetId,
+  renderAssetFindings,
+}: AssetsPageProps) {
   const customFieldDefinitionsQuery = useSuspenseQuery(
     createListAssetCustomFieldDefinitionsQueryOptions(),
   );
@@ -102,13 +110,19 @@ export function AssetsPage({ search = {}, selected, findingCountByAssetId }: Ass
           void selectedSearch.clearSelected();
         }}
       >
-        {(id) => <AssetDetailPreview assetId={id} />}
+        {(id) => <AssetDetailPreview assetId={id} findingsSection={renderAssetFindings?.(id)} />}
       </DetailPeek>
     </>
   );
 }
 
-function AssetDetailPreview({ assetId }: { assetId: string }) {
+function AssetDetailPreview({
+  assetId,
+  findingsSection,
+}: {
+  assetId: string;
+  findingsSection?: ReactNode;
+}) {
   const asset = useQuery(createAssetByIDQueryOptions(assetId));
 
   return (
@@ -119,7 +133,7 @@ function AssetDetailPreview({ assetId }: { assetId: string }) {
       errorDescription="The selected asset could not be loaded."
       missingMessage="The API did not return an asset record."
     >
-      {(assetData) => <AssetDetailContent asset={assetData} />}
+      {(assetData) => <AssetDetailContent asset={assetData} findingsSection={findingsSection} />}
     </DetailQueryBoundary>
   );
 }
