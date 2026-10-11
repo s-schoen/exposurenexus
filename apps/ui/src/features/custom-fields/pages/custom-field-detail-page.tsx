@@ -34,7 +34,7 @@ export function CustomFieldDetailPage({ customFieldId }: CustomFieldDetailPagePr
   usePageMeta({
     title: customField.data.name,
     icon: Tags,
-    breadcrumbs: [{ label: "Custom Fields", to: "/settings/custom-fields" }],
+    breadcrumbs: [{ label: "Custom fields", to: "/settings/custom-fields" }],
     actions,
   });
 

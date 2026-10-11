@@ -204,7 +204,7 @@ describe("asset list columns", () => {
     };
 
     expect(ownerColumn?.accessorFn(asset, 0)).toBe("Robin Owner");
-    expect(ownerColumn?.accessorFn({ ...asset, ownerId: null }, 0)).toBe("No Owner");
+    expect(ownerColumn?.accessorFn({ ...asset, ownerId: null }, 0)).toBe("No owner");
     expect(
       ownerColumn?.accessorFn(
         {
@@ -213,7 +213,7 @@ describe("asset list columns", () => {
         },
         0,
       ),
-    ).toBe("Unknown Owner");
+    ).toBe("Unknown owner");
   });
 
   it("filters core asset columns, including ownerless assets", () => {

@@ -28,7 +28,7 @@ export function ImportFindingsPage() {
   const inputId = useId();
 
   usePageMeta({
-    title: "Import Findings",
+    title: "Import findings",
     icon: ShieldAlert,
     breadcrumbs: [{ label: "Findings", to: "/findings" }],
   });

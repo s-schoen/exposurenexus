@@ -14,7 +14,7 @@ export function CreateUserPage() {
   const roles = useSuspenseQuery(createListRolesQueryOptions());
 
   usePageMeta({
-    title: "Create User",
+    title: "Create user",
     icon: Users,
     breadcrumbs: [{ label: "Users", to: "/settings/users" }],
   });

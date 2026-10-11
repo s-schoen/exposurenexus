@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
-export const USER_LABEL_EMPTY_LABEL = "No User";
-export const USER_LABEL_UNKNOWN_LABEL = "Unknown User";
+export const USER_LABEL_EMPTY_LABEL = "No user";
+export const USER_LABEL_UNKNOWN_LABEL = "Unknown user";
 
 export type UserLabelVariant = "chip" | "text";
 

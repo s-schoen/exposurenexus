@@ -49,8 +49,8 @@ export function createAssetGroupingOptions(
         typeof value === "string"
           ? value
           : formatUserProfileReference(null, userProfileById, {
-              emptyLabel: "No Owner",
-              unknownLabel: "Unknown Owner",
+              emptyLabel: "No owner",
+              unknownLabel: "Unknown owner",
             }),
     },
     ...customFieldDefinitions.map((definition) => ({
@@ -137,7 +137,7 @@ export function AssetList({
 
   const handleDeleteAssets = async (assets: Array<AssetWithCustomFields>) => {
     const confirmed = await ConfirmDialog.call({
-      title: "Delete Assets",
+      title: "Delete assets",
       description: "This action cannot be undone",
       message: `Are you sure you want to delete ${assets.length} asset(s)?`,
       confirmVariant: "destructive",

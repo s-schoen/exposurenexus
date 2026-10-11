@@ -79,12 +79,12 @@ export function formatFindingAssetOwner(
   const asset = assetsById.get(assetId);
 
   if (!asset) {
-    return "Unknown Asset";
+    return "Unknown asset";
   }
 
   return formatUserProfileReference(asset.ownerId, userProfileById, {
-    emptyLabel: "No Owner",
-    unknownLabel: "Unknown Owner",
+    emptyLabel: "No owner",
+    unknownLabel: "Unknown owner",
   });
 }
 
@@ -94,7 +94,7 @@ export function formatFindingAssignee(
 ): string {
   return formatUserProfileReference(assigneeId, userProfileById, {
     emptyLabel: "Unassigned",
-    unknownLabel: "Unknown Assignee",
+    unknownLabel: "Unknown assignee",
   });
 }
 
@@ -237,11 +237,11 @@ export function createFindingColumns(
                 <UserLabel
                   userId={asset.ownerId}
                   user={resolveUser(asset.ownerId, userProfileById, usersLoading)}
-                  emptyLabel="No Owner"
-                  unknownLabel="Unknown Owner"
+                  emptyLabel="No owner"
+                  unknownLabel="Unknown owner"
                 />
               ) : (
-                "Unknown Asset"
+                "Unknown asset"
               )}
             </span>
           </Badge>
@@ -266,7 +266,7 @@ export function createFindingColumns(
           userId={row.original.assigneeId}
           user={resolveUser(row.original.assigneeId, userProfileById, usersLoading)}
           emptyLabel="Unassigned"
-          unknownLabel="Unknown Assignee"
+          unknownLabel="Unknown assignee"
         />
       ),
       filterFn: (row, _columnId, filterValue: Array<string>) => {

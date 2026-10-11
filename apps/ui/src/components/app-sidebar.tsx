@@ -146,7 +146,7 @@ export function AppSidebar({ triageCount }: AppSidebarProps) {
                           to={nav.returnTo?.pathname ?? "/"}
                           search={nav.returnTo?.search ?? {}}
                           onClick={closeMobile}
-                          aria-label="Leave Settings"
+                          aria-label="Leave settings"
                         >
                           <ArrowLeft strokeWidth={1.5} />
                           <span className="flex-1 truncate">Settings</span>

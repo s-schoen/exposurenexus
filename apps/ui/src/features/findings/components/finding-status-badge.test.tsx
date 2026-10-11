@@ -9,10 +9,10 @@ const statuses = [
   { status: FindingStatus.Active, label: "Active", shape: "open circle" },
   { status: FindingStatus.Confirmed, label: "Confirmed", shape: "half circle" },
   { status: FindingStatus.Mitigated, label: "Mitigated", shape: "check" },
-  { status: FindingStatus.RiskAccepted, label: "Risk Accepted", shape: "minus" },
-  { status: FindingStatus.FalsePositive, label: "False Positive", shape: "x" },
+  { status: FindingStatus.RiskAccepted, label: "Risk accepted", shape: "minus" },
+  { status: FindingStatus.FalsePositive, label: "False positive", shape: "x" },
   { status: FindingStatus.Duplicate, label: "Duplicate", shape: "x" },
-  { status: FindingStatus.OutOfScope, label: "Out of Scope", shape: "x" },
+  { status: FindingStatus.OutOfScope, label: "Out of scope", shape: "x" },
   { status: FindingStatus.Inactive, label: "Inactive", shape: "dashed circle" },
 ];
 

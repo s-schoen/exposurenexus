@@ -364,7 +364,7 @@ function renderResourceFields(
 
 export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
   usePageMeta({
-    title: "Create Finding",
+    title: "Create finding",
     icon: ShieldAlert,
     breadcrumbs: [{ label: "Findings", to: "/findings" }],
   });
@@ -430,7 +430,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
               const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>Affected Asset</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>Affected asset</FieldLabel>
                   <AssetCombobox
                     id={field.name}
                     invalid={isInvalid}
@@ -558,7 +558,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
 
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>Due Date</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>Due date</FieldLabel>
                   <Input
                     id={field.name}
                     name={field.name}

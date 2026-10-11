@@ -61,7 +61,7 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
 
   const handleDeleteVulnerabilities = async (vulnerabilities: Array<VulnerabilityCatalog>) => {
     const confirmed = await ConfirmDialog.call({
-      title: "Delete Vulnerabilities",
+      title: "Delete vulnerabilities",
       description: "This action cannot be undone",
       message: `Are you sure you want to delete ${vulnerabilities.length} catalog entr${vulnerabilities.length === 1 ? "y" : "ies"}? Linked enrichment will be removed while findings and observations are preserved.`,
       confirmVariant: "destructive",

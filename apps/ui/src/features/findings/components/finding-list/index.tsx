@@ -124,7 +124,7 @@ export function FindingList({
               userId={userId}
               user={userId ? (userProfileById.get(userId) ?? null) : null}
               emptyLabel="Unassigned"
-              unknownLabel="Unknown Assignee"
+              unknownLabel="Unknown assignee"
             />
           );
         },
@@ -144,7 +144,7 @@ export function FindingList({
 
   const handleDeleteFindings = async (findings: Array<Finding>) => {
     const confirmed = await ConfirmDialog.call({
-      title: "Delete Findings",
+      title: "Delete findings",
       description: "This action cannot be undone",
       message: `Are you sure you want to delete ${findings.length} findings(s)?`,
       confirmVariant: "destructive",

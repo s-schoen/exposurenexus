@@ -10,7 +10,7 @@ test("creates an asset through the type, environment and owner selects", async (
   await page.goto("/assets");
 
   await page.getByRole("button", { name: "New asset" }).click();
-  const dialog = page.getByRole("dialog", { name: "Create Asset" });
+  const dialog = page.getByRole("dialog", { name: "Create asset" });
   await dialog.getByLabel("Display name").fill("registry-01");
   await dialog.getByRole("combobox", { name: "Type" }).click();
   await page.getByRole("option", { name: "Software" }).click();
