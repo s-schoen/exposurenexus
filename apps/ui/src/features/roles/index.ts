@@ -1,4 +1,4 @@
-export { CreateRolePage } from "@/features/roles/pages/create-role-page.tsx";
+export { CreateRoleDialog } from "@/features/roles/components/create-role-dialog.tsx";
 export { EditRolePage } from "@/features/roles/pages/edit-role-page.tsx";
 export { RoleDetailPage } from "@/features/roles/pages/role-detail-page.tsx";
 export { RolesPage } from "@/features/roles/pages/roles-page.tsx";

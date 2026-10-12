@@ -1,11 +1,11 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { Bug, Plus } from "lucide-react";
 import { lazy, useMemo } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPeek } from "@/components/detail-peek.tsx";
 import { VulnerabilityList } from "@/features/vulnerabilities/components/vulnerability-list/index.tsx";
+import { useCreateVulnerability } from "@/features/vulnerabilities/hooks/use-create-vulnerability.ts";
 import { useVulnerabilityLifecycle } from "@/features/vulnerabilities/hooks/use-vulnerability-lifecycle.ts";
 import { useVulnerabilityTableSearchState } from "@/features/vulnerabilities/hooks/use-vulnerability-table-search-state.ts";
 import { createListVulnerabilitiesQueryOptions } from "@/features/vulnerabilities/queries/vulnerabilities.ts";
@@ -26,7 +26,7 @@ interface VulnerabilitiesPageProps {
 }
 
 export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPageProps) {
-  const navigate = useNavigate();
+  const createVulnerability = useCreateVulnerability();
   const vulnerabilityLifecycle = useVulnerabilityLifecycle();
   const { filterState, onFilterStateChange, grouping, onGroupingChange } =
     useVulnerabilityTableSearchState({
@@ -45,11 +45,11 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
         label: "New catalog entry",
         icon: Plus,
         onClick: () => {
-          void navigate({ to: "/vulnerabilities/new" });
+          void createVulnerability();
         },
       },
     ],
-    [navigate],
+    [createVulnerability],
   );
 
   usePageMeta({
@@ -90,7 +90,7 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
         onFilterStateChange={onFilterStateChange}
         selectedVulnerabilityId={selectedSearch.selectedId}
         onCreateVulnerability={() => {
-          void navigate({ to: "/vulnerabilities/new" });
+          void createVulnerability();
         }}
         onSelectVulnerability={(vulnerability) => {
           void selectedSearch.selectRow(vulnerability);

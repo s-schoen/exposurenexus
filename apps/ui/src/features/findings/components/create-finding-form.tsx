@@ -3,9 +3,9 @@ import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ShieldAlert } from "lucide-react";
 import { useState } from "react";
 
+import { FormActions } from "@/components/form-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Field,
@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/select.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { AssetCombobox } from "@/features/assets";
-import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
 import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/features/findings/lib/date-input.ts";
 import {
   buildCreateFindingPayload,
@@ -41,14 +40,14 @@ import { formatFindingStatus } from "@/features/findings/lib/format.ts";
 import { formatWeaknessText } from "@/features/findings/lib/weakness-text.ts";
 import { createListUsersQueryOptions, getUserProfileDisplayName } from "@/features/users";
 import { SeverityBadge } from "@/features/vulnerabilities";
-import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { normalizeDateToUtcStart } from "@/lib/utc-date";
 
 import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { CreateManualFinding } from "@exposurenexus/contracts/model/finding";
 
-interface CreateFindingPageProps {
-  onClose: () => void;
+interface CreateFindingFormProps {
+  onSubmit: (payload: CreateManualFinding) => Promise<void>;
+  onCancel: () => void;
 }
 
 const unassignedAssigneeValue = "__unassigned__";
@@ -362,14 +361,7 @@ function renderResourceFields(
   }
 }
 
-export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
-  usePageMeta({
-    title: "Create finding",
-    icon: ShieldAlert,
-    breadcrumbs: [{ label: "Findings", to: "/findings" }],
-  });
-
-  const findingLifecycle = useFindingLifecycle();
+export function CreateFindingForm({ onSubmit, onCancel }: CreateFindingFormProps) {
   const users = useSuspenseQuery(createListUsersQueryOptions());
   const [weaknessDraft, setWeaknessDraft] = useState(() => formatWeaknessText(defaultWeakness));
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -384,11 +376,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
       }
 
       setSubmissionError(null);
-      const createdFinding = await findingLifecycle.createFinding(result.payload);
-
-      if (createdFinding) {
-        onClose();
-      }
+      await onSubmit(result.payload);
     },
   });
 
@@ -755,14 +743,14 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
       <form.Subscribe
         selector={(state) => state.isSubmitting}
         children={(isSubmitting) => (
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>
+          <FormActions>
+            <Button variant="outline" type="button" onClick={onCancel} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               Create finding
             </Button>
-          </div>
+          </FormActions>
         )}
       />
     </form>

@@ -7,6 +7,7 @@ import { Check, ChevronsUpDownIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { z } from "zod/v4";
 
+import { FormActions } from "@/components/form-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
@@ -399,7 +400,7 @@ export function UserForm({
           }}
         />
       </FieldGroup>
-      <div className="flex justify-end gap-2">
+      <FormActions>
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
@@ -407,7 +408,7 @@ export function UserForm({
           {isSubmitting && <Spinner />}
           {resolvedSubmitLabel}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

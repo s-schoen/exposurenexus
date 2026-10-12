@@ -1,13 +1,14 @@
 import { expect, test } from "./fixtures.ts";
 
-// Roles, users and custom fields: one create → detail → edit journey each.
+// Roles, users and custom fields: one create dialog → detail → edit journey each.
 
 test("creates, opens and edits a role", async ({ page }) => {
   await page.goto("/settings/roles");
 
   await page.getByRole("button", { name: "New role" }).click();
-  await page.getByLabel("Name").fill("triager");
-  await page.getByRole("button", { name: "Create role" }).click();
+  const dialog = page.getByRole("dialog", { name: "Create role" });
+  await dialog.getByLabel("Name").fill("triager");
+  await dialog.getByRole("button", { name: "Create role" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "triager" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Properties" })).toContainText("Custom");
 
@@ -23,18 +24,13 @@ test("creates, opens and edits a user", async ({ page }) => {
   await page.goto("/settings/users");
 
   await page.getByRole("button", { name: "New user" }).click();
-  await page.getByLabel("Display name").fill("Jamie Tester");
-  await page.getByLabel("Username").fill("jamie");
-  await page.getByLabel("Email").fill("jamie@example.com");
-  await page.getByLabel("Password").fill("correct horse");
-  await page.getByRole("button", { name: "Create user" }).click();
-  await expect(page).toHaveURL("/settings/users");
+  const dialog = page.getByRole("dialog", { name: "Create user" });
+  await dialog.getByLabel("Display name").fill("Jamie Tester");
+  await dialog.getByLabel("Username").fill("jamie");
+  await dialog.getByLabel("Email").fill("jamie@example.com");
+  await dialog.getByLabel("Password").fill("correct horse");
+  await dialog.getByRole("button", { name: "Create user" }).click();
 
-  // The row's title link also shows the email, so match the name as a prefix.
-  await page
-    .getByRole("list", { name: "Users" })
-    .getByRole("link", { name: /^Jamie Tester/ })
-    .dblclick();
   await expect(page.getByRole("heading", { level: 1, name: "Jamie Tester" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Properties" })).toContainText("jamie@example.com");
   await page.getByRole("button", { name: "Edit user" }).click();
@@ -49,11 +45,12 @@ test("creates, opens and edits a custom field", async ({ page }) => {
   await page.goto("/settings/custom-fields");
 
   await page.getByRole("button", { name: "New custom field" }).click();
-  await page.getByRole("textbox", { name: "Name" }).fill("Risk score");
-  await page.getByRole("textbox", { name: "Key" }).fill("risk_score");
-  await page.getByRole("combobox", { name: "Type" }).click();
+  const dialog = page.getByRole("dialog", { name: "Create custom field" });
+  await dialog.getByRole("textbox", { name: "Name" }).fill("Risk score");
+  await dialog.getByRole("textbox", { name: "Key" }).fill("risk_score");
+  await dialog.getByRole("combobox", { name: "Type" }).click();
   await page.getByRole("option", { name: "Number" }).click();
-  await page.getByRole("button", { name: "Create custom field" }).click();
+  await dialog.getByRole("button", { name: "Create custom field" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Risk score" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Properties" })).toContainText("risk_score");
 

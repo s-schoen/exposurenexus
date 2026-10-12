@@ -1,5 +1,5 @@
 export { AssetCombobox } from "@/features/assets/components/asset-combobox.tsx";
-export { AssetDialog } from "@/features/assets/components/asset-dialog.tsx";
+export { CreateAssetDialog } from "@/features/assets/components/create-asset-dialog.tsx";
 export { AssetDetailPage } from "@/features/assets/pages/asset-detail-page.tsx";
 export { AssetsPage } from "@/features/assets/pages/assets-page.tsx";
 export {

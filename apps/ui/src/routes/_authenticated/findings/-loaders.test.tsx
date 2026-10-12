@@ -7,7 +7,6 @@ import { createListUsersQueryOptions } from "@/features/users";
 import { Route as DetailRoute } from "@/routes/_authenticated/findings/$id.tsx";
 import { Route as ImportRoute } from "@/routes/_authenticated/findings/import.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/findings/index.tsx";
-import { Route as NewRoute } from "@/routes/_authenticated/findings/new.tsx";
 import { Route as TriageRoute } from "@/routes/_authenticated/findings/triage.tsx";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
@@ -52,7 +51,6 @@ describe("finding critical-data loaders", () => {
         createListUsersQueryOptions(),
       ],
     ],
-    ["create", NewRoute, [createListAssetsQueryOptions(), createListUsersQueryOptions()]],
   ] as const)(
     "starts exactly the %s query set in parallel and waits for all",
     async (_, route, options) => {

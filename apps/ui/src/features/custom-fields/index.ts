@@ -1,4 +1,4 @@
-export { CreateCustomFieldPage } from "@/features/custom-fields/pages/create-custom-field-page.tsx";
+export { CreateCustomFieldDialog } from "@/features/custom-fields/components/create-custom-field-dialog.tsx";
 export { CustomFieldDetailPage } from "@/features/custom-fields/pages/custom-field-detail-page.tsx";
 export { CustomFieldsPage } from "@/features/custom-fields/pages/custom-fields-page.tsx";
 export { EditCustomFieldPage } from "@/features/custom-fields/pages/edit-custom-field-page.tsx";

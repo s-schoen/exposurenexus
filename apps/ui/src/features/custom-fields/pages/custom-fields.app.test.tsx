@@ -17,6 +17,14 @@ async function fillTextField(user: ReturnType<typeof renderApp>["user"]) {
   await user.type(screen.getByRole("textbox", { name: /default value/i }), "Security");
 }
 
+async function openCreateDialog(path = "/settings/custom-fields") {
+  const view = renderApp({ path });
+  await view.user.click(await screen.findByRole("button", { name: "New custom field" }));
+  const dialog = await screen.findByRole("dialog", { name: "Create custom field" });
+
+  return { ...view, dialog };
+}
+
 describe("custom fields list", () => {
   it("lists the definitions with their type", async () => {
     renderApp({ path: "/settings/custom-fields" });
@@ -41,14 +49,6 @@ describe("custom fields list", () => {
     await waitFor(() => expect(router.state.location.search).toMatchObject({ filter: "tier" }));
     await waitFor(() => expect(screen.queryByText(CATEGORY.name)).not.toBeInTheDocument());
     expect(screen.getByText(DEPLOYMENT_TIER.name)).toBeVisible();
-  });
-
-  it("opens the create page from the header", async () => {
-    const { router, user } = renderApp({ path: "/settings/custom-fields" });
-
-    await user.click(await screen.findByRole("button", { name: "New custom field" }));
-
-    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/custom-fields/new"));
   });
 
   it("previews a selected definition with a full-page link, fetching it only once selected", async () => {
@@ -157,8 +157,8 @@ describe("custom field detail", () => {
 });
 
 describe("creating and editing definitions", () => {
-  it("creates a trimmed definition and opens it", async () => {
-    const { router, user } = renderApp({ path: "/settings/custom-fields/new" });
+  it("creates a trimmed definition in a dialog and opens it", async () => {
+    const { router, user } = await openCreateDialog();
 
     await fillTextField(user);
     await user.click(screen.getByRole("button", { name: "Create custom field" }));
@@ -180,7 +180,7 @@ describe("creating and editing definitions", () => {
   });
 
   it("creates a select definition from edited option rows", async () => {
-    const { user } = renderApp({ path: "/settings/custom-fields/new" });
+    const { user } = await openCreateDialog();
 
     await user.type(await screen.findByRole("textbox", { name: /^name$/i }), "Exposure");
     await user.type(screen.getByRole("textbox", { name: /^key$/i }), "exposure");
@@ -218,7 +218,7 @@ describe("creating and editing definitions", () => {
 
   it("blocks incomplete select options until they're complete", async () => {
     const requests = recordApiRequests();
-    const { user } = renderApp({ path: "/settings/custom-fields/new" });
+    const { user } = await openCreateDialog();
 
     await user.type(await screen.findByRole("textbox", { name: /^name$/i }), "Exposure");
     await user.type(screen.getByRole("textbox", { name: /^key$/i }), "exposure");
@@ -270,7 +270,7 @@ describe("creating and editing definitions", () => {
 
   it("shows validation errors instead of submitting an empty form", async () => {
     const requests = recordApiRequests();
-    const { user } = renderApp({ path: "/settings/custom-fields/new" });
+    const { user } = await openCreateDialog();
 
     await user.click(await screen.findByRole("button", { name: "Create custom field" }));
 
@@ -278,26 +278,30 @@ describe("creating and editing definitions", () => {
     expect(requests.filter((request) => request.startsWith("POST"))).toEqual([]);
   });
 
-  it("stays on the form when creating fails", async () => {
+  it("keeps the dialog and its draft when creating fails", async () => {
     mockApiError("post", "/assets/custom-fields", 500, "Create failed");
-    const { router, user } = renderApp({ path: "/settings/custom-fields/new" });
+    const { router, user, dialog } = await openCreateDialog();
 
     await fillTextField(user);
-    await user.click(screen.getByRole("button", { name: "Create custom field" }));
+    await user.click(within(dialog).getByRole("button", { name: "Create custom field" }));
 
     expect((await screen.findAllByText(/Create failed/)).length).toBeGreaterThan(0);
-    expect(router.state.location.pathname).toBe("/settings/custom-fields/new");
-    expect(screen.getByRole("button", { name: "Create custom field" })).toBeEnabled();
+    expect(router.state.location.pathname).toBe("/settings/custom-fields");
+    await waitFor(() =>
+      expect(within(dialog).getByRole("button", { name: "Create custom field" })).toBeEnabled(),
+    );
+    expect(within(dialog).getByRole("textbox", { name: /^key$/i })).toHaveValue("  risk_owner  ");
   });
 
-  it("cancels creation back to the filtered list", async () => {
-    const { router, user } = renderApp({
-      path: `/settings/custom-fields/new?filter=owner&type=text&selected=${CATEGORY.id}`,
-    });
+  it("cancels creation without leaving the filtered list", async () => {
+    const { router, user, dialog } = await openCreateDialog(
+      "/settings/custom-fields?filter=owner&type=text",
+    );
 
-    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/custom-fields"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe("/settings/custom-fields");
     expect(router.state.location.search).toEqual({ filter: "owner", type: "text" });
   });
 

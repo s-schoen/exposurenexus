@@ -15,7 +15,7 @@ import {
 import { useState } from "react";
 
 import { isSettingsPath } from "@/components/page-column.tsx";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -43,6 +43,7 @@ interface NavItem {
 
 interface AppSidebarProps {
   triageCount: number;
+  onCreateFinding: () => void;
 }
 
 type SidebarMode = "main" | "settings";
@@ -76,7 +77,7 @@ const assetSettingsItems: Array<NavItem> = [
   },
 ];
 
-export function AppSidebar({ triageCount }: AppSidebarProps) {
+export function AppSidebar({ triageCount, onCreateFinding }: AppSidebarProps) {
   const { isMobile, setOpenMobile } = useSidebar();
   const closeMobile = () => setOpenMobile(false);
   const location = useLocation();
@@ -164,14 +165,18 @@ export function AppSidebar({ triageCount }: AppSidebarProps) {
           ) : (
             <>
               <SidebarHeader>
-                <Link
-                  to="/findings/new"
-                  onClick={closeMobile}
-                  className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full")}
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => {
+                    closeMobile();
+                    onCreateFinding();
+                  }}
                 >
                   <Plus />
                   New finding
-                </Link>
+                </Button>
               </SidebarHeader>
               <SidebarContent>
                 <NavGroup items={workItems} onNavigate={closeMobile} />

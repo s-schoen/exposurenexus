@@ -9,9 +9,18 @@ import { PageColumn, isPageColumnPath } from "@/components/page-column.tsx";
 import { PageHeader } from "@/components/page-header.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
-import { AssetDialog } from "@/features/assets";
+import { CreateAssetDialog } from "@/features/assets";
 import { AccountMenu } from "@/features/auth";
-import { createFindingStatsQueryOptions, getFindingNavigationCounts } from "@/features/findings";
+import { CreateCustomFieldDialog } from "@/features/custom-fields";
+import {
+  CreateFindingDialog,
+  createFindingStatsQueryOptions,
+  getFindingNavigationCounts,
+  useCreateFinding,
+} from "@/features/findings";
+import { CreateRoleDialog } from "@/features/roles";
+import { CreateUserDialog } from "@/features/users";
+import { CreateVulnerabilityDialog } from "@/features/vulnerabilities";
 import { usePage } from "@/hooks/use-page-meta.tsx";
 
 function Layout() {
@@ -20,17 +29,28 @@ function Layout() {
   const page = usePage();
   const { pathname } = useLocation();
   const inPageColumn = isPageColumnPath(pathname);
+  const createFinding = useCreateFinding();
 
   return (
     <>
       <ConfirmDialog.Root />
-      <AssetDialog.Root />
+      <CreateAssetDialog.Root />
+      <CreateFindingDialog.Root />
+      <CreateVulnerabilityDialog.Root />
+      <CreateUserDialog.Root />
+      <CreateRoleDialog.Root />
+      <CreateCustomFieldDialog.Root />
       <Toaster />
       <SidebarProvider className="h-dvh min-h-0 flex-col overflow-hidden">
         <AppHeader accountMenu={<AccountMenu />} />
         <div className="flex min-h-0 flex-1 px-2 pb-2">
           <div className="flex min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
-            <AppSidebar triageCount={triageCount} />
+            <AppSidebar
+              triageCount={triageCount}
+              onCreateFinding={() => {
+                void createFinding();
+              }}
+            />
             <main className="flex min-w-0 flex-1 flex-col">
               <PageHeader {...page} titleAsHeading={!inPageColumn} />
               <DetailPeekContainer>

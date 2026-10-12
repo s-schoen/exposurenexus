@@ -1,10 +1,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { Plus, Users } from "lucide-react";
 import { lazy, useMemo } from "react";
 
 import { DetailPeek } from "@/components/detail-peek.tsx";
 import { UserList } from "@/features/users/components/user-list/index.tsx";
+import { useCreateUser } from "@/features/users/hooks/use-create-user.ts";
 import { useUserTableSearchState } from "@/features/users/hooks/use-user-table-search-state.ts";
 import { createListUsersQueryOptions } from "@/features/users/queries/users.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -24,7 +24,7 @@ interface UsersPageProps {
 }
 
 export function UsersPage({ search = {}, selected }: UsersPageProps) {
-  const navigate = useNavigate();
+  const createUser = useCreateUser();
   const { filterState, onFilterStateChange } = useUserTableSearchState({
     search,
   });
@@ -41,11 +41,11 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
         label: "New user",
         icon: Plus,
         onClick: () => {
-          void navigate({ to: "/settings/users/new" });
+          void createUser();
         },
       },
     ],
-    [navigate],
+    [createUser],
   );
 
   usePageMeta({
@@ -65,7 +65,7 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
           void selectedSearch.selectRow(user);
         }}
         onCreateUser={() => {
-          void navigate({ to: "/settings/users/new" });
+          void createUser();
         }}
       />
       <DetailPeek

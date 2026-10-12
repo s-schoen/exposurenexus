@@ -18,7 +18,6 @@ import { SEED_VULNERABILITIES } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/vulnerabilities/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/vulnerabilities/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/vulnerabilities/index.tsx";
-import { Route as NewRoute } from "@/routes/_authenticated/vulnerabilities/new.tsx";
 import { recordApiRequests } from "@/test/msw.ts";
 
 import type { ComponentType } from "react";
@@ -159,8 +158,4 @@ it("nested edit renders parent-loaded catalog entry without a duplicate loader",
   expect(screen.getByDisplayValue(vulnerability.identifier)).toBeVisible();
   expect(client.isFetching()).toBe(0);
   expect(requests).toEqual([`GET /api/vulnerabilities/${vulnerability.id}`]);
-});
-
-it("keeps new loader-free", () => {
-  expect(NewRoute.options.loader).toBeUndefined();
 });

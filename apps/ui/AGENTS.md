@@ -89,7 +89,13 @@ AGPL-3.0: re-declare single values under our token names, never copy their files
   only for a good outcome.
 - **Building blocks:** lists use `src/components/data-list/` rows with property chips; detail pages use
   `src/components/properties-panel/` (`DetailLayout`, `DetailSection`, `PropertiesPanel`, `PropertySelect`); row clicks
-  open `DetailPeek`; forms and settings lists sit in `PageColumn`.
+  open `DetailPeek`; edit forms and settings lists sit in `PageColumn`.
+- **Create flows:** every resource is created in a modal, never on a `/new` page. A feature's
+  `components/create-<x>-dialog.tsx` wraps its form in `FormDialog` (`src/components/form-dialog.tsx`), runs the
+  lifecycle create through `useFormDialogSubmit` so a failed create keeps the draft, and resolves to the created record.
+  Its `hooks/use-create-<x>.ts` opens it and navigates to the new record's detail page. Forms put their buttons in
+  `FormActions`, which pins them to the dialog's bottom edge and renders inline on edit pages. Mount the dialog's
+  `.Root` in `src/routes/_authenticated.tsx`.
 
 ## Resource Mutation Policy
 

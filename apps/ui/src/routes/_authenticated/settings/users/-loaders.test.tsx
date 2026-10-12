@@ -16,7 +16,6 @@ import { SEED_ROLES, SEED_USERS } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/settings/users/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/settings/users/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/settings/users/index.tsx";
-import { Route as NewRoute } from "@/routes/_authenticated/settings/users/new.tsx";
 import { recordApiRequests } from "@/test/msw.ts";
 
 import type { ComponentType } from "react";
@@ -45,7 +44,6 @@ const cases = [
     DetailRoute,
     [createUserByIDQueryOptions(user.id), createListRolesQueryOptions()],
   ],
-  ["new", NewRoute, [createListRolesQueryOptions()]],
 ] as const;
 
 it.each(cases)(

@@ -6,6 +6,7 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { Plus, Trash2 } from "lucide-react";
 import { z } from "zod/v4";
 
+import { FormActions } from "@/components/form-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
@@ -513,7 +514,7 @@ export function AssetCustomFieldForm({
           )}
         />
       </FieldGroup>
-      <div className="flex justify-end gap-2">
+      <FormActions>
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
@@ -521,7 +522,7 @@ export function AssetCustomFieldForm({
           {isSubmitting && <Spinner />}
           {resolvedSubmitLabel}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

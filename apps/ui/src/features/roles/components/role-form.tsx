@@ -6,6 +6,7 @@ import {
 import { useForm } from "@tanstack/react-form";
 import { useMemo } from "react";
 
+import { FormActions } from "@/components/form-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
@@ -289,7 +290,7 @@ export function RoleForm({
       <form.Subscribe
         selector={(state) => state.isSubmitting}
         children={(submitting) => (
-          <div className="flex justify-end gap-2">
+          <FormActions>
             <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
               Cancel
             </Button>
@@ -297,7 +298,7 @@ export function RoleForm({
               {submitting && <Spinner />}
               {resolvedSubmitLabel}
             </Button>
-          </div>
+          </FormActions>
         )}
       />
     </form>
