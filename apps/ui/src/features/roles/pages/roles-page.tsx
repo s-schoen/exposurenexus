@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPeek } from "@/components/detail-peek.tsx";
 import { RoleList } from "@/features/roles/components/role-list/index.tsx";
+import { useCreateRole } from "@/features/roles/hooks/use-create-role.ts";
 import { useRoleLifecycle } from "@/features/roles/hooks/use-role-lifecycle.ts";
 import { useRoleTableSearchState } from "@/features/roles/hooks/use-role-table-search-state.ts";
 import { isBuiltInRoleId } from "@/features/roles/lib/role.ts";
@@ -29,6 +30,7 @@ interface RolesPageProps {
 
 export function RolesPage({ search = {}, selected }: RolesPageProps) {
   const navigate = useNavigate();
+  const createRole = useCreateRole();
   const roleLifecycle = useRoleLifecycle();
   const { filterState, onFilterStateChange } = useRoleTableSearchState({
     search,
@@ -47,11 +49,11 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
         label: "New role",
         icon: Plus,
         onClick: () => {
-          void navigate({ to: "/settings/roles/new" });
+          void createRole();
         },
       },
     ],
-    [navigate],
+    [createRole],
   );
 
   usePageMeta({
@@ -111,7 +113,7 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
           void handleOpenRole(role);
         }}
         onCreateRole={() => {
-          void navigate({ to: "/settings/roles/new" });
+          void createRole();
         }}
         onDeleteRoles={handleDeleteRoles}
       />

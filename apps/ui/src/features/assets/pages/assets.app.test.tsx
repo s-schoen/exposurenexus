@@ -162,21 +162,22 @@ describe("assets list", () => {
 });
 
 describe("creating and deleting assets", () => {
-  it("creates an asset from the dialog", async () => {
-    const { user } = renderApp({ path: "/assets" });
+  it("creates an asset from the dialog and opens it", async () => {
+    const { router, user } = renderApp({ path: "/assets" });
 
     await user.click(await screen.findByRole("button", { name: "New asset" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await screen.findByRole("dialog", { name: "Create asset" });
     await user.type(within(dialog).getByLabelText("Display name"), "db-01");
     await user.click(within(dialog).getByRole("button", { name: "Create" }));
 
-    await waitFor(() =>
-      expect(db.assets.all().find((asset) => asset.displayName === "db-01")).toMatchObject({
-        type: AssetType.Host,
-        ownerId: null,
-      }),
-    );
-    expect(await findRow("db-01")).toBeVisible();
+    const created = await waitFor(() => {
+      const asset = db.assets.all().find((candidate) => candidate.displayName === "db-01");
+      expect(asset).toMatchObject({ type: AssetType.Host, ownerId: null });
+      return asset!;
+    });
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/assets/${created.id}`));
+    expect(await screen.findByRole("heading", { level: 1, name: "db-01" })).toBeVisible();
+    expect(screen.queryByRole("dialog", { name: "Create asset" })).not.toBeInTheDocument();
   });
 
   it("creates nothing when the dialog is cancelled", async () => {
@@ -193,16 +194,18 @@ describe("creating and deleting assets", () => {
     expect(db.assets.all()).toHaveLength(SEED_ASSETS.length);
   });
 
-  it("reports a failed create", async () => {
+  it("reports a failed create and keeps the dialog with its draft", async () => {
     mockApiError("post", "/assets", 500, "Create failed");
-    const { user } = renderApp({ path: "/assets" });
+    const { router, user } = renderApp({ path: "/assets" });
 
     await user.click(await screen.findByRole("button", { name: "New asset" }));
-    const dialog = await screen.findByRole("dialog");
+    const dialog = await screen.findByRole("dialog", { name: "Create asset" });
     await user.type(within(dialog).getByLabelText("Display name"), "db-01");
     await user.click(within(dialog).getByRole("button", { name: "Create" }));
 
     expect((await screen.findAllByText(/Create failed/)).length).toBeGreaterThan(0);
+    expect(within(dialog).getByLabelText("Display name")).toHaveValue("db-01");
+    expect(router.state.location.pathname).toBe("/assets");
     expect(db.assets.all()).toHaveLength(SEED_ASSETS.length);
   });
 

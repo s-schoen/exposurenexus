@@ -1,17 +1,16 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Plus, Server } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 
 import { DetailPeek } from "@/components/detail-peek.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { AssetDetailContent } from "@/features/assets/components/asset-detail-content.tsx";
-import { AssetDialog } from "@/features/assets/components/asset-dialog.tsx";
 import { AssetList } from "@/features/assets/components/asset-list/index.tsx";
-import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
 import {
   createAssetListOptionsFromSearch,
   useAssetTableSearchState,
 } from "@/features/assets/hooks/use-asset-table-search-state.ts";
+import { useCreateAsset } from "@/features/assets/hooks/use-create-asset.ts";
 import {
   createAssetByIDQueryOptions,
   createListAssetsWithCustomFieldsQueryOptions,
@@ -44,7 +43,7 @@ export function AssetsPage({
   );
   const customFieldDefinitions = customFieldDefinitionsQuery.data;
   const assetListOptions = createAssetListOptionsFromSearch(search, customFieldDefinitions);
-  const assetLifecycle = useAssetLifecycle();
+  const createAsset = useCreateAsset();
   const { filterState, onFilterStateChange, grouping, onGroupingChange } = useAssetTableSearchState(
     {
       search,
@@ -58,24 +57,17 @@ export function AssetsPage({
     getId: (asset) => asset.id,
   });
 
-  const handleCreateAsset = useCallback(async () => {
-    const assetToCreate = await AssetDialog.call({});
-
-    if (assetToCreate) {
-      await assetLifecycle.createAsset(assetToCreate);
-    }
-  }, [assetLifecycle]);
   const actions = useMemo(
     () => [
       {
         label: "New asset",
         icon: Plus,
         onClick: () => {
-          void handleCreateAsset();
+          void createAsset();
         },
       },
     ],
-    [handleCreateAsset],
+    [createAsset],
   );
 
   usePageMeta({
@@ -99,7 +91,7 @@ export function AssetsPage({
           void selectedSearch.selectRow(asset);
         }}
         onCreateAsset={() => {
-          void handleCreateAsset();
+          void createAsset();
         }}
       />
       <DetailPeek

@@ -24,6 +24,12 @@ async function findRow(title: string) {
   return (await screen.findByText(title)).closest("li")!;
 }
 
+// The sidebar has a "New finding" button too; this is the one in the page header.
+async function clickNewFinding(user: ReturnType<typeof renderApp>["user"]) {
+  const [shell] = await screen.findAllByRole("main");
+  await user.click(await within(shell).findByRole("button", { name: "New finding" }));
+}
+
 function rowTitles(list: HTMLElement) {
   return within(list)
     .getAllByRole("listitem")
@@ -141,14 +147,13 @@ describe("findings list", () => {
     expect(await findRow(WEAK_TLS.title)).not.toHaveAttribute("aria-current");
   });
 
-  it("opens the create page from the toolbar", async () => {
+  it("opens the create dialog from the page header without leaving the list", async () => {
     const { router, user } = renderApp({ path: "/findings" });
 
-    await user.click(await screen.findByRole("button", { name: "New finding" }));
+    await clickNewFinding(user);
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/findings/new"));
-    // The form sits in the centered page column, under its own title.
-    expect(await screen.findByRole("heading", { level: 1, name: "Create finding" })).toBeVisible();
+    expect(await screen.findByRole("dialog", { name: "Create finding" })).toBeVisible();
+    expect(router.state.location.pathname).toBe("/findings");
   });
 
   it("previews a selected finding, fetching it only once selected, and closes again", async () => {
@@ -528,11 +533,12 @@ describe("finding detail", () => {
 });
 
 describe("creating findings", () => {
-  async function openCreatePage() {
+  async function openCreateDialog() {
     const view = renderApp({ path: "/findings" });
-    await view.user.click(await screen.findByRole("button", { name: "New finding" }));
-    await screen.findByLabelText("Title");
-    return view;
+    await clickNewFinding(view.user);
+    const dialog = await screen.findByRole("dialog", { name: "Create finding" });
+    await within(dialog).findByLabelText("Title");
+    return { ...view, dialog };
   }
 
   async function fillRequiredFields(user: ReturnType<typeof renderApp>["user"]) {
@@ -545,8 +551,8 @@ describe("creating findings", () => {
     );
   }
 
-  it("creates a finding with its initial observation and returns to the list", async () => {
-    const { router, user } = await openCreatePage();
+  it("creates a finding with its initial observation and opens it", async () => {
+    const { router, user } = await openCreateDialog();
 
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: "Create finding" }));
@@ -560,11 +566,15 @@ describe("creating findings", () => {
     expect(
       db.observations.all().filter((observation) => observation.findingId === created.id),
     ).toHaveLength(1);
-    await waitFor(() => expect(router.state.location.pathname).toBe("/findings"));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/findings/${created.id}`));
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Hard-coded secret" }),
+    ).toBeVisible();
+    expect(screen.queryByRole("dialog", { name: "Create finding" })).not.toBeInTheDocument();
   });
 
   it("creates a finding with its identity and initial observation details", async () => {
-    const { user } = await openCreatePage();
+    const { user } = await openCreateDialog();
 
     await fillRequiredFields(user);
     await user.type(screen.getByLabelText("Weakness identifiers"), "cwe=CWE-798");
@@ -605,29 +615,54 @@ describe("creating findings", () => {
     expect(
       db.observations.all().find((observation) => observation.findingId === created.id),
     ).toMatchObject({ title: "Secret in config", evidence: "API_KEY=…" });
+    // Let the app finish opening the new finding before the test ends.
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Hard-coded secret" }),
+    ).toBeVisible();
   });
 
   it("does not submit without the required fields", async () => {
     const requests = recordApiRequests();
-    const { router, user } = await openCreatePage();
+    const { router, user, dialog } = await openCreateDialog();
 
-    await user.click(screen.getByRole("button", { name: "Create finding" }));
+    await user.click(within(dialog).getByRole("button", { name: "Create finding" }));
 
-    expect(router.state.location.pathname).toBe("/findings/new");
+    expect(await within(dialog).findAllByRole("alert")).not.toHaveLength(0);
+    expect(router.state.location.pathname).toBe("/findings");
     expect(requests.filter((request) => request.startsWith("POST"))).toEqual([]);
   });
 
-  it("stays on the form when creating fails, and cancels back", async () => {
+  it("keeps the dialog and its draft when creating fails, and cancels", async () => {
     mockApiError("post", "/findings", 500, "Create failed");
-    const { router, user } = await openCreatePage();
+    const { router, user, dialog } = await openCreateDialog();
 
     await fillRequiredFields(user);
-    await user.click(screen.getByRole("button", { name: "Create finding" }));
+    await user.click(within(dialog).getByRole("button", { name: "Create finding" }));
     expect((await screen.findAllByText(/Create failed/)).length).toBeGreaterThan(0);
-    expect(router.state.location.pathname).toBe("/findings/new");
+    expect(within(dialog).getByLabelText("Title")).toHaveValue("  Hard-coded secret  ");
 
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(router.state.location.pathname).toBe("/findings"));
+    await waitFor(() =>
+      expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeEnabled(),
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe("/findings");
     expect(db.findings.all()).toHaveLength(SEED_FINDINGS.length);
+  });
+
+  it("opens the create dialog from the sidebar on any page", async () => {
+    const { router, user } = renderApp({ path: "/assets" });
+    const sidebarButton = await waitFor(() => {
+      const [button] = screen
+        .getAllByRole("button", { name: "New finding" })
+        .filter((candidate) => !candidate.closest("main"));
+      expect(button).toBeDefined();
+      return button;
+    });
+
+    await user.click(sidebarButton);
+
+    expect(await screen.findByRole("dialog", { name: "Create finding" })).toBeVisible();
+    expect(router.state.location.pathname).toBe("/assets");
   });
 });

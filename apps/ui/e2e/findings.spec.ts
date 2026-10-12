@@ -86,12 +86,15 @@ test("links a catalog entry from the vulnerabilities section", async ({ page }) 
 test("creates a finding through the asset combobox", async ({ page }) => {
   await page.goto("/findings");
 
-  await page.getByRole("button", { name: "New finding" }).click();
-  await page.getByLabel("Title", { exact: true }).fill("Hard-coded secret");
-  await page.getByRole("combobox", { name: "Affected asset" }).click();
+  // The sidebar CTA opens the same dialog as the page header's "New finding".
+  await page.getByRole("button", { name: "New finding" }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Create finding" });
+  await dialog.getByLabel("Title", { exact: true }).fill("Hard-coded secret");
+  await dialog.getByRole("combobox", { name: "Affected asset" }).click();
   await page.getByRole("option", { name: new RegExp(API_WORKER.displayName) }).click();
-  await page.getByRole("button", { name: "Create finding" }).click();
+  await dialog.getByRole("button", { name: "Create finding" }).click();
 
-  await expect(page).toHaveURL("/findings");
-  await expect(page.getByRole("link", { name: "Hard-coded secret" })).toBeVisible();
+  await expect(dialog).toBeHidden();
+  await expect(page).toHaveURL(/\/findings\/[^/]+$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Hard-coded secret" })).toBeVisible();
 });

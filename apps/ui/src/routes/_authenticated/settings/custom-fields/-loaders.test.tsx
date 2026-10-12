@@ -12,7 +12,6 @@ import { SEED_CUSTOM_FIELDS } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/settings/custom-fields/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/settings/custom-fields/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/settings/custom-fields/index.tsx";
-import { Route as NewRoute } from "@/routes/_authenticated/settings/custom-fields/new.tsx";
 import { recordApiRequests } from "@/test/msw.ts";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
@@ -66,7 +65,4 @@ it("ensures exactly the requested definition and lets nested edit reuse the pare
   expect(screen.getByDisplayValue(field.name)).toBeVisible();
   expect(client.isFetching()).toBe(0);
   expect(requests).toEqual([`GET /api/assets/custom-fields/${field.id}`]);
-});
-it("keeps creation loader-free", () => {
-  expect(NewRoute.options.loader).toBeUndefined();
 });

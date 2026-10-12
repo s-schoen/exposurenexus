@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { DetailPeek } from "@/components/detail-peek.tsx";
 import { FindingList } from "@/features/findings/components/finding-list/index.tsx";
 import { FindingPreview } from "@/features/findings/components/finding-preview.tsx";
+import { useCreateFinding } from "@/features/findings/hooks/use-create-finding.ts";
 import { useFindingTableSearchState } from "@/features/findings/hooks/use-finding-table-search-state.ts";
 import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -20,6 +21,7 @@ interface FindingsPageProps {
 
 export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
   const navigate = useNavigate();
+  const createFinding = useCreateFinding();
   const findings = useSuspenseQuery(createListFindingsQueryOptions());
   const { filterState, onFilterStateChange, grouping, onGroupingChange } =
     useFindingTableSearchState({
@@ -39,11 +41,11 @@ export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
         label: "New finding",
         icon: Plus,
         onClick: () => {
-          void navigate({ to: "/findings/new" });
+          void createFinding();
         },
       },
     ],
-    [navigate],
+    [createFinding],
   );
   const menu = useMemo(
     () => [

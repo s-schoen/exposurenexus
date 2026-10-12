@@ -10,6 +10,21 @@ import { renderApp } from "@/test/render-app.tsx";
 
 const [ROBIN, MORGAN, CASEY] = SEED_USERS;
 
+async function openCreateDialog() {
+  const view = renderApp({ path: "/settings/users" });
+  await view.user.click(await screen.findByRole("button", { name: "New user" }));
+  const dialog = await screen.findByRole("dialog", { name: "Create user" });
+
+  return { ...view, dialog };
+}
+
+async function fillNewUser(user: ReturnType<typeof renderApp>["user"], dialog: HTMLElement) {
+  await user.type(await within(dialog).findByLabelText("Display name"), "Jamie Tester");
+  await user.type(within(dialog).getByLabelText("Username"), "jamie");
+  await user.type(within(dialog).getByLabelText("Email"), "jamie@example.com");
+  await user.type(within(dialog).getByLabelText("Password"), "correct horse");
+}
+
 describe("users list", () => {
   it("lists users with their role names and status", async () => {
     renderApp({ path: "/settings/users" });
@@ -35,14 +50,6 @@ describe("users list", () => {
     await waitFor(() => expect(router.state.location.search).toMatchObject({ filter: "morgan" }));
     expect(screen.getByText(MORGAN.displayName)).toBeVisible();
     await waitFor(() => expect(screen.queryByText(CASEY.displayName)).not.toBeInTheDocument());
-  });
-
-  it("opens the create page from the header", async () => {
-    const { router, user } = renderApp({ path: "/settings/users" });
-
-    await user.click(await screen.findByRole("button", { name: "New user" }));
-
-    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/users/new"));
   });
 
   it("previews a selected user, fetching it only once selected, and closes again", async () => {
@@ -141,46 +148,49 @@ describe("user detail", () => {
 });
 
 describe("creating and editing users", () => {
-  it("creates a user with the viewer role by default and returns to the list", async () => {
-    const { router, user } = renderApp({ path: "/settings/users/new" });
+  it("creates a user with the viewer role by default in a dialog and opens it", async () => {
+    const { router, user, dialog } = await openCreateDialog();
 
-    await user.type(await screen.findByLabelText("Display name"), "Jamie Tester");
-    await user.type(screen.getByLabelText("Username"), "jamie");
-    await user.type(screen.getByLabelText("Email"), "jamie@example.com");
-    await user.type(screen.getByLabelText("Password"), "correct horse");
-    await user.click(screen.getByRole("button", { name: "Create user" }));
+    await fillNewUser(user, dialog);
+    await user.click(within(dialog).getByRole("button", { name: "Create user" }));
 
-    await waitFor(() =>
-      expect(db.users.all().find((candidate) => candidate.username === "jamie")).toMatchObject({
+    const created = await waitFor(() => {
+      const jamie = db.users.all().find((candidate) => candidate.username === "jamie");
+      expect(jamie).toMatchObject({
         displayName: "Jamie Tester",
         email: "jamie@example.com",
         enabled: true,
         roleIds: [builtInRoleIds.viewer],
-      }),
+      });
+      return jamie!;
+    });
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/settings/users/${created.id}`),
     );
-    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/users"));
+    expect(await screen.findByRole("heading", { level: 1, name: "Jamie Tester" })).toBeVisible();
   });
 
-  it("stays on the form when creating fails", async () => {
+  it("keeps the dialog and its draft when creating fails", async () => {
     mockApiError("post", "/users", 500, "Create failed");
-    const { router, user } = renderApp({ path: "/settings/users/new" });
+    const { router, user, dialog } = await openCreateDialog();
 
-    await user.type(await screen.findByLabelText("Display name"), "Jamie Tester");
-    await user.type(screen.getByLabelText("Username"), "jamie");
-    await user.type(screen.getByLabelText("Email"), "jamie@example.com");
-    await user.type(screen.getByLabelText("Password"), "correct horse");
-    await user.click(screen.getByRole("button", { name: "Create user" }));
+    await fillNewUser(user, dialog);
+    await user.click(within(dialog).getByRole("button", { name: "Create user" }));
 
-    expect(await screen.findByText(/Create failed/)).toBeVisible();
-    expect(router.state.location.pathname).toBe("/settings/users/new");
+    expect((await screen.findAllByText(/Create failed/)).length).toBeGreaterThan(0);
+    expect(within(dialog).getByLabelText("Username")).toHaveValue("jamie");
+    expect(router.state.location.pathname).toBe("/settings/users");
   });
 
-  it("cancels creation back to the list", async () => {
-    const { router, user } = renderApp({ path: "/settings/users/new" });
+  it("cancels creation without leaving the list", async () => {
+    const requests = recordApiRequests();
+    const { router, user, dialog } = await openCreateDialog();
 
-    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/users"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe("/settings/users");
+    expect(requests.filter((request) => request.startsWith("POST"))).toEqual([]);
   });
 
   it("edits a user and returns to the detail page", async () => {

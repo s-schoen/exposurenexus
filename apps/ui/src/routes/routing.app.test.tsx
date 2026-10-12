@@ -71,10 +71,7 @@ describe("authenticated shell", () => {
       "href",
       "/settings/users",
     );
-    expect(screen.getByRole("link", { name: "New finding" })).toHaveAttribute(
-      "href",
-      "/findings/new",
-    );
+    expect(screen.getByRole("button", { name: "New finding" })).toBeVisible();
     expect(screen.queryByRole("link", { name: /Import/ })).not.toBeInTheDocument();
   });
 
@@ -96,7 +93,7 @@ describe("authenticated shell", () => {
     [`/vulnerabilities/${SEED_VULNERABILITIES[0].id}`, "Vulnerabilities"],
     [`/settings/users/${SEED_USERS[0].id}/edit`, "Users"],
     [`/settings/roles/${CUSTOM_AUDITOR_ROLE.id}`, "Roles"],
-    ["/settings/custom-fields/new", "Custom fields"],
+    [`/settings/custom-fields/${SEED_CUSTOM_FIELDS[0].id}/edit`, "Custom fields"],
   ])("marks the navigation item for %s as active", async (path, label) => {
     renderApp({ path });
 
@@ -155,9 +152,11 @@ describe("settings area", () => {
       "href",
       "/settings/custom-fields",
     );
-    for (const label of ["Dashboard", /Triage/, "Findings", "New finding"]) {
+    for (const label of ["Dashboard", /Triage/, "Findings"]) {
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
     }
+    const settingsNav = document.querySelector<HTMLElement>("[data-mode='settings']")!;
+    expect(within(settingsNav).queryByRole("button", { name: "New finding" })).toBeNull();
   });
 
   it("titles settings pages once, in the page column", async () => {

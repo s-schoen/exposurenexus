@@ -16,6 +16,7 @@ import {
 import { STATUS_ORDER } from "@/features/findings/components/finding-list/constants.ts";
 import { FindingContextMenu } from "@/features/findings/components/finding-list/context-menu.tsx";
 import { FindingStatusIcon } from "@/features/findings/components/finding-status-icon.tsx";
+import { useCreateFinding } from "@/features/findings/hooks/use-create-finding.ts";
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
 import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
@@ -58,6 +59,7 @@ export function FindingList({
   onSelectFinding,
 }: FindingListProps) {
   const navigate = useNavigate();
+  const createFinding = useCreateFinding();
   const findingLifecycle = useFindingLifecycle();
   const findingsQuery = useSuspenseQuery(createListFindingsQueryOptions());
   const assetsQuery = useSuspenseQuery(createListAssetsQueryOptions());
@@ -184,7 +186,7 @@ export function FindingList({
       )}
       emptyState={
         <DataListEmpty icon={ShieldAlert} message="No findings yet.">
-          <Button variant="outline" onClick={() => void navigate({ to: "/findings/new" })}>
+          <Button variant="outline" onClick={() => void createFinding()}>
             <Plus />
             New finding
           </Button>

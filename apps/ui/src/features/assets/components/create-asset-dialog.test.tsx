@@ -1,5 +1,6 @@
 import {
   AssetEnvironment,
+  AssetIdentifierType,
   AssetLifecycleState,
   AssetType,
 } from "@exposurenexus/contracts/model/asset";
@@ -7,11 +8,12 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AssetDialog } from "@/features/assets/components/asset-dialog.tsx";
+import { CreateAssetDialog } from "@/features/assets/components/create-asset-dialog.tsx";
 import { SEED_USERS } from "@/mocks/fixtures/index.ts";
 import { renderWithAppProviders } from "@/test/harness.tsx";
-import { holdApiResponses, mockApiError } from "@/test/msw.ts";
+import { captureApiCalls, holdApiResponses, mockApiError } from "@/test/msw.ts";
 
+import type { CapturedApiCall } from "@/test/msw.ts";
 import type { ReactNode } from "react";
 
 // Owners load from the MSW mock API; the seeded admin is the owner used below.
@@ -69,20 +71,34 @@ beforeEach(() => {
 });
 
 function renderAssetDialog() {
+  const posts = captureApiCalls("post", "/assets");
   const call = {
     ended: false,
     end: vi.fn(),
   };
 
-  const view = renderWithAppProviders(<AssetDialog call={call as never} />);
+  const view = renderWithAppProviders(<CreateAssetDialog call={call as never} />);
 
   return {
     ...view,
     call,
+    posts,
   };
 }
 
-describe("AssetDialog", () => {
+// Waits for the dialog to resolve to the created asset and returns the payload it sent.
+async function createdPayload(
+  call: { end: ReturnType<typeof vi.fn> },
+  posts: Array<CapturedApiCall>,
+) {
+  await waitFor(() => {
+    expect(call.end).toHaveBeenCalledWith(expect.objectContaining({ id: expect.any(String) }));
+  });
+  expect(posts).toHaveLength(1);
+  return posts[0].body;
+}
+
+describe("CreateAssetDialog", () => {
   it("renders default values", () => {
     renderAssetDialog();
 
@@ -117,57 +133,51 @@ describe("AssetDialog", () => {
 
   it("submits a valid host asset", async () => {
     const user = userEvent.setup();
-    const { call } = renderAssetDialog();
+    const { call, posts } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
-    await waitFor(() => {
-      expect(call.end).toHaveBeenCalledWith({
-        displayName: "api-01",
-        type: AssetType.Host,
-        environment: AssetEnvironment.Unknown,
-        lifecycleState: AssetLifecycleState.Active,
-        ownerId: null,
-      });
+    expect(await createdPayload(call, posts)).toEqual({
+      displayName: "api-01",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
     });
   });
 
   it("submits once when the create button is clicked", async () => {
     const user = userEvent.setup();
-    const { call } = renderAssetDialog();
+    const { call, posts } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
-    await waitFor(() => {
-      expect(call.end).toHaveBeenCalledWith({
-        displayName: "api-01",
-        type: AssetType.Host,
-        environment: AssetEnvironment.Unknown,
-        lifecycleState: AssetLifecycleState.Active,
-        ownerId: null,
-      });
+    expect(await createdPayload(call, posts)).toEqual({
+      displayName: "api-01",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
     });
     expect(call.end).toHaveBeenCalledTimes(1);
   });
 
   it("submits the selected asset type", async () => {
     const user = userEvent.setup();
-    const { call } = renderAssetDialog();
+    const { call, posts } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "container-01");
     await user.selectOptions(screen.getByLabelText(/^type$/i), AssetType.ContainerImage);
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
-    await waitFor(() => {
-      expect(call.end).toHaveBeenCalledWith({
-        displayName: "container-01",
-        type: AssetType.ContainerImage,
-        environment: AssetEnvironment.Unknown,
-        lifecycleState: AssetLifecycleState.Active,
-        ownerId: null,
-      });
+    expect(await createdPayload(call, posts)).toEqual({
+      displayName: "container-01",
+      type: AssetType.ContainerImage,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
     });
   });
 
@@ -195,27 +205,25 @@ describe("AssetDialog", () => {
 
   it("submits the selected owner", async () => {
     const user = userEvent.setup();
-    const { call } = renderAssetDialog();
+    const { call, posts } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await screen.findByRole("option", { name: OWNER.displayName });
     await user.selectOptions(screen.getByLabelText(/^owner$/i), OWNER.id);
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
-    await waitFor(() => {
-      expect(call.end).toHaveBeenCalledWith({
-        displayName: "api-01",
-        type: AssetType.Host,
-        environment: AssetEnvironment.Unknown,
-        lifecycleState: AssetLifecycleState.Active,
-        ownerId: OWNER.id,
-      });
+    expect(await createdPayload(call, posts)).toEqual({
+      displayName: "api-01",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: OWNER.id,
     });
   });
 
   it("resolves ownerId to null after clearing a selected owner", async () => {
     const user = userEvent.setup();
-    const { call } = renderAssetDialog();
+    const { call, posts } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await screen.findByRole("option", { name: OWNER.displayName });
@@ -223,14 +231,12 @@ describe("AssetDialog", () => {
     await user.selectOptions(screen.getByLabelText(/^owner$/i), "__no_owner__");
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
-    await waitFor(() => {
-      expect(call.end).toHaveBeenCalledWith({
-        displayName: "api-01",
-        type: AssetType.Host,
-        environment: AssetEnvironment.Unknown,
-        lifecycleState: AssetLifecycleState.Active,
-        ownerId: null,
-      });
+    expect(await createdPayload(call, posts)).toEqual({
+      displayName: "api-01",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
     });
   });
 
@@ -240,26 +246,24 @@ describe("AssetDialog", () => {
   ])("keeps the form usable without stale owners when users are %s", async (_state, setup) => {
     const user = userEvent.setup();
     setup();
-    const { call } = renderAssetDialog();
+    const { call, posts } = renderAssetDialog();
 
     expect(screen.queryByRole("option", { name: OWNER.displayName })).toBeNull();
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
-    await waitFor(() => {
-      expect(call.end).toHaveBeenCalledWith({
-        displayName: "api-01",
-        type: AssetType.Host,
-        environment: AssetEnvironment.Unknown,
-        lifecycleState: AssetLifecycleState.Active,
-        ownerId: null,
-      });
+    expect(await createdPayload(call, posts)).toEqual({
+      displayName: "api-01",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
     });
   });
 
   it("submits the selected environment and lifecycle state", async () => {
     const user = userEvent.setup();
-    const { call } = renderAssetDialog();
+    const { call, posts } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await user.selectOptions(
@@ -272,42 +276,51 @@ describe("AssetDialog", () => {
     );
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
-    await waitFor(() => {
-      expect(call.end).toHaveBeenCalledWith({
-        displayName: "api-01",
-        type: AssetType.Host,
-        environment: AssetEnvironment.NotApplicable,
-        lifecycleState: AssetLifecycleState.Archived,
-        ownerId: null,
-      });
+    expect(await createdPayload(call, posts)).toEqual({
+      displayName: "api-01",
+      type: AssetType.Host,
+      environment: AssetEnvironment.NotApplicable,
+      lifecycleState: AssetLifecycleState.Archived,
+      ownerId: null,
     });
   });
 
   it("submits identifiers entered in the asset form", async () => {
     const user = userEvent.setup();
-    const { call } = renderAssetDialog();
+    const { call, posts } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await user.click(screen.getByRole("button", { name: /add identifier/i }));
     await user.type(screen.getByLabelText("Identifier value 1"), "API.Example.com.");
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
-    await waitFor(() => {
-      expect(call.end).toHaveBeenCalledWith({
-        displayName: "api-01",
-        type: AssetType.Host,
-        environment: AssetEnvironment.Unknown,
-        lifecycleState: AssetLifecycleState.Active,
-        ownerId: null,
-        identifiers: [
-          {
-            type: "dnsName",
-            namespace: undefined,
-            value: "api.example.com",
-          },
-        ],
-      });
+    expect(await createdPayload(call, posts)).toEqual({
+      displayName: "api-01",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
+      identifiers: [
+        {
+          type: AssetIdentifierType.DnsName,
+          value: "api.example.com",
+        },
+      ],
     });
+  });
+
+  it("stays open with the draft when the API rejects the create", async () => {
+    mockApiError("post", "/assets", 500, "Create failed");
+    const user = userEvent.setup();
+    const { call, posts } = renderAssetDialog();
+
+    await user.type(screen.getByLabelText(/^display name$/i), "api-01");
+    await user.click(screen.getByRole("button", { name: /^create$/i }));
+
+    await waitFor(() => expect(posts).toHaveLength(1));
+    await waitFor(() => expect(screen.getByRole("button", { name: /^create$/i })).toBeEnabled());
+    expect(call.end).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/^display name$/i)).toHaveValue("api-01");
   });
 
   it("does not resolve when submitted without a display name", async () => {

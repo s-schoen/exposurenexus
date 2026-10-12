@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPeek } from "@/components/detail-peek.tsx";
 import { CustomFieldList } from "@/features/custom-fields/components/custom-field-list/index.tsx";
 import { useAssetCustomFieldDefinitionLifecycle } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
+import { useCreateCustomField } from "@/features/custom-fields/hooks/use-create-custom-field.ts";
 import { useCustomFieldTableSearchState } from "@/features/custom-fields/hooks/use-custom-field-table-search-state.ts";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields/queries/definitions.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -27,6 +28,7 @@ interface CustomFieldsPageProps {
 
 export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProps) {
   const navigate = useNavigate();
+  const createCustomField = useCreateCustomField();
   const fieldLifecycle = useAssetCustomFieldDefinitionLifecycle();
   const { filterState, onFilterStateChange } = useCustomFieldTableSearchState({
     search,
@@ -45,11 +47,11 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
         label: "New custom field",
         icon: Plus,
         onClick: () => {
-          void navigate({ to: "/settings/custom-fields/new" });
+          void createCustomField();
         },
       },
     ],
-    [navigate],
+    [createCustomField],
   );
 
   usePageMeta({
@@ -100,7 +102,7 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
           void handleOpenCustomField(field);
         }}
         onCreateCustomField={() => {
-          void navigate({ to: "/settings/custom-fields/new" });
+          void createCustomField();
         }}
         onDeleteCustomFields={handleDeleteCustomFields}
       />

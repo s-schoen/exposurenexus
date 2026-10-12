@@ -1,21 +1,21 @@
 import { usePage } from "@/hooks/use-page-meta.tsx";
 
 const SETTINGS_PATH = /^\/settings(?:\/.*)?$/;
-const SETTINGS_DETAIL_PATH = /^\/settings\/[^/]+\/(?!new\/?$)[^/]+\/?$/;
-const FORM_PATH = /\/(?:new|edit)\/?$/;
+const SETTINGS_DETAIL_PATH = /^\/settings\/[^/]+\/[^/]+\/?$/;
+const EDIT_PATH = /\/edit\/?$/;
 
 export function isSettingsPath(pathname: string) {
   return SETTINGS_PATH.test(pathname);
 }
 
 /**
- * Whether a page sits in the centered page column. Create and edit forms, settings lists and the
- * Settings landing page do; a settings detail page uses the full-width detail layout, as every
- * other detail page does.
+ * Whether a page sits in the centered page column. Edit forms, settings lists and the Settings
+ * landing page do; a settings detail page uses the full-width detail layout, as every other
+ * detail page does. Create forms open in a `FormDialog` instead.
  */
 export function isPageColumnPath(pathname: string) {
   return (
-    FORM_PATH.test(pathname) || (isSettingsPath(pathname) && !SETTINGS_DETAIL_PATH.test(pathname))
+    EDIT_PATH.test(pathname) || (isSettingsPath(pathname) && !SETTINGS_DETAIL_PATH.test(pathname))
   );
 }
 

@@ -12,7 +12,6 @@ import { CUSTOM_AUDITOR_ROLE } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/settings/roles/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/settings/roles/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/settings/roles/index.tsx";
-import { Route as NewRoute } from "@/routes/_authenticated/settings/roles/new.tsx";
 import { recordApiRequests } from "@/test/msw.ts";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
@@ -29,7 +28,6 @@ const role = CUSTOM_AUDITOR_ROLE;
 
 it.each([
   ["index", IndexRoute],
-  ["new", NewRoute],
   ["edit child", EditRoute],
 ])("%s ensures only the role list", async (_name, route) => {
   const client = new QueryClient();
@@ -77,7 +75,7 @@ it("ensures exactly the requested role and lets nested edit reuse its parent cac
   expect(requests).toEqual([`GET /api/roles/${role.id}`, "GET /api/roles"]);
 });
 
-it.each([IndexRoute, NewRoute, DetailRoute, EditRoute])(
+it.each([IndexRoute, DetailRoute, EditRoute])(
   "propagates critical loader failures to the router",
   async (route) => {
     const client = new QueryClient();

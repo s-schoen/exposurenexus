@@ -22,12 +22,11 @@ test("creates an asset through the type, environment and owner selects", async (
   await dialog.getByRole("button", { name: "Create" }).click();
 
   await expect(dialog).toBeHidden();
-  const row = page
-    .getByRole("list", { name: "Assets" })
-    .getByRole("listitem")
-    .filter({ hasText: "registry-01" });
-  await expect(row).toContainText("Software");
-  await expect(row).toContainText(MORGAN.displayName);
+  await expect(page).toHaveURL(/\/assets\/[^/]+$/);
+  await expect(page.getByRole("heading", { level: 1, name: "registry-01" })).toBeVisible();
+  const properties = page.getByRole("region", { name: "Properties" });
+  await expect(properties).toContainText("Software");
+  await expect(properties).toContainText(MORGAN.displayName);
 });
 
 test("adds an identifier on the detail page", async ({ page }) => {

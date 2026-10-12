@@ -19,6 +19,14 @@ async function selectRow(user: ReturnType<typeof renderApp>["user"], title: stri
   await user.click(within(row).getByRole("checkbox", { name: "Select row" }));
 }
 
+async function openCreateDialog() {
+  const view = renderApp({ path: "/vulnerabilities?severity=high" });
+  await view.user.click(await screen.findByRole("button", { name: "New catalog entry" }));
+  const dialog = await screen.findByRole("dialog", { name: "Create catalog entry" });
+
+  return { ...view, dialog };
+}
+
 function rowTitles(list: HTMLElement) {
   return within(list)
     .getAllByRole("listitem")
@@ -122,14 +130,6 @@ describe("vulnerabilities list", () => {
     await waitFor(() => expect(router.state.location.search).toMatchObject({ filter: "takeover" }));
     await waitFor(() => expect(screen.queryByText(ADMIN_ENDPOINT.title)).not.toBeInTheDocument());
     expect(screen.getByText(ACCOUNT_TAKEOVER.title)).toBeVisible();
-  });
-
-  it("opens the create page from the page header", async () => {
-    const { router, user } = renderApp({ path: "/vulnerabilities" });
-
-    await user.click(await screen.findByRole("button", { name: "New catalog entry" }));
-
-    await waitFor(() => expect(router.state.location.pathname).toBe("/vulnerabilities/new"));
   });
 
   it("previews a selected entry and fetches it only once selected", async () => {
@@ -240,12 +240,12 @@ describe("vulnerability detail", () => {
 });
 
 describe("creating and editing entries", () => {
-  it("creates an entry with the form defaults and opens it", async () => {
-    const { router, user } = renderApp({ path: "/vulnerabilities/new" });
+  it("creates an entry with the form defaults in a dialog and opens it", async () => {
+    const { router, user, dialog } = await openCreateDialog();
 
-    await user.type(await screen.findByLabelText("Identifier"), "internal-001");
-    await user.type(screen.getByLabelText("Title"), "Weak session handling");
-    await user.click(screen.getByRole("button", { name: "Create catalog entry" }));
+    await user.type(within(dialog).getByLabelText("Identifier"), "internal-001");
+    await user.type(within(dialog).getByLabelText("Title"), "Weak session handling");
+    await user.click(within(dialog).getByRole("button", { name: "Create catalog entry" }));
 
     const created = await waitFor(() => {
       const entry = db.vulnerabilities.all().find((item) => item.identifier === "internal-001");
@@ -262,26 +262,33 @@ describe("creating and editing entries", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "Weak session handling" }),
     ).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("stays on the form when creating fails", async () => {
+  it("keeps the dialog and its draft when creating fails", async () => {
     mockApiError("post", "/vulnerabilities", 500, "Create failed");
-    const { router, user } = renderApp({ path: "/vulnerabilities/new" });
+    const { router, user, dialog } = await openCreateDialog();
 
-    await user.type(await screen.findByLabelText("Identifier"), "internal-001");
-    await user.type(screen.getByLabelText("Title"), "Weak session handling");
-    await user.click(screen.getByRole("button", { name: "Create catalog entry" }));
+    await user.type(within(dialog).getByLabelText("Identifier"), "internal-001");
+    await user.type(within(dialog).getByLabelText("Title"), "Weak session handling");
+    await user.click(within(dialog).getByRole("button", { name: "Create catalog entry" }));
 
-    expect(await screen.findByText(/Create failed/)).toBeVisible();
-    expect(router.state.location.pathname).toBe("/vulnerabilities/new");
+    expect((await screen.findAllByText(/Create failed/)).length).toBeGreaterThan(0);
+    expect(within(dialog).getByLabelText("Title")).toHaveValue("Weak session handling");
+    expect(router.state.location.pathname).toBe("/vulnerabilities");
+    expect(db.vulnerabilities.all()).toHaveLength(SEED_VULNERABILITIES.length);
   });
 
-  it("cancels creation back to the list", async () => {
-    const { router, user } = renderApp({ path: "/vulnerabilities/new" });
+  it("cancels creation without leaving the filtered list", async () => {
+    const requests = recordApiRequests();
+    const { router, user, dialog } = await openCreateDialog();
 
-    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/vulnerabilities"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe("/vulnerabilities");
+    expect(router.state.location.search).toEqual({ severity: "high" });
+    expect(requests.filter((request) => request.startsWith("POST"))).toEqual([]);
   });
 
   it("edits an entry and returns to its detail page", async () => {

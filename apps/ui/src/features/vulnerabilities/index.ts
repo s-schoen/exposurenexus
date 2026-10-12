@@ -7,7 +7,7 @@ export {
   formatSeverity,
   severityChartColor,
 } from "@/features/vulnerabilities/lib/severity.ts";
-export { CreateVulnerabilityPage } from "@/features/vulnerabilities/pages/create-vulnerability-page.tsx";
+export { CreateVulnerabilityDialog } from "@/features/vulnerabilities/components/create-vulnerability-dialog.tsx";
 export { EditVulnerabilityPage } from "@/features/vulnerabilities/pages/edit-vulnerability-page.tsx";
 export { VulnerabilitiesPage } from "@/features/vulnerabilities/pages/vulnerabilities-page.tsx";
 export { VulnerabilityDetailPage } from "@/features/vulnerabilities/pages/vulnerability-detail-page.tsx";
