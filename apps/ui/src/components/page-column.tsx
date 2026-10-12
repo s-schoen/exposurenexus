@@ -2,20 +2,21 @@ import { usePage } from "@/hooks/use-page-meta.tsx";
 
 const SETTINGS_PATH = /^\/settings(?:\/.*)?$/;
 const EDIT_PATH = /\/edit\/?$/;
+const IMPORT_PATH = /^\/findings\/import\/?$/;
 
 export function isSettingsPath(pathname: string) {
   return SETTINGS_PATH.test(pathname);
 }
 
 /**
- * Whether a page sits in the centered page column. Only edit forms do; lists, settings lists
- * included, render full width. Create forms open in a `FormDialog` instead.
+ * Whether a page sits in the centered page column. Only edit forms and the import form do; lists,
+ * settings lists included, render full width. Create forms open in a `FormDialog` instead.
  */
 export function isPageColumnPath(pathname: string) {
-  return EDIT_PATH.test(pathname);
+  return EDIT_PATH.test(pathname) || IMPORT_PATH.test(pathname);
 }
 
-// Edit forms sit in a centered column under a 24px title. The title is the page's
+// Page forms sit in a centered column under a 24px title. The title is the page's
 // heading here, so the page header shows it as plain text.
 export function PageColumn({ children }: { children: React.ReactNode }) {
   const { title } = usePage();

@@ -19,6 +19,7 @@ describe("ImportFindingsPage", () => {
       ),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: /import findings unavailable/i })).toBeDisabled();
+    expect(screen.queryByText("Select another file")).toBeNull();
   });
 
   it("shows selected file metadata and clears the file", async () => {
@@ -34,6 +35,7 @@ describe("ImportFindingsPage", () => {
     });
 
     expect(screen.getByText("scan.json")).toBeTruthy();
+    expect(screen.getByText("Select another file")).toBeVisible();
     expect(screen.getByText(/2 B/)).toBeTruthy();
     expect(screen.getByText(/application\/json/)).toBeTruthy();
 
@@ -42,6 +44,7 @@ describe("ImportFindingsPage", () => {
     await waitFor(() => {
       expect(screen.queryByText("scan.json")).toBeNull();
     });
+    expect(screen.queryByText("Select another file")).toBeNull();
   });
 
   it.each([
