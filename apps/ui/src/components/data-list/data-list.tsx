@@ -242,7 +242,7 @@ export function DataList<TData extends RowData>({
         data-selected={row.getIsSelected() || undefined}
         data-active={active || undefined}
         aria-current={active || undefined}
-        className="group/row flex min-h-11 flex-wrap items-center gap-2 border-b border-border px-5 py-2.5 text-13 transition-colors duration-100 select-none last:border-b-0 hover:bg-accent data-active:bg-primary/5"
+        className="group/row flex min-h-11 flex-wrap items-center gap-2 border-b border-border px-5 py-2.5 text-13 transition-colors duration-100 select-none last:border-b-0 hover:bg-accent data-active:bg-primary/5 data-selected:bg-primary/5"
         onClick={onRowClick ? (event) => handleRowClick(event, row) : undefined}
         onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row.original) : undefined}
         onContextMenu={contextMenu ? () => handleRowContextMenu(row) : undefined}
