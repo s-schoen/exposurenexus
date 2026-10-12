@@ -1,7 +1,6 @@
 import { usePage } from "@/hooks/use-page-meta.tsx";
 
 const SETTINGS_PATH = /^\/settings(?:\/.*)?$/;
-const SETTINGS_DETAIL_PATH = /^\/settings\/[^/]+\/[^/]+\/?$/;
 const EDIT_PATH = /\/edit\/?$/;
 
 export function isSettingsPath(pathname: string) {
@@ -9,17 +8,14 @@ export function isSettingsPath(pathname: string) {
 }
 
 /**
- * Whether a page sits in the centered page column. Edit forms, settings lists and the Settings
- * landing page do; a settings detail page uses the full-width detail layout, as every other
- * detail page does. Create forms open in a `FormDialog` instead.
+ * Whether a page sits in the centered page column. Only edit forms do; lists, settings lists
+ * included, render full width. Create forms open in a `FormDialog` instead.
  */
 export function isPageColumnPath(pathname: string) {
-  return (
-    EDIT_PATH.test(pathname) || (isSettingsPath(pathname) && !SETTINGS_DETAIL_PATH.test(pathname))
-  );
+  return EDIT_PATH.test(pathname);
 }
 
-// Forms and settings lists sit in a centered column under a 24px title. The title is the page's
+// Edit forms sit in a centered column under a 24px title. The title is the page's
 // heading here, so the page header shows it as plain text.
 export function PageColumn({ children }: { children: React.ReactNode }) {
   const { title } = usePage();

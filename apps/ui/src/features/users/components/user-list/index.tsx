@@ -59,7 +59,6 @@ export function UserList({
 
   return (
     <DataList
-      inset
       label="Users"
       columns={columns}
       query={usersQuery}
