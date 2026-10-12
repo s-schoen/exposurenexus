@@ -4,15 +4,17 @@ import {
 } from "@exposurenexus/contracts/model/affected-resource";
 import { useState } from "react";
 
+import { FormActions, FormDialog } from "@/components/form-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog.tsx";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field.tsx";
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+} from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import {
   Select,
@@ -21,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
-import { Separator } from "@/components/ui/separator.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
@@ -432,11 +433,6 @@ export function FindingDetailsDialog({ finding, open, onOpenChange }: FindingDet
     }
   }
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && submitting) return;
-    onOpenChange(nextOpen);
-  };
-
   const handleSubmit = async () => {
     const result = buildFindingCorrection(draft, weaknessDraft);
     if (result.error !== undefined) {
@@ -455,23 +451,23 @@ export function FindingDetailsDialog({ finding, open, onOpenChange }: FindingDet
     onOpenChange(false);
   };
 
-  const formId = `edit-finding-details-${finding.id}`;
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Edit details</DialogTitle>
-        </DialogHeader>
-        <form
-          id={formId}
-          className="space-y-6"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void handleSubmit();
-          }}
-        >
-          <div className="grid gap-4">
+    <FormDialog
+      title="Edit details"
+      size="wide"
+      open={open}
+      onOpenChange={onOpenChange}
+      submitting={submitting}
+    >
+      <form
+        className="flex flex-col gap-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleSubmit();
+        }}
+      >
+        <FieldGroup>
+          <FieldGroup>
             <Field>
               <FieldLabel htmlFor="correction-title">Title</FieldLabel>
               <Input
@@ -489,77 +485,85 @@ export function FindingDetailsDialog({ finding, open, onOpenChange }: FindingDet
                 className="min-h-24"
               />
             </Field>
-          </div>
-          <Separator />
-          <div className="space-y-4">
-            <Field>
-              <FieldLabel htmlFor="correction-weakness">Weakness identifiers</FieldLabel>
-              <Input
-                id="correction-weakness"
-                value={weaknessDraft}
-                onChange={(event) => setWeaknessDraft(event.target.value)}
-                placeholder="cwe=CWE-200; scanner=admin-panel"
-              />
-              <FieldDescription>
-                Separate namespaces with semicolons and identifiers with commas.
-              </FieldDescription>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="correction-resource-type">Affected resource type</FieldLabel>
-              <Select
-                value={draft.affectedResource?.type}
-                onValueChange={(value) => {
-                  if (!value || !isAffectedResourceType(value)) return;
-                  setDraft({
-                    ...draft,
-                    affectedResource: emptyResource(value),
-                  });
-                }}
-              >
-                <SelectTrigger id="correction-resource-type" className="w-full">
-                  <SelectValue>
-                    {(value) =>
-                      typeof value === "string" && isAffectedResourceType(value)
-                        ? formatResourceType(value)
-                        : null
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {resourceTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {formatResourceType(type)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FieldDescription>
-                Changing type replaces the current resource identity and its fields.
-              </FieldDescription>
-            </Field>
-            {draft.affectedResource ? (
-              <ResourceFields
-                resource={draft.affectedResource}
-                onChange={(affectedResource) => setDraft({ ...draft, affectedResource })}
-              />
-            ) : null}
-          </div>
-          {error ? (
-            <p role="alert" className="text-sm font-medium text-destructive">
-              {error}
-            </p>
-          ) : null}
-        </form>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+          </FieldGroup>
+          <FieldSeparator />
+          <FieldSet>
+            <FieldLegend>Identity</FieldLegend>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="correction-weakness">Weakness identifiers</FieldLabel>
+                <Input
+                  id="correction-weakness"
+                  value={weaknessDraft}
+                  onChange={(event) => setWeaknessDraft(event.target.value)}
+                  placeholder="cwe=CWE-200; scanner=admin-panel"
+                />
+                <FieldDescription>
+                  Separate namespaces with semicolons and identifiers with commas.
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="correction-resource-type">Affected resource type</FieldLabel>
+                <Select
+                  value={draft.affectedResource?.type}
+                  onValueChange={(value) => {
+                    if (!value || !isAffectedResourceType(value)) return;
+                    setDraft({
+                      ...draft,
+                      affectedResource: emptyResource(value),
+                    });
+                  }}
+                >
+                  <SelectTrigger id="correction-resource-type" className="w-full">
+                    <SelectValue>
+                      {(value) =>
+                        typeof value === "string" && isAffectedResourceType(value)
+                          ? formatResourceType(value)
+                          : null
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {resourceTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {formatResourceType(type)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldDescription>
+                  Changing type replaces the current resource identity and its fields.
+                </FieldDescription>
+              </Field>
+              {draft.affectedResource ? (
+                <ResourceFields
+                  resource={draft.affectedResource}
+                  onChange={(affectedResource) => setDraft({ ...draft, affectedResource })}
+                />
+              ) : null}
+            </FieldGroup>
+          </FieldSet>
+        </FieldGroup>
+        {error ? (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {error}
+          </p>
+        ) : null}
+        <FormActions>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
-          <Button type="submit" form={formId} disabled={submitting}>
-            {submitting ? <Spinner /> : null}
+          <Button type="submit" disabled={submitting}>
+            {submitting && <Spinner />}
             Save
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </FormActions>
+      </form>
+    </FormDialog>
   );
 }

@@ -3,7 +3,7 @@ import {
   updateUserProfileSchema,
 } from "@exposurenexus/contracts/model/user";
 import { useForm } from "@tanstack/react-form";
-import { Check, ChevronsUpDownIcon } from "lucide-react";
+import { Check, ChevronDownIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { z } from "zod/v4";
 
@@ -139,19 +139,19 @@ function RoleMultiSelect({
           <Button
             id={id}
             type="button"
-            variant="outline"
+            variant="field"
             size="lg"
             role="combobox"
             aria-controls={popupId}
             aria-expanded={open}
             aria-invalid={invalid}
             disabled={disabled}
-            className="w-full justify-between"
+            className="w-full"
           >
             <span className={value.length === 0 ? "truncate text-subtle-foreground" : "truncate"}>
               {selectedSummary}
             </span>
-            <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
+            <ChevronDownIcon data-icon="inline-end" className="text-muted-foreground" />
           </Button>
         }
       ></PopoverTrigger>

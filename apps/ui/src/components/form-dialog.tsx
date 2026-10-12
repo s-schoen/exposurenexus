@@ -12,7 +12,7 @@ interface FormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  /** `wide` fits two-column forms and tables. */
+  /** `default` fits single-column forms; `wide` fits forms with two-column field rows. */
   size?: "default" | "wide";
   /** While a submit runs, the dialog ignores every close request. */
   submitting?: boolean;
@@ -20,8 +20,9 @@ interface FormDialogProps {
 }
 
 /**
- * The modal that create forms open in. It scrolls as a whole and pins the form's `FormActions`
- * to its bottom edge. A backdrop click doesn't close it, so a stray click can't drop a draft.
+ * The modal every form dialog opens in, for creates and edits alike. It scrolls as a whole and
+ * pins the form's `FormActions` to its bottom edge. A backdrop click doesn't close it, so a stray
+ * click can't drop a draft.
  */
 export function FormDialog({
   open,

@@ -1,8 +1,17 @@
 import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset";
-import { Check, Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { FormActions } from "@/components/form-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import {
   Select,
@@ -19,7 +28,7 @@ import type {
   AssetIdentifierRecord,
   CreateAssetIdentifier,
 } from "@exposurenexus/contracts/model/asset";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 
 export interface AssetIdentifierDraft {
   type: AssetIdentifierType;
@@ -47,8 +56,6 @@ interface IdentifierRowProps {
   index: number;
   onChange: (draft: AssetIdentifierDraft) => void;
   onRemove: () => void;
-  onSave?: () => void | Promise<void>;
-  saveLabel?: string;
 }
 
 interface IdentifierFieldsProps {
@@ -115,16 +122,18 @@ function IdentifierFields({
   return (
     <>
       <div className="grid gap-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)]">
-        <div className="space-y-1.5">
-          <label htmlFor={`${inputId}-type`} className="text-sm font-medium">
-            Type
-          </label>
+        <Field>
+          <FieldLabel htmlFor={`${inputId}-type`}>Type</FieldLabel>
           <Select
             value={draft.type}
             onValueChange={(value) => updateDraft({ type: value as AssetIdentifierType })}
             disabled={disabled}
           >
-            <SelectTrigger id={`${inputId}-type`} aria-label={`Identifier type${labelSuffix}`}>
+            <SelectTrigger
+              id={`${inputId}-type`}
+              aria-label={`Identifier type${labelSuffix}`}
+              className="w-full"
+            >
               <SelectValue>{identifierTypeLabel(draft.type)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -137,11 +146,12 @@ function IdentifierFields({
               </SelectGroup>
             </SelectContent>
           </Select>
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor={`${inputId}-namespace`} className="text-sm font-medium">
-            Namespace <span className="font-normal text-muted-foreground">(optional)</span>
-          </label>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor={`${inputId}-namespace`}>
+            Namespace
+            <span className="text-muted-foreground">(optional)</span>
+          </FieldLabel>
           <Input
             id={`${inputId}-namespace`}
             aria-label={`Identifier namespace${labelSuffix}`}
@@ -152,13 +162,11 @@ function IdentifierFields({
             autoComplete="off"
             disabled={disabled}
           />
-        </div>
+        </Field>
       </div>
-      <div className="space-y-1.5">
-        <label htmlFor={`${inputId}-value`} className="text-sm font-medium">
-          Canonical value
-        </label>
-        <div className="flex items-start gap-2">
+      <Field data-invalid={showError && error !== null}>
+        <FieldLabel htmlFor={`${inputId}-value`}>Canonical value</FieldLabel>
+        <div className="flex items-center gap-2">
           <Input
             id={`${inputId}-value`}
             aria-label={`Identifier value${labelSuffix}`}
@@ -174,7 +182,7 @@ function IdentifierFields({
             <Button
               type="button"
               variant="ghost"
-              size="icon-sm"
+              size="icon"
               aria-label={`Remove identifier${labelSuffix}`}
               title="Remove identifier"
               onClick={onRemove}
@@ -184,25 +192,18 @@ function IdentifierFields({
             </Button>
           ) : null}
         </div>
-        {showError && error ? <p className="text-sm text-destructive">{error}</p> : null}
-      </div>
+        {showError && error ? <FieldError>{error}</FieldError> : null}
+      </Field>
     </>
   );
 }
 
-function IdentifierRow({
-  draft,
-  index,
-  onChange,
-  onRemove,
-  onSave,
-  saveLabel = "Save identifier",
-}: IdentifierRowProps) {
+function IdentifierRow({ draft, index, onChange, onRemove }: IdentifierRowProps) {
   const inputId = `asset-identifier-${index}`;
   const normalize = () => onChange(canonicalizeDraft(draft));
 
   return (
-    <div className="space-y-3 rounded-lg border border-border/70 p-3">
+    <div className="flex flex-col gap-3 rounded-md border border-border bg-card p-3">
       <IdentifierFields
         draft={draft}
         inputId={inputId}
@@ -211,40 +212,7 @@ function IdentifierRow({
         onRemove={onRemove}
         ariaLabelSuffix={String(index + 1)}
       />
-      {onSave ? (
-        <Button type="button" variant="outline" size="sm" onClick={() => void onSave()}>
-          <Check />
-          {saveLabel}
-        </Button>
-      ) : null}
     </div>
-  );
-}
-
-interface AssetIdentifierSectionProps {
-  children: ReactNode;
-  onAdd: () => void;
-}
-
-function AssetIdentifierSection({ children, onAdd }: AssetIdentifierSectionProps) {
-  return (
-    <section className="space-y-3" aria-labelledby="asset-identifiers-heading">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h3 id="asset-identifiers-heading" className="text-sm font-semibold">
-            Asset identifiers
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            External identities are canonicalized before they are saved.
-          </p>
-        </div>
-        <Button type="button" variant="outline" size="sm" onClick={onAdd}>
-          <Plus />
-          Add identifier
-        </Button>
-      </div>
-      {children}
-    </section>
   );
 }
 
@@ -253,37 +221,44 @@ export interface AssetIdentifierEditorProps {
   onChange: (value: Array<CreateAssetIdentifier>) => void;
 }
 
+/** The identifier list in the create-asset form: a gray tray of identifier rows. */
 export function AssetIdentifierEditor({ value, onChange }: AssetIdentifierEditorProps) {
   const drafts = value.map(toDraft);
 
   return (
-    <AssetIdentifierSection
-      onAdd={() =>
-        onChange([...value, { type: AssetIdentifierType.DnsName, namespace: undefined, value: "" }])
-      }
-    >
-      {drafts.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-          No identifiers. Assets can be managed without an external identity.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {drafts.map((draft, index) => (
-            <IdentifierRow
-              key={index}
-              draft={draft}
-              index={index}
-              onChange={(updatedDraft) => {
-                const next = [...drafts];
-                next[index] = updatedDraft;
-                onChange(next.map(toIdentifier));
-              }}
-              onRemove={() => onChange(value.filter((_, itemIndex) => itemIndex !== index))}
-            />
-          ))}
-        </div>
-      )}
-    </AssetIdentifierSection>
+    <FieldSet>
+      <FieldLegend variant="label">Identifiers</FieldLegend>
+      <div className="flex flex-col gap-1.5 rounded-lg bg-muted p-1.5">
+        {drafts.map((draft, index) => (
+          <IdentifierRow
+            key={index}
+            draft={draft}
+            index={index}
+            onChange={(updatedDraft) => {
+              const next = [...drafts];
+              next[index] = updatedDraft;
+              onChange(next.map(toIdentifier));
+            }}
+            onRemove={() => onChange(value.filter((_, itemIndex) => itemIndex !== index))}
+          />
+        ))}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-start"
+          onClick={() =>
+            onChange([
+              ...value,
+              { type: AssetIdentifierType.DnsName, namespace: undefined, value: "" },
+            ])
+          }
+        >
+          <Plus />
+          Add identifier
+        </Button>
+      </div>
+    </FieldSet>
   );
 }
 
@@ -331,25 +306,26 @@ export function AssetIdentifierForm({
   };
 
   return (
-    <form className="space-y-5" onSubmit={(event) => void handleSubmit(event)}>
-      <IdentifierFields
-        draft={draft}
-        inputId="asset-identifier-dialog"
-        onChange={setDraft}
-        onNormalize={() => setDraft(canonicalizeDraft(draft))}
-        disabled={pending}
-        showError={showError}
-      />
-      <div className="flex justify-end gap-2">
+    <form className="flex flex-col gap-6" onSubmit={(event) => void handleSubmit(event)}>
+      <FieldGroup>
+        <IdentifierFields
+          draft={draft}
+          inputId="asset-identifier-dialog"
+          onChange={setDraft}
+          onNormalize={() => setDraft(canonicalizeDraft(draft))}
+          disabled={pending}
+          showError={showError}
+        />
+      </FieldGroup>
+      <FormActions>
         <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
-          <X />
           Cancel
         </Button>
         <Button type="submit" disabled={pending}>
-          {pending ? <Spinner /> : <Check />}
+          {pending && <Spinner />}
           {submitLabel}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

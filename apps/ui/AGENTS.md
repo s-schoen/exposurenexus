@@ -61,7 +61,7 @@ AGPL-3.0: re-declare single values under our token names, never copy their files
   sidebar and content. Build hierarchy from `border-border` hairlines and gray trays (`bg-muted`) holding white rows or
   cards. Shadows belong to floating surfaces only (`shadow-overlay` on popups, `shadow-peek` on the peek panel), plus
   `shadow-raised` on dashboard KPI cards. Hover is `bg-accent`, active nav and tab pills `bg-layer-selected`, a selected
-  row `bg-primary/5`.
+  row (peeked or checked) `bg-primary/5`.
 - **Tokens:** text has four levels: `text-foreground` for titles and values, `text-foreground-secondary` for nav, body and
   chip text, `text-muted-foreground` for property labels and counts, `text-subtle-foreground` for section labels,
   timestamps and placeholders. Borders: `border-border` for hairlines, `border-input` for inputs, `border-border-strong`
@@ -95,13 +95,20 @@ AGPL-3.0: re-declare single values under our token names, never copy their files
   in `Object.entries` order. A label/value pair, such as a select option, shows the label first.
 - **Building blocks:** lists use `src/components/data-list/` rows with property chips; detail pages use
   `src/components/properties-panel/` (`DetailLayout`, `DetailSection`, `PropertiesPanel`, `PropertySelect`); row clicks
-  open `DetailPeek`; edit forms sit in `PageColumn`.
+  open `DetailPeek`; edit forms and the import form sit in `PageColumn`.
 - **Create flows:** every resource is created in a modal, never on a `/new` page. A feature's
   `components/create-<x>-dialog.tsx` wraps its form in `FormDialog` (`src/components/form-dialog.tsx`), runs the
   lifecycle create through `useFormDialogSubmit` so a failed create keeps the draft, and resolves to the created record.
   Its `hooks/use-create-<x>.ts` opens it and navigates to the new record's detail page. Forms put their buttons in
   `FormActions`, which pins them to the dialog's bottom edge and renders inline on edit pages. Mount the dialog's
-  `.Root` in `src/routes/_authenticated.tsx`.
+  `.Root` in `src/routes/_authenticated.tsx`. Every other form dialog, such as the finding details, observation and
+  identifier dialogs, uses `FormDialog` and `FormActions` too; only `ConfirmDialog` doesn't. `FormDialog` has two
+  sizes: `default` for single-column forms and `wide` for forms with two-column field rows.
+- **Forms:** inputs, textareas, select triggers and comboboxes share `text-sm` and a `ChevronDown`; a combobox trigger
+  is a `Button variant="field"`. Controls in popovers and property rows use `SelectTrigger size="sm"`, which matches
+  their `text-13` labels. A form section is a `FieldSet` with a `FieldLegend` after a `FieldSeparator`; a field that
+  holds a list (role permissions, select options, asset identifiers) is a `FieldSet` with a
+  `FieldLegend variant="label"` over a `bg-muted` tray of white rows and a ghost add button.
 
 ## Resource Mutation Policy
 
