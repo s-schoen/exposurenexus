@@ -55,7 +55,6 @@ export function CustomFieldList({
 }: CustomFieldListProps) {
   return (
     <DataList
-      inset
       label="Custom fields"
       columns={columns}
       query={query}

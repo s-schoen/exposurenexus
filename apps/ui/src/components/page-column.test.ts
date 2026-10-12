@@ -4,21 +4,20 @@ import { isPageColumnPath } from "@/components/page-column.tsx";
 
 describe("isPageColumnPath", () => {
   it.each([
-    "/settings",
-    "/settings/users",
-    "/settings/roles/",
     "/settings/users/8f74bc56-0ac3-47ef-b7e6-8df2c42fb3c0/edit",
     "/vulnerabilities/8f74bc56-0ac3-47ef-b7e6-8df2c42fb3c0/edit",
   ])("puts %s in the page column", (pathname) => {
     expect(isPageColumnPath(pathname)).toBe(true);
   });
 
-  it.each(["/settings/roles/8f74bc56-0ac3-47ef-b7e6-8df2c42fb3c0", "/settings/users/abc/"])(
-    "renders the settings detail page %s full width",
-    (pathname) => {
-      expect(isPageColumnPath(pathname)).toBe(false);
-    },
-  );
+  it.each([
+    "/settings/users",
+    "/settings/roles/",
+    "/settings/roles/8f74bc56-0ac3-47ef-b7e6-8df2c42fb3c0",
+    "/settings/users/abc/",
+  ])("renders the settings page %s full width", (pathname) => {
+    expect(isPageColumnPath(pathname)).toBe(false);
+  });
 
   it.each(["/findings", "/findings/import", "/assets/web-01", "/findings/renew", "/findings/new"])(
     "leaves %s full width",

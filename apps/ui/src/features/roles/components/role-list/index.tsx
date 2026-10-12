@@ -42,7 +42,6 @@ export function RoleList({
 }: RoleListProps) {
   return (
     <DataList
-      inset
       label="Roles"
       columns={columns}
       query={query}
