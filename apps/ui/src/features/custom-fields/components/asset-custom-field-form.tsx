@@ -427,27 +427,21 @@ export function AssetCustomFieldForm({
                         <FieldSet>
                           <FieldLegend variant="label">Select options</FieldLegend>
                           <div className="flex flex-col gap-1.5 rounded-lg bg-muted p-1.5">
+                            {/* Column headings, with transparent borders so they line up with the
+                                input text; each input carries its own accessible label. */}
+                            <div
+                              aria-hidden="true"
+                              className="flex gap-2 border border-transparent px-1.5 text-xs font-medium text-muted-foreground"
+                            >
+                              <span className="flex-1 border border-transparent px-3">Label</span>
+                              <span className="flex-1 border border-transparent px-3">Value</span>
+                              <span className="w-7 shrink-0" />
+                            </div>
                             {field.state.value.map((option, index) => (
                               <div
                                 key={index}
                                 className="flex items-center gap-2 rounded-md border border-border bg-card p-1.5"
                               >
-                                <Input
-                                  aria-label={`Option ${index + 1} value`}
-                                  value={option.value}
-                                  onChange={(event) => {
-                                    const nextOptions = [...field.state.value];
-                                    nextOptions[index] = {
-                                      ...option,
-                                      value: event.target.value,
-                                    };
-                                    field.handleChange(nextOptions);
-                                  }}
-                                  onBlur={field.handleBlur}
-                                  placeholder="production"
-                                  disabled={isSubmitting}
-                                  className="flex-1"
-                                />
                                 <Input
                                   aria-label={`Option ${index + 1} label`}
                                   value={option.label}
@@ -461,6 +455,22 @@ export function AssetCustomFieldForm({
                                   }}
                                   onBlur={field.handleBlur}
                                   placeholder="Production"
+                                  disabled={isSubmitting}
+                                  className="flex-1"
+                                />
+                                <Input
+                                  aria-label={`Option ${index + 1} value`}
+                                  value={option.value}
+                                  onChange={(event) => {
+                                    const nextOptions = [...field.state.value];
+                                    nextOptions[index] = {
+                                      ...option,
+                                      value: event.target.value,
+                                    };
+                                    field.handleChange(nextOptions);
+                                  }}
+                                  onBlur={field.handleBlur}
+                                  placeholder="production"
                                   disabled={isSubmitting}
                                   className="flex-1"
                                 />

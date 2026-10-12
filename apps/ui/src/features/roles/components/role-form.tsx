@@ -1,8 +1,4 @@
-import {
-  PermissionResource,
-  PermissionVerb,
-  createRoleSchema,
-} from "@exposurenexus/contracts/model/rbac";
+import { createRoleSchema } from "@exposurenexus/contracts/model/rbac";
 import { useForm } from "@tanstack/react-form";
 import { useMemo } from "react";
 
@@ -20,9 +16,20 @@ import {
 } from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
-import { formatPermissionLabel, isBuiltInRoleId } from "@/features/roles/lib/role.ts";
+import {
+  PERMISSION_VERB_ORDER,
+  comparePermissions,
+  formatPermissionLabel,
+  isBuiltInRoleId,
+} from "@/features/roles/lib/role.ts";
 
-import type { CreateRole, Permission, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
+import type {
+  CreateRole,
+  Permission,
+  PermissionResource,
+  Role,
+  UpdateRole,
+} from "@exposurenexus/contracts/model/rbac";
 
 export type RoleFormMode = "create" | "edit";
 
@@ -50,23 +57,8 @@ const DEFAULT_ROLE_FORM_VALUES: RoleFormValues = {
   permissions: [],
 };
 
-const permissionResourceOrder = Object.values(PermissionResource);
-const permissionVerbOrder = Object.values(PermissionVerb);
-
 export function rolePermissionKey(permission: Pick<Permission, "resource" | "verb">): string {
   return `${permission.resource}:${permission.verb}`;
-}
-
-function comparePermissions(left: Permission, right: Permission): number {
-  const resourceOrder =
-    permissionResourceOrder.indexOf(left.resource) -
-    permissionResourceOrder.indexOf(right.resource);
-
-  if (resourceOrder !== 0) {
-    return resourceOrder;
-  }
-
-  return permissionVerbOrder.indexOf(left.verb) - permissionVerbOrder.indexOf(right.verb);
 }
 
 function dedupePermissions(permissions: ReadonlyArray<Permission>) {
@@ -246,7 +238,7 @@ export function RoleForm({
                             </span>
                             {/* One slot per verb, so the verbs line up in columns across rows. */}
                             <div className="flex items-center gap-x-4">
-                              {permissionVerbOrder.map((verb) => {
+                              {PERMISSION_VERB_ORDER.map((verb) => {
                                 const permission = group.permissions.find(
                                   (candidate) => candidate.verb === verb,
                                 );
