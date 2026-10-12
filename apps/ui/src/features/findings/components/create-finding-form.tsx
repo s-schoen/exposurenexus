@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/select.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { AssetCombobox } from "@/features/assets";
+import { STATUS_ORDER } from "@/features/findings/components/finding-list/constants.ts";
+import { FindingStatusLabel } from "@/features/findings/components/finding-status-label.tsx";
 import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/features/findings/lib/date-input.ts";
 import {
   buildCreateFindingPayload,
@@ -36,10 +38,9 @@ import {
   optionalStringValue,
   updateResourceLocation,
 } from "@/features/findings/lib/finding-form.ts";
-import { formatFindingStatus } from "@/features/findings/lib/format.ts";
 import { formatWeaknessText } from "@/features/findings/lib/weakness-text.ts";
 import { createListUsersQueryOptions, getUserProfileDisplayName } from "@/features/users";
-import { SeverityBadge } from "@/features/vulnerabilities";
+import { SEVERITY_ORDER, SeverityLabel } from "@/features/vulnerabilities";
 import { normalizeDateToUtcStart } from "@/lib/utc-date";
 
 import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
@@ -51,8 +52,6 @@ interface CreateFindingFormProps {
 }
 
 const unassignedAssigneeValue = "__unassigned__";
-const findingStatuses = Object.values(FindingStatus);
-const vulnerabilitySeverities = Object.values(VulnerabilitySeverity);
 const resourceTypes = Object.values(AffectedResourceType);
 const networkTransportOptions = ["tcp", "udp"];
 
@@ -84,11 +83,11 @@ function parseDateInputValue(value: string) {
 }
 
 function isFindingStatus(value: unknown): value is FindingStatus {
-  return findingStatuses.includes(value as FindingStatus);
+  return STATUS_ORDER.includes(value as FindingStatus);
 }
 
 function isVulnerabilitySeverity(value: unknown): value is VulnerabilitySeverity {
-  return vulnerabilitySeverities.includes(value as VulnerabilitySeverity);
+  return SEVERITY_ORDER.includes(value as VulnerabilitySeverity);
 }
 
 function isAffectedResourceType(value: unknown): value is AffectedResourceType {
@@ -449,14 +448,14 @@ export function CreateFindingForm({ onSubmit, onCancel }: CreateFindingFormProps
                     <SelectTrigger id={field.name} aria-invalid={isInvalid} className="w-full">
                       <SelectValue>
                         {(value) =>
-                          isVulnerabilitySeverity(value) ? <SeverityBadge severity={value} /> : null
+                          isVulnerabilitySeverity(value) ? <SeverityLabel severity={value} /> : null
                         }
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {vulnerabilitySeverities.map((severity) => (
+                      {SEVERITY_ORDER.map((severity) => (
                         <SelectItem key={severity} value={severity}>
-                          <SeverityBadge severity={severity} />
+                          <SeverityLabel severity={severity} />
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -484,13 +483,15 @@ export function CreateFindingForm({ onSubmit, onCancel }: CreateFindingFormProps
                   >
                     <SelectTrigger id={field.name} aria-invalid={isInvalid} className="w-full">
                       <SelectValue>
-                        {(value) => (isFindingStatus(value) ? formatFindingStatus(value) : null)}
+                        {(value) =>
+                          isFindingStatus(value) ? <FindingStatusLabel status={value} /> : null
+                        }
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {findingStatuses.map((status) => (
+                      {STATUS_ORDER.map((status) => (
                         <SelectItem key={status} value={status}>
-                          {formatFindingStatus(status)}
+                          <FindingStatusLabel status={status} />
                         </SelectItem>
                       ))}
                     </SelectContent>

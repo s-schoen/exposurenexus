@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { SeverityBadge } from "@/features/vulnerabilities/components/severity-badge.tsx";
 import { SeverityIcon } from "@/features/vulnerabilities/components/severity-icon.tsx";
+import { SeverityLabel } from "@/features/vulnerabilities/components/severity-label.tsx";
 
 const severities = [
   { severity: VulnerabilitySeverity.Critical, label: "Critical", litBars: 0 },
@@ -48,6 +49,16 @@ describe("SeverityBadge", () => {
     const { container } = render(<SeverityBadge severity={severity} />);
 
     expect(screen.getByText(label)).toBeVisible();
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(container.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+  });
+});
+
+describe("SeverityLabel", () => {
+  it.each(severities)("shows the $label label next to a hidden icon", ({ severity, label }) => {
+    const { container } = render(<SeverityLabel severity={severity} />);
+
+    expect(container).toHaveTextContent(label);
     expect(screen.queryByRole("img")).toBeNull();
     expect(container.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
   });
