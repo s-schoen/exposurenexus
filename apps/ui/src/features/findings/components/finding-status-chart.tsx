@@ -3,6 +3,7 @@ import { useMemo } from "react";
 
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import { STATUS_ORDER } from "@/features/findings/components/finding-list/constants.ts";
 import { findingStatusChartColor } from "@/features/findings/lib/colors.ts";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
 import { cn } from "@/lib/utils.ts";
@@ -20,12 +21,11 @@ interface FindingStatusChartProps {
 export function FindingStatusChart({ data, loading, className, height }: FindingStatusChartProps) {
   const chartData = useMemo(
     () =>
-      Object.entries(data).map(([status, value]) => {
-        return {
-          label: status,
-          value,
-          fill: `var(--color-${status})`,
-        };
+      STATUS_ORDER.flatMap((status) => {
+        const value = data[status];
+        return value === undefined
+          ? []
+          : [{ label: status, value, fill: `var(--color-${status})` }];
       }),
     [data],
   );

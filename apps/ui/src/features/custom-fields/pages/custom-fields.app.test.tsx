@@ -187,13 +187,19 @@ describe("creating and editing definitions", () => {
     await user.click(screen.getByLabelText("Type"));
     await user.click(await screen.findByRole("option", { name: "Select" }));
 
-    await user.type(screen.getByLabelText("Option 1 value"), "internal");
+    // Label comes before value, as on the detail page.
+    expect(
+      screen
+        .getAllByRole("textbox", { name: /^Option 1 / })
+        .map((input) => input.getAttribute("aria-label")),
+    ).toEqual(["Option 1 label", "Option 1 value"]);
     await user.type(screen.getByLabelText("Option 1 label"), "Internal");
+    await user.type(screen.getByLabelText("Option 1 value"), "internal");
     await user.click(screen.getByRole("button", { name: "Add option" }));
     await user.type(screen.getByLabelText("Option 2 value"), "restricted");
     await user.click(screen.getByRole("button", { name: "Add option" }));
-    await user.type(screen.getByLabelText("Option 3 value"), "public");
     await user.type(screen.getByLabelText("Option 3 label"), "Public");
+    await user.type(screen.getByLabelText("Option 3 value"), "public");
     await user.click(screen.getByRole("button", { name: "Remove option 2" }));
     expect(screen.getByLabelText("Option 2 value")).toHaveValue("public");
 

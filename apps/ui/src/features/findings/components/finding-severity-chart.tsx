@@ -3,7 +3,7 @@ import { useMemo } from "react";
 
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { formatSeverity, severityChartColor } from "@/features/vulnerabilities";
+import { SEVERITY_ORDER, formatSeverity, severityChartColor } from "@/features/vulnerabilities";
 import { cn } from "@/lib/utils.ts";
 
 import type { ChartConfig } from "@/components/ui/chart.tsx";
@@ -24,12 +24,11 @@ export function FindingSeverityChart({
 }: FindingSeverityChartProps) {
   const chartData = useMemo(
     () =>
-      Object.entries(data).map(([severity, value]) => {
-        return {
-          label: severity,
-          value,
-          fill: `var(--color-${severity})`,
-        };
+      SEVERITY_ORDER.flatMap((severity) => {
+        const value = data[severity];
+        return value === undefined
+          ? []
+          : [{ label: severity, value, fill: `var(--color-${severity})` }];
       }),
     [data],
   );

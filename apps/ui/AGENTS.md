@@ -89,6 +89,10 @@ AGPL-3.0: re-declare single values under our token names, never copy their files
   only for a good outcome. Every picker for severity or status, whether a `Select`, `PropertySelect` or filter, shows
   icon + label (`SeverityLabel`, `FindingStatusLabel`) in its trigger and options, ordered by `SEVERITY_ORDER` /
   `STATUS_ORDER`. Chips are for read-only display, never inside a picker.
+- **Ordering:** an enumeration appears in one order wherever it's listed: pickers, filters, forms, detail pages and
+  dashboard charts. Severity follows `SEVERITY_ORDER` (most severe first), finding status `STATUS_ORDER`, and role
+  permissions `PERMISSION_RESOURCE_ORDER` / `PERMISSION_VERB_ORDER` (`features/roles/lib/role.ts`). Never list API keys
+  in `Object.entries` order. A label/value pair, such as a select option, shows the label first.
 - **Building blocks:** lists use `src/components/data-list/` rows with property chips; detail pages use
   `src/components/properties-panel/` (`DetailLayout`, `DetailSection`, `PropertiesPanel`, `PropertySelect`); row clicks
   open `DetailPeek`; edit forms sit in `PageColumn`.

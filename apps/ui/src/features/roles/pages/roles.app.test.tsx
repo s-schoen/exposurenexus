@@ -179,10 +179,11 @@ describe("role detail", () => {
   it("lists the permissions grouped by resource, with the role type in the panel", async () => {
     const role = buildRole({
       name: "triager",
+      // Out of display order, to show the detail sorts resources and verbs.
       permissions: [
-        { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
         { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
         { resource: PermissionResource.Finding, verb: PermissionVerb.Write },
+        { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
       ],
     });
     db.roles.insert(role);
@@ -252,6 +253,27 @@ describe("creating and editing roles", () => {
       expect(router.state.location.pathname).toBe(`/settings/roles/${created.id}`),
     );
     expect(await screen.findByRole("heading", { level: 1, name: "triager" })).toBeVisible();
+  });
+
+  it("lists the resources in the same order as the role detail", async () => {
+    const { dialog } = await openCreateDialog();
+
+    await within(dialog).findByRole("group", { name: "Finding" });
+    const resources = within(dialog)
+      .getAllByRole("group")
+      .flatMap((group) => {
+        const labelId = group.getAttribute("aria-labelledby");
+        return labelId ? [document.getElementById(labelId)!.textContent] : [];
+      });
+    expect(resources).toEqual([
+      "Finding",
+      "Asset",
+      "Vulnerability",
+      "Import",
+      "User",
+      "Custom field",
+      "Stats",
+    ]);
   });
 
   it("keeps the dialog and its draft when creating fails", async () => {
