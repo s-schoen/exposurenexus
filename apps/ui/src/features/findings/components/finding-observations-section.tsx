@@ -6,7 +6,6 @@ import {
   manualObservationInputSchema,
   updateObservationSchema,
 } from "@exposurenexus/contracts/model/observation";
-import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Ellipsis, Pencil, Plus, ScanSearch, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -54,7 +53,12 @@ import {
   createFindingObservationsQueryOptions,
   createListFindingsQueryOptions,
 } from "@/features/findings/queries/findings.ts";
-import { SeverityIcon, formatSeverity } from "@/features/vulnerabilities";
+import {
+  SEVERITY_ORDER,
+  SeverityIcon,
+  SeverityLabel,
+  formatSeverity,
+} from "@/features/vulnerabilities";
 import { capitalizeFirstLetter, formatRelativeTime } from "@/lib/format.ts";
 
 import type { ObservationAffectedResource as ObservationResource } from "@exposurenexus/contracts/model/affected-resource";
@@ -64,6 +68,7 @@ import type {
   Observation,
   ObservationSource,
 } from "@exposurenexus/contracts/model/observation";
+import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
 interface FindingObservationsSectionProps {
   finding: Finding;
@@ -76,7 +81,6 @@ type ObservationDraft = Omit<ManualObservationInput, "affectedResource"> & {
 const inheritedValue = "__inherit__";
 const noComponentValue = "__none__";
 const resourceTypes = Object.values(AffectedResourceType);
-const severities = Object.values(VulnerabilitySeverity);
 const componentKinds = Object.values(WebEndpointComponentKind);
 const networkTransportOptions = ["tcp", "udp"];
 const namedComponentKinds = new Set<WebEndpointComponentKind>([
@@ -727,13 +731,13 @@ function EditObservationDialog({ observation, open, onOpenChange }: ObservationD
                 >
                   <SelectTrigger id={`${formId}-severity`} className="w-full">
                     <SelectValue>
-                      {() => formatSeverity(draft.severity as VulnerabilitySeverity)}
+                      {() => <SeverityLabel severity={draft.severity as VulnerabilitySeverity} />}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {severities.map((severity) => (
+                    {SEVERITY_ORDER.map((severity) => (
                       <SelectItem key={severity} value={severity}>
-                        {formatSeverity(severity)}
+                        <SeverityLabel severity={severity} />
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1031,8 +1035,7 @@ function ObservationDetails({ observation }: { observation: Observation }) {
       <dl className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-x-6 gap-y-1">
         <dt className="text-muted-foreground">Severity</dt>
         <dd className="flex items-center gap-1.5 text-foreground">
-          <SeverityIcon severity={observation.severity} decorative />
-          {formatSeverity(observation.severity)}
+          <SeverityLabel severity={observation.severity} />
         </dd>
         <dt className="text-muted-foreground">Weakness</dt>
         <dd className="text-foreground">
@@ -1108,6 +1111,12 @@ function AddObservationDialog({ finding }: { finding: Finding }) {
   const [weakness, setWeakness] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const inheritedSeverityLabel = (
+    <>
+      <SeverityIcon severity={finding.severity} decorative />
+      Use finding severity ({formatSeverity(finding.severity)})
+    </>
+  );
 
   const reset = () => {
     setDraft({});
@@ -1199,17 +1208,19 @@ function AddObservationDialog({ finding }: { finding: Finding }) {
                 <SelectTrigger id="observation-severity" className="w-full">
                   <SelectValue>
                     {(value) =>
-                      value === inheritedValue
-                        ? `Use finding severity (${formatSeverity(finding.severity)})`
-                        : formatSeverity(value as VulnerabilitySeverity)
+                      value === inheritedValue ? (
+                        inheritedSeverityLabel
+                      ) : (
+                        <SeverityLabel severity={value as VulnerabilitySeverity} />
+                      )
                     }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={inheritedValue}>Use finding severity</SelectItem>
-                  {severities.map((severity) => (
+                  <SelectItem value={inheritedValue}>{inheritedSeverityLabel}</SelectItem>
+                  {SEVERITY_ORDER.map((severity) => (
                     <SelectItem key={severity} value={severity}>
-                      {formatSeverity(severity)}
+                      <SeverityLabel severity={severity} />
                     </SelectItem>
                   ))}
                 </SelectContent>

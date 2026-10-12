@@ -86,7 +86,9 @@ AGPL-3.0: re-declare single values under our token names, never copy their files
 - **Domain icons:** severity and finding status read through their icons and color tokens: `SeverityIcon`,
   `FindingStatusIcon` and the `SeverityBadge` / `FindingStatusBadge` property chips (`Badge variant="property"`). Color
   lives in icons, dots and numbers. A dashboard number turns `text-destructive` only for a problem and `text-success`
-  only for a good outcome.
+  only for a good outcome. Every picker for severity or status, whether a `Select`, `PropertySelect` or filter, shows
+  icon + label (`SeverityLabel`, `FindingStatusLabel`) in its trigger and options, ordered by `SEVERITY_ORDER` /
+  `STATUS_ORDER`. Chips are for read-only display, never inside a picker.
 - **Building blocks:** lists use `src/components/data-list/` rows with property chips; detail pages use
   `src/components/properties-panel/` (`DetailLayout`, `DetailSection`, `PropertiesPanel`, `PropertySelect`); row clicks
   open `DetailPeek`; edit forms sit in `PageColumn`.

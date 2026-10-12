@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge.tsx";
-import { SeverityIcon } from "@/features/vulnerabilities/components/severity-icon.tsx";
-import { formatSeverity } from "@/features/vulnerabilities/lib/severity.ts";
+import { SeverityLabel } from "@/features/vulnerabilities/components/severity-label.tsx";
 
 import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
@@ -13,8 +12,7 @@ interface SeverityBadgeProps {
 export function SeverityBadge({ severity, size = "default", className }: SeverityBadgeProps) {
   return (
     <Badge variant="property" size={size} className={className}>
-      <SeverityIcon severity={severity} decorative />
-      {formatSeverity(severity)}
+      <SeverityLabel severity={severity} />
     </Badge>
   );
 }
