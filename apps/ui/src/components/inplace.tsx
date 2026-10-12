@@ -126,7 +126,7 @@ export function Inplace<T>({
             void commit(typed);
           }}
         >
-          <SelectTrigger className="h-7 min-w-32">
+          <SelectTrigger size="sm" className="min-w-32">
             <span className="min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
           </SelectTrigger>
           <SelectContent>

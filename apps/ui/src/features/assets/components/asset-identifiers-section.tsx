@@ -2,9 +2,9 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { FormDialog } from "@/components/form-dialog.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import {
   AssetIdentifierForm,
@@ -169,32 +169,27 @@ export function AssetIdentifiersSection({
           <p className="text-13 text-subtle-foreground">No identifiers are recorded.</p>
         )}
       </DetailSection>
-      <Dialog
+      <FormDialog
+        title={dialog?.mode === "edit" ? "Edit asset identifier" : "Add asset identifier"}
         open={dialog !== null}
         onOpenChange={(open) => {
-          if (!open && !isDialogPending) {
+          if (!open) {
             setDialog(null);
           }
         }}
+        submitting={isDialogPending}
       >
-        <DialogContent className="sm:max-w-150">
-          <DialogHeader>
-            <DialogTitle>
-              {dialog?.mode === "edit" ? "Edit asset identifier" : "Add asset identifier"}
-            </DialogTitle>
-          </DialogHeader>
-          {dialog ? (
-            <AssetIdentifierForm
-              key={dialog.mode === "edit" ? dialog.identifier.id : "new"}
-              defaultValue={dialog.mode === "edit" ? dialog.identifier : undefined}
-              onSubmit={handleSubmit}
-              onCancel={() => setDialog(null)}
-              pending={isDialogPending}
-              submitLabel={dialog.mode === "edit" ? "Save changes" : "Add identifier"}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
+        {dialog ? (
+          <AssetIdentifierForm
+            key={dialog.mode === "edit" ? dialog.identifier.id : "new"}
+            defaultValue={dialog.mode === "edit" ? dialog.identifier : undefined}
+            onSubmit={handleSubmit}
+            onCancel={() => setDialog(null)}
+            pending={isDialogPending}
+            submitLabel={dialog.mode === "edit" ? "Save changes" : "Add identifier"}
+          />
+        ) : null}
+      </FormDialog>
     </>
   );
 }

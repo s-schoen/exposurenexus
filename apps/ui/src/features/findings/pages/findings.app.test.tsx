@@ -479,6 +479,19 @@ describe("finding detail", () => {
     expect(db.findings.get(ADMIN_ENDPOINT.id)?.title).toBe(ADMIN_ENDPOINT.title);
   });
 
+  it("keeps the details draft on a backdrop click", async () => {
+    const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit details" }));
+    const dialog = await screen.findByRole("dialog", { name: "Edit details" });
+    await user.type(within(dialog).getByLabelText("Title"), " (draft)");
+    await user.click(document.querySelector<HTMLElement>("[data-slot='dialog-overlay']")!);
+
+    expect(dialog).toBeVisible();
+    expect(within(dialog).getByLabelText("Title")).toHaveValue(`${ADMIN_ENDPOINT.title} (draft)`);
+  });
+
   it("collapses a section", async () => {
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
     const section = await screen.findByRole("button", { name: /^Vulnerabilities/ });
@@ -664,5 +677,14 @@ describe("creating findings", () => {
 
     expect(await screen.findByRole("dialog", { name: "Create finding" })).toBeVisible();
     expect(router.state.location.pathname).toBe("/assets");
+  });
+});
+
+describe("importing findings", () => {
+  it("shows the import form in the page column", async () => {
+    renderApp({ path: "/findings/import" });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Import findings" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Import findings unavailable" })).toBeDisabled();
   });
 });

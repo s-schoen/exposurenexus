@@ -11,6 +11,7 @@ import { ArrowRightLeft, Ellipsis, Pencil, Plus, ScanSearch, Trash2 } from "luci
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { FormActions, FormDialog } from "@/components/form-dialog.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import { SafeMarkdown } from "@/components/safe-markdown.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -21,19 +22,20 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible.tsx";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog.tsx";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field.tsx";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+} from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import {
   Select,
@@ -42,7 +44,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
-import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -700,142 +701,148 @@ function EditObservationDialog({ observation, open, onOpenChange }: ObservationD
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : closeEditor())}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Correct observation</DialogTitle>
-          </DialogHeader>
-          <form
-            id={formId}
-            className="space-y-6"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void submit();
-            }}
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field className="sm:col-span-2">
-                <FieldLabel htmlFor={`${formId}-title`}>Title</FieldLabel>
-                <Input
-                  id={`${formId}-title`}
-                  value={draft.title ?? ""}
-                  onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor={`${formId}-severity`}>Severity</FieldLabel>
-                <Select
-                  value={draft.severity}
-                  onValueChange={(value) => value && setDraft({ ...draft, severity: value })}
-                >
-                  <SelectTrigger id={`${formId}-severity`} className="w-full">
-                    <SelectValue>
-                      {() => <SeverityLabel severity={draft.severity as VulnerabilitySeverity} />}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SEVERITY_ORDER.map((severity) => (
-                      <SelectItem key={severity} value={severity}>
-                        <SeverityLabel severity={severity} />
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor={`${formId}-observed-at`}>Observed at</FieldLabel>
-                <Input
-                  id={`${formId}-observed-at`}
-                  type="datetime-local"
-                  value={draft.observedAt ? formatLocalDateTimeInput(draft.observedAt) : ""}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      observedAt: event.target.value ? new Date(event.target.value) : undefined,
-                    })
-                  }
-                />
-              </Field>
-              {(["description", "evidence", "remediation"] as const).map((key) => (
-                <Field key={key} className="sm:col-span-2">
-                  <FieldLabel htmlFor={`${formId}-${key}`}>{capitalizeFirstLetter(key)}</FieldLabel>
-                  <Textarea
-                    id={`${formId}-${key}`}
-                    value={draft[key] ?? ""}
-                    onChange={(event) => setDraft({ ...draft, [key]: event.target.value || null })}
-                  />
-                </Field>
-              ))}
-            </div>
-            <Separator />
-            <Field>
-              <FieldLabel htmlFor={`${formId}-weakness`}>Weakness identifiers</FieldLabel>
+    <FormDialog
+      title="Correct observation"
+      size="wide"
+      open={open}
+      onOpenChange={onOpenChange}
+      submitting={submitting}
+    >
+      <form
+        className="flex flex-col gap-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+      >
+        <FieldGroup>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field className="sm:col-span-2">
+              <FieldLabel htmlFor={`${formId}-title`}>Title</FieldLabel>
               <Input
-                id={`${formId}-weakness`}
-                value={weakness}
-                placeholder="cwe=CWE-200; scanner=admin-panel"
-                onChange={(event) => setWeakness(event.target.value)}
+                id={`${formId}-title`}
+                value={draft.title ?? ""}
+                onChange={(event) => setDraft({ ...draft, title: event.target.value })}
               />
-              <FieldDescription>
-                Blank removes all identifiers; reported references, CVSS, and EPSS are kept.
-                Separate namespaces with semicolons and identifiers with commas.
-              </FieldDescription>
             </Field>
             <Field>
-              <FieldLabel htmlFor={`${formId}-resource-type`}>Affected resource type</FieldLabel>
+              <FieldLabel htmlFor={`${formId}-severity`}>Severity</FieldLabel>
               <Select
-                value={draft.affectedResource?.type ?? AffectedResourceType.Unspecified}
-                onValueChange={(value) => {
-                  if (!value || !isAffectedResourceType(value)) return;
-                  setDraft({
-                    ...draft,
-                    affectedResource: emptyResource(value),
-                  });
-                }}
+                value={draft.severity}
+                onValueChange={(value) => value && setDraft({ ...draft, severity: value })}
               >
-                <SelectTrigger id={`${formId}-resource-type`} className="w-full">
+                <SelectTrigger id={`${formId}-severity`} className="w-full">
                   <SelectValue>
-                    {(value) =>
-                      typeof value === "string" && isAffectedResourceType(value)
-                        ? formatResourceType(value)
-                        : null
-                    }
+                    {() => <SeverityLabel severity={draft.severity as VulnerabilitySeverity} />}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {resourceTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {formatResourceType(type)}
+                  {SEVERITY_ORDER.map((severity) => (
+                    <SelectItem key={severity} value={severity}>
+                      <SeverityLabel severity={severity} />
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
-            {draft.affectedResource ? (
-              <ObservationResourceFields
-                resource={draft.affectedResource}
-                idPrefix={idPrefix}
-                onChange={(affectedResource) => setDraft({ ...draft, affectedResource })}
+            <Field>
+              <FieldLabel htmlFor={`${formId}-observed-at`}>Observed at</FieldLabel>
+              <Input
+                id={`${formId}-observed-at`}
+                type="datetime-local"
+                value={draft.observedAt ? formatLocalDateTimeInput(draft.observedAt) : ""}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    observedAt: event.target.value ? new Date(event.target.value) : undefined,
+                  })
+                }
               />
-            ) : null}
-            {error ? (
-              <p role="alert" className="text-sm font-medium text-destructive">
-                {error}
-              </p>
-            ) : null}
-          </form>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeEditor}>
-              Cancel
-            </Button>
-            <Button type="submit" form={formId} disabled={submitting}>
-              {submitting ? <Spinner /> : null}Save correction
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+            </Field>
+            {(["description", "evidence", "remediation"] as const).map((key) => (
+              <Field key={key} className="sm:col-span-2">
+                <FieldLabel htmlFor={`${formId}-${key}`}>{capitalizeFirstLetter(key)}</FieldLabel>
+                <Textarea
+                  id={`${formId}-${key}`}
+                  value={draft[key] ?? ""}
+                  onChange={(event) => setDraft({ ...draft, [key]: event.target.value || null })}
+                />
+              </Field>
+            ))}
+          </div>
+          <FieldSeparator />
+          <FieldSet>
+            <FieldLegend>Identity</FieldLegend>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor={`${formId}-weakness`}>Weakness identifiers</FieldLabel>
+                <Input
+                  id={`${formId}-weakness`}
+                  value={weakness}
+                  placeholder="cwe=CWE-200; scanner=admin-panel"
+                  onChange={(event) => setWeakness(event.target.value)}
+                />
+                <FieldDescription>
+                  Blank removes all identifiers; reported references, CVSS, and EPSS are kept.
+                  Separate namespaces with semicolons and identifiers with commas.
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor={`${formId}-resource-type`}>Affected resource type</FieldLabel>
+                <Select
+                  value={draft.affectedResource?.type ?? AffectedResourceType.Unspecified}
+                  onValueChange={(value) => {
+                    if (!value || !isAffectedResourceType(value)) return;
+                    setDraft({
+                      ...draft,
+                      affectedResource: emptyResource(value),
+                    });
+                  }}
+                >
+                  <SelectTrigger id={`${formId}-resource-type`} className="w-full">
+                    <SelectValue>
+                      {(value) =>
+                        typeof value === "string" && isAffectedResourceType(value)
+                          ? formatResourceType(value)
+                          : null
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {resourceTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {formatResourceType(type)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              {draft.affectedResource ? (
+                <ObservationResourceFields
+                  resource={draft.affectedResource}
+                  idPrefix={idPrefix}
+                  onChange={(affectedResource) => setDraft({ ...draft, affectedResource })}
+                />
+              ) : null}
+            </FieldGroup>
+          </FieldSet>
+        </FieldGroup>
+        {error ? (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {error}
+          </p>
+        ) : null}
+        <FormActions>
+          <Button type="button" variant="outline" onClick={closeEditor} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting && <Spinner />}
+            Save correction
+          </Button>
+        </FormActions>
+      </form>
+    </FormDialog>
   );
 }
 
@@ -884,65 +891,66 @@ function MoveObservationDialog({ observation, open, onOpenChange }: ObservationD
   };
 
   return (
-    <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Move observation</DialogTitle>
-        </DialogHeader>
-        <form
-          id={`move-observation-${observation.id}`}
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submit();
-          }}
-        >
-          <Field>
-            <FieldLabel htmlFor={`move-observation-target-${observation.id}`}>
-              Target finding
-            </FieldLabel>
-            <Select
-              value={targetFindingId}
-              onValueChange={(value) => setTargetFindingId(value ?? "")}
-              disabled={findings.isPending || findings.isError || availableFindings.length === 0}
-            >
-              <SelectTrigger id={`move-observation-target-${observation.id}`} className="w-full">
-                <SelectValue placeholder="Select a target finding" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableFindings.map((finding) => (
-                  <SelectItem key={finding.id} value={finding.id}>
-                    {finding.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {findings.isError ? (
-              <FieldDescription>Target findings could not be loaded.</FieldDescription>
-            ) : availableFindings.length === 0 && !findings.isPending ? (
-              <FieldDescription>No other findings are available.</FieldDescription>
-            ) : null}
-          </Field>
-          {error ? (
-            <p role="alert" className="mt-4 text-sm font-medium text-destructive">
-              {error}
-            </p>
+    <FormDialog
+      title="Move observation"
+      open={open}
+      onOpenChange={changeOpen}
+      submitting={submitting}
+    >
+      <form
+        className="flex flex-col gap-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+      >
+        <Field>
+          <FieldLabel htmlFor={`move-observation-target-${observation.id}`}>
+            Target finding
+          </FieldLabel>
+          <Select
+            value={targetFindingId}
+            onValueChange={(value) => setTargetFindingId(value ?? "")}
+            disabled={findings.isPending || findings.isError || availableFindings.length === 0}
+          >
+            <SelectTrigger id={`move-observation-target-${observation.id}`} className="w-full">
+              <SelectValue placeholder="Select a target finding" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableFindings.map((finding) => (
+                <SelectItem key={finding.id} value={finding.id}>
+                  {finding.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {findings.isError ? (
+            <FieldDescription>Target findings could not be loaded.</FieldDescription>
+          ) : availableFindings.length === 0 && !findings.isPending ? (
+            <FieldDescription>No other findings are available.</FieldDescription>
           ) : null}
-        </form>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => changeOpen(false)}>
+        </Field>
+        {error ? (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {error}
+          </p>
+        ) : null}
+        <FormActions>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => changeOpen(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            form={`move-observation-${observation.id}`}
-            disabled={submitting || !targetFindingId}
-          >
-            {submitting ? <Spinner /> : null}
+          <Button type="submit" disabled={submitting || !targetFindingId}>
+            {submitting && <Spinner />}
             Move observation
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </FormActions>
+      </form>
+    </FormDialog>
   );
 }
 
@@ -1160,7 +1168,7 @@ function AddObservationDialog({ finding }: { finding: Finding }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={changeOpen}>
+    <>
       <Button
         type="button"
         variant="ghost"
@@ -1170,166 +1178,187 @@ function AddObservationDialog({ finding }: { finding: Finding }) {
       >
         <Plus strokeWidth={1.5} />
       </Button>
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Add manual observation</DialogTitle>
-        </DialogHeader>
+      <FormDialog
+        title="Add manual observation"
+        size="wide"
+        open={open}
+        onOpenChange={changeOpen}
+        submitting={submitting}
+      >
         <form
-          id={`add-observation-${finding.id}`}
-          className="space-y-6"
+          className="flex flex-col gap-6"
           onSubmit={(event) => {
             event.preventDefault();
             void submit();
           }}
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field className="sm:col-span-2">
-              <FieldLabel htmlFor="observation-title">Title</FieldLabel>
-              <Input
-                id="observation-title"
-                value={draft.title ?? ""}
-                placeholder={`Use finding title: ${finding.title}`}
-                onChange={(event) => setDraft({ ...draft, title: event.target.value || undefined })}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="observation-severity">Severity</FieldLabel>
-              <Select
-                value={draft.severity ?? inheritedValue}
-                onValueChange={(value) =>
-                  value &&
-                  setDraft({
-                    ...draft,
-                    severity:
-                      value === inheritedValue ? undefined : (value as VulnerabilitySeverity),
-                  })
-                }
-              >
-                <SelectTrigger id="observation-severity" className="w-full">
-                  <SelectValue>
-                    {(value) =>
-                      value === inheritedValue ? (
-                        inheritedSeverityLabel
-                      ) : (
-                        <SeverityLabel severity={value as VulnerabilitySeverity} />
-                      )
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={inheritedValue}>{inheritedSeverityLabel}</SelectItem>
-                  {SEVERITY_ORDER.map((severity) => (
-                    <SelectItem key={severity} value={severity}>
-                      <SeverityLabel severity={severity} />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="observation-time">Observed at</FieldLabel>
-              <Input
-                id="observation-time"
-                type="datetime-local"
-                value={draft.observedAt ? formatLocalDateTimeInput(draft.observedAt) : ""}
-                onChange={(event) =>
-                  setDraft({
-                    ...draft,
-                    observedAt: event.target.value ? new Date(event.target.value) : undefined,
-                  })
-                }
-              />
-              <FieldDescription>Leave blank to use the server time.</FieldDescription>
-            </Field>
-            {(["description", "evidence", "remediation"] as const).map((key) => (
-              <Field key={key} className="sm:col-span-2">
-                <FieldLabel htmlFor={`observation-${key}`}>{capitalizeFirstLetter(key)}</FieldLabel>
-                <Textarea
-                  id={`observation-${key}`}
-                  value={draft[key] ?? ""}
+          <FieldGroup>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field className="sm:col-span-2">
+                <FieldLabel htmlFor="observation-title">Title</FieldLabel>
+                <Input
+                  id="observation-title"
+                  value={draft.title ?? ""}
+                  placeholder={`Use finding title: ${finding.title}`}
                   onChange={(event) =>
-                    setDraft({ ...draft, [key]: event.target.value || undefined })
+                    setDraft({ ...draft, title: event.target.value || undefined })
                   }
                 />
               </Field>
-            ))}
-          </div>
-          <Separator />
-          <Field>
-            <FieldLabel htmlFor="observation-weakness">Weakness identifiers</FieldLabel>
-            <Input
-              id="observation-weakness"
-              value={weakness}
-              placeholder="Use finding weakness, or cwe=CWE-200; scanner=admin-panel"
-              onChange={(event) => setWeakness(event.target.value)}
-            />
-            <FieldDescription>
-              Blank uses the finding default. Separate namespaces with semicolons and identifiers
-              with commas.
-            </FieldDescription>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="observation-resource-type">Affected resource type</FieldLabel>
-            <Select
-              value={draft.affectedResource?.type ?? inheritedValue}
-              onValueChange={(value) => {
-                if (!value) return;
-                if (value === inheritedValue) {
-                  setDraft({ ...draft, affectedResource: undefined });
-                  return;
-                }
-                if (isAffectedResourceType(value)) {
-                  setDraft({
-                    ...draft,
-                    affectedResource: emptyResource(value),
-                  });
-                }
-              }}
-            >
-              <SelectTrigger id="observation-resource-type" className="w-full">
-                <SelectValue>
-                  {(value) => {
-                    if (value === inheritedValue) {
-                      return `Use finding resource (${formatResourceType(finding.affectedResource.type)})`;
+              <Field>
+                <FieldLabel htmlFor="observation-severity">Severity</FieldLabel>
+                <Select
+                  value={draft.severity ?? inheritedValue}
+                  onValueChange={(value) =>
+                    value &&
+                    setDraft({
+                      ...draft,
+                      severity:
+                        value === inheritedValue ? undefined : (value as VulnerabilitySeverity),
+                    })
+                  }
+                >
+                  <SelectTrigger id="observation-severity" className="w-full">
+                    <SelectValue>
+                      {(value) =>
+                        value === inheritedValue ? (
+                          inheritedSeverityLabel
+                        ) : (
+                          <SeverityLabel severity={value as VulnerabilitySeverity} />
+                        )
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={inheritedValue}>{inheritedSeverityLabel}</SelectItem>
+                    {SEVERITY_ORDER.map((severity) => (
+                      <SelectItem key={severity} value={severity}>
+                        <SeverityLabel severity={severity} />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="observation-time">Observed at</FieldLabel>
+                <Input
+                  id="observation-time"
+                  type="datetime-local"
+                  value={draft.observedAt ? formatLocalDateTimeInput(draft.observedAt) : ""}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      observedAt: event.target.value ? new Date(event.target.value) : undefined,
+                    })
+                  }
+                />
+                <FieldDescription>Leave blank to use the server time.</FieldDescription>
+              </Field>
+              {(["description", "evidence", "remediation"] as const).map((key) => (
+                <Field key={key} className="sm:col-span-2">
+                  <FieldLabel htmlFor={`observation-${key}`}>
+                    {capitalizeFirstLetter(key)}
+                  </FieldLabel>
+                  <Textarea
+                    id={`observation-${key}`}
+                    value={draft[key] ?? ""}
+                    onChange={(event) =>
+                      setDraft({ ...draft, [key]: event.target.value || undefined })
                     }
-                    return typeof value === "string" && isAffectedResourceType(value)
-                      ? formatResourceType(value)
-                      : null;
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={inheritedValue}>Use finding resource</SelectItem>
-                {resourceTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {formatResourceType(type)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          {draft.affectedResource ? (
-            <ObservationResourceFields
-              resource={draft.affectedResource}
-              onChange={(affectedResource) => setDraft({ ...draft, affectedResource })}
-            />
-          ) : null}
+                  />
+                </Field>
+              ))}
+            </div>
+            <FieldSeparator />
+            <FieldSet>
+              <FieldLegend>Identity</FieldLegend>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="observation-weakness">Weakness identifiers</FieldLabel>
+                  <Input
+                    id="observation-weakness"
+                    value={weakness}
+                    placeholder="Use finding weakness, or cwe=CWE-200; scanner=admin-panel"
+                    onChange={(event) => setWeakness(event.target.value)}
+                  />
+                  <FieldDescription>
+                    Blank uses the finding default. Separate namespaces with semicolons and
+                    identifiers with commas.
+                  </FieldDescription>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="observation-resource-type">
+                    Affected resource type
+                  </FieldLabel>
+                  <Select
+                    value={draft.affectedResource?.type ?? inheritedValue}
+                    onValueChange={(value) => {
+                      if (!value) return;
+                      if (value === inheritedValue) {
+                        setDraft({ ...draft, affectedResource: undefined });
+                        return;
+                      }
+                      if (isAffectedResourceType(value)) {
+                        setDraft({
+                          ...draft,
+                          affectedResource: emptyResource(value),
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="observation-resource-type" className="w-full">
+                      <SelectValue>
+                        {(value) => {
+                          if (value === inheritedValue) {
+                            return `Use finding resource (${formatResourceType(finding.affectedResource.type)})`;
+                          }
+                          return typeof value === "string" && isAffectedResourceType(value)
+                            ? formatResourceType(value)
+                            : null;
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={inheritedValue}>Use finding resource</SelectItem>
+                      {resourceTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {formatResourceType(type)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                {draft.affectedResource ? (
+                  <ObservationResourceFields
+                    resource={draft.affectedResource}
+                    onChange={(affectedResource) => setDraft({ ...draft, affectedResource })}
+                  />
+                ) : null}
+              </FieldGroup>
+            </FieldSet>
+          </FieldGroup>
           {error ? (
             <p role="alert" className="text-sm font-medium text-destructive">
               {error}
             </p>
           ) : null}
+          <FormActions>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => changeOpen(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting && <Spinner />}
+              Add observation
+            </Button>
+          </FormActions>
         </form>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => changeOpen(false)}>
-            Cancel
-          </Button>
-          <Button type="submit" form={`add-observation-${finding.id}`} disabled={submitting}>
-            {submitting ? <Spinner /> : null}Add observation
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </FormDialog>
+    </>
   );
 }
 

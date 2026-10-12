@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button.tsx";
@@ -55,14 +55,13 @@ export function AssetCombobox({
         render={
           <Button
             id={id}
-            variant="outline"
+            variant="field"
             size="lg"
             role="combobox"
             aria-expanded={open}
             aria-controls={listboxId}
             aria-invalid={invalid}
             aria-label={id ? undefined : label}
-            className="justify-between"
             disabled={assets.isLoading}
           >
             <div className="flex items-center gap-2">
@@ -73,7 +72,7 @@ export function AssetCombobox({
                 <span className="text-subtle-foreground">Select asset...</span>
               )}
             </div>
-            <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronDownIcon data-icon="inline-end" className="text-muted-foreground" />
           </Button>
         }
       ></PopoverTrigger>

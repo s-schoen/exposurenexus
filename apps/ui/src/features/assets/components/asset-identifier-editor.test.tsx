@@ -8,11 +8,12 @@ import {
 } from "@/features/assets/components/asset-identifier-editor.tsx";
 
 describe("AssetIdentifierEditor", () => {
-  it("shows an empty identifier state and adds a draft row", async () => {
+  it("starts without identifier rows and adds a draft row", async () => {
     const onChange = vi.fn();
     render(<AssetIdentifierEditor value={[]} onChange={onChange} />);
 
-    expect(screen.getByText(/no identifiers/i)).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Identifiers" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Identifier value 1")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /add identifier/i }));
 
     expect(onChange).toHaveBeenCalledWith([

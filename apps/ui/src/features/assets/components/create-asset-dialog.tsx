@@ -120,7 +120,7 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
                       field.handleBlur();
                     }}
                   >
-                    <SelectTrigger id={field.name}>
+                    <SelectTrigger id={field.name} className="w-full">
                       <SelectValue>{capitalizeFirstLetter(field.state.value)}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -151,7 +151,7 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
                       field.handleBlur();
                     }}
                   >
-                    <SelectTrigger id={field.name}>
+                    <SelectTrigger id={field.name} className="w-full">
                       <SelectValue>
                         {capitalizeFirstLetter(field.state.value ?? AssetLifecycleState.Active)}
                       </SelectValue>
@@ -184,7 +184,7 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
                       field.handleBlur();
                     }}
                   >
-                    <SelectTrigger id={field.name}>
+                    <SelectTrigger id={field.name} className="w-full">
                       <SelectValue>
                         {capitalizeFirstLetter(field.state.value ?? AssetType.Host)}
                       </SelectValue>
@@ -217,7 +217,7 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
                       field.handleBlur();
                     }}
                   >
-                    <SelectTrigger id={field.name}>
+                    <SelectTrigger id={field.name} className="w-full">
                       <SelectValue>
                         {field.state.value === null || field.state.value === noOwnerValue
                           ? "No owner"
