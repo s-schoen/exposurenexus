@@ -13,6 +13,7 @@ interface StatisticsPersistence {
   countFindingsBy(
     database: DatabaseExecutor,
     field: FindingCountField,
+    statuses?: Array<FindingStatus>,
   ): Promise<Record<string, number>>;
 }
 
@@ -50,13 +51,24 @@ export function createStatisticsBehavior({
         const severityCount = await statisticsPersistence.countFindingsBy(database, "severity");
         const statusCount = await statisticsPersistence.countFindingsBy(database, "status");
         const assetCount = await statisticsPersistence.countFindingsBy(database, "assetId");
+        const activeSeverityCount = await statisticsPersistence.countFindingsBy(
+          database,
+          "severity",
+          [FindingStatus.Active],
+        );
+        const openAssetCount = await statisticsPersistence.countFindingsBy(database, "assetId", [
+          FindingStatus.Active,
+          FindingStatus.Confirmed,
+        ]);
         const total = Object.values(severityCount).reduce((acc, value) => acc + value, 0);
 
         return {
           total,
           status: normalizeEnumCounts(FindingStatus, statusCount),
           severity: normalizeEnumCounts(VulnerabilitySeverity, severityCount),
+          activeSeverity: normalizeEnumCounts(VulnerabilitySeverity, activeSeverityCount),
           assets: assetCount,
+          openAssets: openAssetCount,
         };
       } catch (error) {
         logger.error(error, "failed to get finding statistics");

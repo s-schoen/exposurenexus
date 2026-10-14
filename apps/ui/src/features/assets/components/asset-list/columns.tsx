@@ -39,6 +39,18 @@ export const ASSET_OWNERLESS_FILTER_VALUE = "none";
 /** Each asset's number of findings, keyed by asset id; missing assets have none. */
 export type FindingCountByAssetId = Readonly<Partial<Record<string, number>>>;
 
+/** Each asset's findings in any status (`all`) and its open, active or confirmed, ones. */
+export interface AssetFindingCounts {
+  all?: FindingCountByAssetId;
+  open?: FindingCountByAssetId;
+}
+
+/** Filter values for whether an asset has open findings, as the `assetOpenFindings` param. */
+export const AssetOpenFindingsFilter = {
+  Some: "some",
+  None: "none",
+} as const;
+
 function OwnerChip({
   ownerId,
   userProfileById,
@@ -74,10 +86,15 @@ function IdentifiersChip({ identifiers }: { identifiers: AssetWithCustomFields["
 }
 
 function createBaseColumns(
-  findingCountByAssetId: FindingCountByAssetId,
+  { all: findingCountByAssetId = {}, open: openFindingCountByAssetId = {} }: AssetFindingCounts,
   userProfileById: Map<string, UserProfile>,
   usersLoading = false,
 ): Array<DataTableColumnDef<AssetWithCustomFields>> {
+  const openFindingsValue = (asset: AssetWithCustomFields) =>
+    (openFindingCountByAssetId[asset.id] ?? 0) > 0
+      ? AssetOpenFindingsFilter.Some
+      : AssetOpenFindingsFilter.None;
+
   return [
     {
       id: "typeIcon",
@@ -158,6 +175,25 @@ function createBaseColumns(
       enableGlobalFilter: false,
       enableGrouping: false,
       meta: { label: "Findings", placement: "property" },
+    },
+    {
+      // Filter only: the dashboard's affected and healthy asset counts link here.
+      id: "openFindings",
+      accessorFn: openFindingsValue,
+      filterFn: (row, _columnId, filterValue: Array<string>) => {
+        if (filterValue.length === 0) return true;
+        return filterValue.includes(openFindingsValue(row.original));
+      },
+      enableGlobalFilter: false,
+      enableGrouping: false,
+      meta: {
+        label: "Open findings",
+        filterVariant: "select",
+        options: [
+          { label: "Some", value: AssetOpenFindingsFilter.Some },
+          { label: "None", value: AssetOpenFindingsFilter.None },
+        ],
+      },
     },
     {
       id: "identifiers",
@@ -313,12 +349,12 @@ function createCustomFieldColumn(
 
 export function createAssetColumns(
   customFieldDefinitions: Array<AssetCustomFieldDefinition>,
-  findingCountByAssetId: FindingCountByAssetId = {},
+  findingCounts: AssetFindingCounts = {},
   userProfileById: Map<string, UserProfile> = new Map(),
   usersLoading = false,
 ): Array<DataTableColumnDef<AssetWithCustomFields>> {
   return [
-    ...createBaseColumns(findingCountByAssetId, userProfileById, usersLoading),
+    ...createBaseColumns(findingCounts, userProfileById, usersLoading),
     ...customFieldDefinitions.map((definition) => createCustomFieldColumn(definition)),
   ];
 }

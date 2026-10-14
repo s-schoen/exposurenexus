@@ -29,6 +29,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { usePageCount } from "@/hooks/use-page-meta.tsx";
 
 import type {
   DataTableColumnDef,
@@ -95,6 +96,7 @@ interface DataListProps<TData extends RowData> {
 
 // Plane-style list rows over the headless data-table setup: a toolbar with search, filter chips
 // and the Filters and Display popovers, then full-bleed rows, optionally in collapsible groups.
+// A data list is its page's main list: the page header counts the rows it shows.
 export function DataList<TData extends RowData>({
   label,
   columns,
@@ -180,6 +182,9 @@ export function DataList<TData extends RowData>({
     },
     globalFilterFn: "includesString",
   });
+
+  // Leaf rows that pass search and filters, before grouping.
+  usePageCount(isPending ? undefined : table.getFilteredRowModel().rows.length);
 
   const selectedRows = table.getFilteredSelectedRowModel().rows.map((row) => row.original);
   // Rows can be selected, and right-clicked, only when there is something to do with them.

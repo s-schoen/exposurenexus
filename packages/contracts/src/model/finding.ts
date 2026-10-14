@@ -93,7 +93,18 @@ export const FindingStatistics = z.strictObject({
     [VulnerabilitySeverity.High]: z.int(),
     [VulnerabilitySeverity.Critical]: z.int(),
   }),
+  /** Active findings by severity: the ones still waiting for review. */
+  activeSeverity: z.strictObject({
+    [VulnerabilitySeverity.Info]: z.int(),
+    [VulnerabilitySeverity.Low]: z.int(),
+    [VulnerabilitySeverity.Medium]: z.int(),
+    [VulnerabilitySeverity.High]: z.int(),
+    [VulnerabilitySeverity.Critical]: z.int(),
+  }),
+  /** Findings in any status per asset id. */
   assets: z.record(z.uuidv4(), z.int()),
+  /** Open (active or confirmed) findings per asset id; assets without open findings are absent. */
+  openAssets: z.record(z.uuidv4(), z.int()),
 });
 
 export type Finding = z.infer<typeof findingSchema>;

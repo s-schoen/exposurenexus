@@ -263,7 +263,7 @@ describe("asset list columns", () => {
   });
 
   it("counts each asset's findings and orders them by that count", () => {
-    const columns = createAssetColumns([], { "9cfa717a-332f-4ee5-a98e-7641d9a055f5": 3 });
+    const columns = createAssetColumns([], { all: { "9cfa717a-332f-4ee5-a98e-7641d9a055f5": 3 } });
     const findingCountColumn = columns.find((column) => column.id === "findingCount") as
       | DataTableAccessorFnColumnDef<AssetWithCustomFields, number>
       | undefined;
@@ -273,6 +273,23 @@ describe("asset list columns", () => {
     expect(
       findingCountColumn?.accessorFn({ ...asset, id: "08488dd1-4f23-445b-81e5-74e76361caa0" }, 0),
     ).toBe(0);
+  });
+
+  it("filters assets by whether they have open findings", () => {
+    const exposed = { id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5" } as AssetWithCustomFields;
+    const healthy = { id: "08488dd1-4f23-445b-81e5-74e76361caa0" } as AssetWithCustomFields;
+    const columns = createAssetColumns([], {
+      all: { [exposed.id]: 2, [healthy.id]: 1 },
+      open: { [exposed.id]: 1 },
+    });
+    const openFindingsFilter = getColumnFilterFn(
+      columns.find((column) => column.id === "openFindings"),
+    );
+
+    expect(openFindingsFilter({ original: exposed }, "openFindings", ["some"])).toBe(true);
+    expect(openFindingsFilter({ original: healthy }, "openFindings", ["some"])).toBe(false);
+    expect(openFindingsFilter({ original: healthy }, "openFindings", ["none"])).toBe(true);
+    expect(openFindingsFilter({ original: exposed }, "openFindings", [])).toBe(true);
   });
 
   it("places the type icon before the name and the properties after it, without a type chip", () => {

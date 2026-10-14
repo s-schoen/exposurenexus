@@ -29,8 +29,6 @@ import type { Asset, AssetType, AssetWithCustomFields } from "@exposurenexus/con
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
-const noFindingCounts: FindingCountByAssetId = {};
-
 export function createAssetGroupingOptions(
   customFieldDefinitions: Array<AssetCustomFieldDefinition>,
   userProfileById: Map<string, UserProfile> = new Map(),
@@ -62,6 +60,7 @@ export function createAssetGroupingOptions(
 interface AssetListProps {
   assetListOptions?: AssetListOptions;
   findingCountByAssetId?: FindingCountByAssetId;
+  openFindingCountByAssetId?: FindingCountByAssetId;
   grouping?: string;
   onGroupingChange?: (grouping: string | undefined) => void;
   filterState?: DataTableFilterState;
@@ -73,7 +72,8 @@ interface AssetListProps {
 
 export function AssetList({
   assetListOptions,
-  findingCountByAssetId = noFindingCounts,
+  findingCountByAssetId,
+  openFindingCountByAssetId,
   grouping,
   onGroupingChange,
   filterState,
@@ -97,11 +97,17 @@ export function AssetList({
     () =>
       createAssetColumns(
         customFieldDefinitions,
-        findingCountByAssetId,
+        { all: findingCountByAssetId, open: openFindingCountByAssetId },
         userProfileById,
         usersQuery.isPending,
       ),
-    [customFieldDefinitions, findingCountByAssetId, userProfileById, usersQuery.isPending],
+    [
+      customFieldDefinitions,
+      findingCountByAssetId,
+      openFindingCountByAssetId,
+      userProfileById,
+      usersQuery.isPending,
+    ],
   );
   const groupingOptions = useMemo(
     () => createAssetGroupingOptions(customFieldDefinitions, userProfileById),

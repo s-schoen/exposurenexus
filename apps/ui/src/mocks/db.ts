@@ -188,20 +188,35 @@ export function projectFinding(db: MockDb, record: FindingRecord): Finding {
 
 export function computeFindingStatistics(db: MockDb): FindingStatistics {
   const findings = db.findings.all();
-  const countBy = <K extends string>(keys: Array<K>, pick: (finding: FindingRecord) => string) =>
+  const countBy = <K extends string>(
+    keys: Array<K>,
+    pick: (finding: FindingRecord) => string,
+    list = findings,
+  ) =>
     Object.fromEntries(
-      keys.map((key) => [key, findings.filter((finding) => pick(finding) === key).length]),
+      keys.map((key) => [key, list.filter((finding) => pick(finding) === key).length]),
     ) as Record<K, number>;
   const assets: Record<string, number> = {};
+  const openAssets: Record<string, number> = {};
   for (const finding of findings) {
     assets[finding.assetId] = (assets[finding.assetId] ?? 0) + 1;
+    if (finding.status === FindingStatus.Active || finding.status === FindingStatus.Confirmed) {
+      openAssets[finding.assetId] = (openAssets[finding.assetId] ?? 0) + 1;
+    }
   }
+  const activeFindings = findings.filter((finding) => finding.status === FindingStatus.Active);
 
   return {
     total: findings.length,
     status: countBy(Object.values(FindingStatus), (finding) => finding.status),
     severity: countBy(Object.values(VulnerabilitySeverity), (finding) => finding.severity),
+    activeSeverity: countBy(
+      Object.values(VulnerabilitySeverity),
+      (finding) => finding.severity,
+      activeFindings,
+    ),
     assets,
+    openAssets,
   };
 }
 

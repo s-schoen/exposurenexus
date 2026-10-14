@@ -1,4 +1,3 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { Plus, ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
 
@@ -10,7 +9,6 @@ import {
 } from "@/features/findings/components/finding-preview.tsx";
 import { useCreateFinding } from "@/features/findings/hooks/use-create-finding.ts";
 import { useFindingTableSearchState } from "@/features/findings/hooks/use-finding-table-search-state.ts";
-import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
@@ -23,7 +21,6 @@ interface FindingsPageProps {
 
 export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
   const createFinding = useCreateFinding();
-  const findings = useSuspenseQuery(createListFindingsQueryOptions());
   const { filterState, onFilterStateChange, grouping, onGroupingChange } =
     useFindingTableSearchState({
       search,
@@ -52,7 +49,6 @@ export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
   usePageMeta({
     title: "Findings",
     icon: ShieldAlert,
-    count: findings.data.length,
     actions,
   });
 

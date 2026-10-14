@@ -22,13 +22,14 @@ export interface PageMeta {
   heading?: string;
   icon?: LucideIcon;
   breadcrumbs: Array<PageBreadcrumb>;
+  /** The rows the page's list shows, set by `usePageCount`. */
   count?: number;
   actions: Array<PageAction>;
   /** Less common actions, listed in the header's ⋯ menu. */
   menu: Array<PageAction>;
 }
 
-type UsePageMetaOptions = Partial<Omit<PageMeta, "title">> & Pick<PageMeta, "title">;
+type UsePageMetaOptions = Partial<Omit<PageMeta, "title" | "count">> & Pick<PageMeta, "title">;
 
 const EMPTY_PAGE_ACTIONS: Array<PageAction> = [];
 const EMPTY_BREADCRUMBS: Array<PageBreadcrumb> = [];
@@ -77,15 +78,14 @@ export function usePageMeta({
   heading,
   icon,
   breadcrumbs = EMPTY_BREADCRUMBS,
-  count,
   actions = EMPTY_PAGE_ACTIONS,
   menu = EMPTY_PAGE_ACTIONS,
 }: UsePageMetaOptions) {
   const setMeta = useSetPageMeta();
 
   useEffect(() => {
-    setMeta((previous) => ({ ...previous, title, heading, icon, breadcrumbs, count }));
-  }, [breadcrumbs, count, heading, icon, setMeta, title]);
+    setMeta((previous) => ({ ...previous, title, heading, icon, breadcrumbs }));
+  }, [breadcrumbs, heading, icon, setMeta, title]);
 
   useEffect(() => {
     setMeta((previous) => ({ ...previous, actions, menu }));
@@ -97,4 +97,19 @@ export function usePageMeta({
       }));
     };
   }, [actions, menu, setMeta]);
+}
+
+/**
+ * Shows `count` next to the page title until the caller unmounts. The page's list sets it from
+ * the rows it shows, so the number follows search and filters.
+ */
+export function usePageCount(count: number | undefined) {
+  const setMeta = useSetPageMeta();
+
+  useEffect(() => {
+    setMeta((previous) => ({ ...previous, count }));
+    return () => {
+      setMeta((previous) => ({ ...previous, count: undefined }));
+    };
+  }, [count, setMeta]);
 }

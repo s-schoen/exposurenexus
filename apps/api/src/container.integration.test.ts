@@ -198,6 +198,9 @@ describe("API backend cutover", () => {
       total: 1,
       status: { confirmed: 1 },
       severity: { high: 1 },
+      activeSeverity: { high: 0 },
+      assets: { [asset.data.id]: 1 },
+      openAssets: { [asset.data.id]: 1 },
     });
     await request(`/assets/${asset.data.id}`, "DELETE", undefined, 409);
     await request(`/findings/${finding.data.id}`, "DELETE");

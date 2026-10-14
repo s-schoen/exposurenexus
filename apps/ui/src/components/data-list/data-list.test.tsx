@@ -1,7 +1,8 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { DataList } from "@/components/data-list/data-list.tsx";
+import { usePage } from "@/hooks/use-page-meta.tsx";
 import { renderWithAppProviders } from "@/test/harness.tsx";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
@@ -55,6 +56,10 @@ function rowNames() {
   return screen.getAllByRole("listitem").map((row) => row.textContent);
 }
 
+function PageCount() {
+  return <output aria-label="Page count">{usePage().count ?? "none"}</output>;
+}
+
 describe("DataList", () => {
   it("renders a row per item with its title and property chips", () => {
     renderWithAppProviders(<DataList label="Items" columns={columns} rows={items} />);
@@ -79,6 +84,27 @@ describe("DataList", () => {
     expect(rowNames()).toEqual([expect.stringContaining("Charlie")]);
     await user.click(screen.getByRole("button", { name: "Clear Owner filter Morgan" }));
     expect(rowNames()).toHaveLength(2);
+  });
+
+  it("counts the rows that pass search and filters in the page header", async () => {
+    const { user } = renderWithAppProviders(
+      <>
+        <DataList
+          label="Items"
+          columns={columns}
+          rows={items}
+          grouping="team"
+          groupingOptions={[{ id: "team", label: "Team" }]}
+        />
+        <PageCount />
+      </>,
+    );
+
+    expect(await screen.findByRole("status", { name: "Page count" })).toHaveTextContent("3");
+    await user.type(screen.getByRole("textbox", { name: "Search" }), "Bravo");
+    await waitFor(() => {
+      expect(screen.getByRole("status", { name: "Page count" })).toHaveTextContent("1");
+    });
   });
 
   it("groups locally and collapses a group", async () => {

@@ -79,6 +79,7 @@ export function FindingStatusChart({ data, loading, className, height }: Finding
           chartConfig={chartConfig}
           loading={loading}
           height={height}
+          emptyMessage="No findings yet."
           orientation="horizontal"
         />
       </CardContent>

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { Activity } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
 
-import { PageProvider, usePage, usePageMeta } from "@/hooks/use-page-meta.tsx";
+import { PageProvider, usePage, usePageCount, usePageMeta } from "@/hooks/use-page-meta.tsx";
 
 import type { PageAction } from "@/hooks/use-page-meta.tsx";
 import type { ReactNode } from "react";
@@ -29,6 +29,11 @@ function PageConsumer() {
 
 function PageMetaHarness(props: Parameters<typeof usePageMeta>[0]) {
   usePageMeta(props);
+  return null;
+}
+
+function PageCountHarness({ count }: { count: number }) {
+  usePageCount(count);
   return null;
 }
 
@@ -74,7 +79,6 @@ describe("PageProvider and usePageMeta", () => {
         <PageMetaHarness
           title="web-01"
           breadcrumbs={[{ label: "Assets", to: "/assets" }]}
-          count={3}
           actions={[createAction]}
         />
       ),
@@ -86,7 +90,6 @@ describe("PageProvider and usePageMeta", () => {
     });
 
     expect(screen.getByLabelText("Breadcrumbs")).toHaveTextContent("Assets");
-    expect(screen.getByLabelText("Count")).toHaveTextContent("3");
 
     await user.click(screen.getByRole("button", { name: "Create asset" }));
     expect(createAction.onClick).toHaveBeenCalledOnce();
@@ -104,7 +107,44 @@ describe("PageProvider and usePageMeta", () => {
       expect(screen.queryByRole("button", { name: "Create asset" })).not.toBeInTheDocument();
     });
     expect(screen.getByLabelText("Breadcrumbs")).toBeEmptyDOMElement();
-    expect(screen.getByLabelText("Count")).toHaveTextContent("No count");
+  });
+
+  it("shows the list's count until the list unmounts", async () => {
+    const { rerender } = renderPage({
+      meta: (
+        <>
+          <PageMetaHarness title="Assets" />
+          <PageCountHarness count={3} />
+        </>
+      ),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Count")).toHaveTextContent("3");
+    });
+
+    rerender(
+      <PageProvider>
+        <PageConsumer />
+        <PageMetaHarness title="Assets" />
+        <PageCountHarness count={1} />
+      </PageProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Count")).toHaveTextContent("1");
+    });
+
+    rerender(
+      <PageProvider>
+        <PageConsumer />
+        <PageMetaHarness title="Assets" />
+      </PageProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Count")).toHaveTextContent("No count");
+    });
   });
 
   it("cleans actions when a page unmounts or navigation replaces it", async () => {

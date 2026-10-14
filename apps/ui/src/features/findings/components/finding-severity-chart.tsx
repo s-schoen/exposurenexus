@@ -70,6 +70,7 @@ export function FindingSeverityChart({
           chartConfig={chartConfig}
           loading={loading}
           height={height}
+          emptyMessage="No findings yet."
         />
       </CardContent>
     </Card>

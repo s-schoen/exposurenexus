@@ -49,6 +49,7 @@ function RouteComponent() {
       search={search}
       selected={search.selected}
       findingCountByAssetId={findingStats.data.assets}
+      openFindingCountByAssetId={findingStats.data.openAssets}
       renderAssetFindings={(assetId) => <AssetFindingsSection assetId={assetId} />}
     />
   );

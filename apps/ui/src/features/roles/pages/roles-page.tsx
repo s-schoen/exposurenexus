@@ -61,7 +61,6 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
   usePageMeta({
     title: "Roles",
     icon: KeyRound,
-    count: rolesQuery.data.length,
     actions,
   });
 

@@ -1,24 +1,36 @@
+import { AssetLifecycleState } from "@exposurenexus/contracts/model/asset";
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+
+import { AssetOpenFindingsFilter } from "@/features/assets";
 
 import type { MetricTone } from "@/components/metric-card.tsx";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { FindingStatistics } from "@exposurenexus/contracts/model/finding";
 
-/** Dashboard numbers, top affected assets and priority links derived from the stats. */
+/** A dashboard number and the list behind it: the list opened by `href` shows `value` rows. */
+export interface DashboardMetric {
+  label: string;
+  value: number;
+  /** How the number reads, such as "40%"; defaults to the number itself. */
+  displayValue?: string;
+  tone: MetricTone;
+  href: string;
+}
+
+/** Dashboard numbers, top affected assets and their links, derived from the stats. */
 export function computeDashboardOverview(stats: FindingStatistics, assetList: Array<Asset>) {
-  const totalFindings = stats.total;
-  const totalAssets = assetList.length;
-  const affectedAssets = Object.values(stats.assets).filter((value) => value > 0).length;
-  const activeFindings = stats.status[FindingStatus.Active];
-  const confirmedFindings = stats.status[FindingStatus.Confirmed];
-  const criticalHighFindings = stats.severity.critical + stats.severity.high;
+  const openFindingCount = (asset: Asset) => stats.openAssets[asset.id] ?? 0;
+  const needsReview = stats.activeSeverity.critical + stats.activeSeverity.high;
+  const affectedAssets = assetList.filter((asset) => openFindingCount(asset) > 0).length;
+  const healthyAssets = assetList.filter(
+    (asset) => asset.lifecycleState === AssetLifecycleState.Active && openFindingCount(asset) === 0,
+  ).length;
   const mitigatedFindings = stats.status[FindingStatus.Mitigated];
-  const mitigatedRate =
-    totalFindings > 0 ? Math.round((mitigatedFindings / totalFindings) * 100) : 0;
+  const mitigatedRate = stats.total > 0 ? Math.round((mitigatedFindings / stats.total) * 100) : 0;
 
   const assetNamesById = new Map(assetList.map((asset) => [asset.id, asset.displayName]));
 
-  const topAssets = Object.entries(stats.assets)
+  const topAssets = Object.entries(stats.openAssets)
     .filter(([, count]) => count > 0)
     .sort(([, left], [, right]) => right - left)
     .slice(0, 5)
@@ -26,62 +38,67 @@ export function computeDashboardOverview(stats: FindingStatistics, assetList: Ar
       key: `asset-${index + 1}`,
       name: assetNamesById.get(assetId) ?? "Unknown asset",
       value: count,
+      href: `/assets/${assetId}`,
     }));
 
-  const priorityItems: Array<{
-    label: string;
-    value: number;
-    tone: MetricTone;
-    href: string;
-  }> = [
+  const priorityItems: Array<DashboardMetric> = [
     {
       label: "Needs review",
-      value: criticalHighFindings,
-      tone: criticalHighFindings > 0 ? "destructive" : "success",
+      value: needsReview,
+      tone: needsReview > 0 ? "destructive" : "success",
       href: buildFilterHref("/findings", {
         severity: ["critical", "high"],
-        status: ["active"],
+        status: [FindingStatus.Active],
       }),
     },
     {
       label: "Triage queue",
-      value: activeFindings,
+      value: stats.status[FindingStatus.Active],
       tone: "default",
       href: buildFilterHref("/findings/triage", {
-        status: ["active"],
+        status: [FindingStatus.Active],
       }),
     },
     {
       label: "Needs mitigation",
-      value: confirmedFindings,
+      value: stats.status[FindingStatus.Confirmed],
       tone: "default",
       href: buildFilterHref("/findings", {
-        status: ["confirmed"],
+        status: [FindingStatus.Confirmed],
       }),
     },
     {
-      label: "Blast radius",
+      label: "Affected assets",
       value: affectedAssets,
       tone: "default",
-      href: buildFilterHref("/findings", {
-        status: ["active", "confirmed"],
+      href: buildFilterHref("/assets", {
+        assetOpenFindings: [AssetOpenFindingsFilter.Some],
       }),
     },
   ];
 
-  return {
-    totalFindings,
-    totalAssets,
-    affectedAssets,
-    healthyAssets: Math.max(totalAssets - affectedAssets, 0),
-    activeFindings,
-    confirmedFindings,
-    criticalHighFindings,
-    mitigatedFindings,
-    mitigatedRate,
-    topAssets,
-    priorityItems,
-  };
+  const coverageItems: Array<DashboardMetric> = [
+    {
+      label: "Healthy assets",
+      value: healthyAssets,
+      tone: "default",
+      href: buildFilterHref("/assets", {
+        assetLifecycleState: [AssetLifecycleState.Active],
+        assetOpenFindings: [AssetOpenFindingsFilter.None],
+      }),
+    },
+    {
+      label: "Mitigated rate",
+      value: mitigatedFindings,
+      displayValue: `${mitigatedRate}%`,
+      tone: "default",
+      href: buildFilterHref("/findings", {
+        status: [FindingStatus.Mitigated],
+      }),
+    },
+  ];
+
+  return { priorityItems, coverageItems, topAssets };
 }
 
 export function buildFilterHref(pathname: string, filters: Record<string, Array<string>>) {

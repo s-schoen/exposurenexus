@@ -17,7 +17,7 @@ interface MetricCardProps {
   tone?: MetricTone;
 }
 
-/** A raised KPI card that links to the list behind its number. */
+/** A raised KPI card that links to the list behind its number. Every dashboard stat uses it. */
 export function MetricCard({ title, value, href, tone = "default" }: MetricCardProps) {
   return (
     <Link
@@ -25,12 +25,9 @@ export function MetricCard({ title, value, href, tone = "default" }: MetricCardP
       className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4 shadow-raised transition-colors duration-100 outline-none hover:border-border-strong focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20"
     >
       <span className="text-sm font-medium text-foreground-secondary">{title}</span>
-      <span className={metricValueClassName(tone)}>{value}</span>
+      <span className={cn("text-2xl leading-tight font-semibold", valueToneClasses[tone])}>
+        {value}
+      </span>
     </Link>
   );
-}
-
-/** The large KPI number style, shared with stats that sit outside a card. */
-export function metricValueClassName(tone: MetricTone = "default") {
-  return cn("text-2xl leading-tight font-semibold", valueToneClasses[tone]);
 }

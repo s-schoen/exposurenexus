@@ -66,7 +66,10 @@ export function PageHeader({
           <Title className="truncate text-base font-medium text-foreground">{title}</Title>
         )}
         {count !== undefined && (
-          <span className="shrink-0 rounded-md bg-primary-subtle px-1.5 text-xs leading-5 font-medium text-primary-subtle-foreground tabular-nums">
+          <span
+            data-slot="page-count"
+            className="shrink-0 rounded-md bg-primary-subtle px-1.5 text-xs leading-5 font-medium text-primary-subtle-foreground tabular-nums"
+          >
             {count}
           </span>
         )}

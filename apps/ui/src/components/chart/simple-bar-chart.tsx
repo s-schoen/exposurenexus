@@ -1,10 +1,12 @@
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
+import { Link } from "@tanstack/react-router";
+import { Bar, BarChart, CartesianGrid, LabelList, Rectangle, XAxis, YAxis } from "recharts";
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 
 import type { ChartConfig } from "@/components/ui/chart.tsx";
 import type { CSSProperties } from "react";
+import type { RectangleProps } from "recharts";
 
 interface ChartData {
   label: string;
@@ -19,6 +21,26 @@ interface SimpleBarChartProps {
   height?: CSSProperties["height"];
   // Horizontal bars give every category label its own row, for charts with many or long labels.
   orientation?: "vertical" | "horizontal";
+  /** Shown instead of bare axes when no bar has a value. */
+  emptyMessage: string;
+  /** Makes each bar a link to the list or record behind it. */
+  getHref?: (label: string) => string;
+}
+
+/** One muted line, centered where the chart would be. */
+function ChartEmpty({ message, height }: { message: string; height?: CSSProperties["height"] }) {
+  return (
+    <div
+      className="flex h-(--chart-height) items-center justify-center text-13 text-muted-foreground"
+      style={{ "--chart-height": cssHeight(height ?? "8rem") } as CSSProperties}
+    >
+      {message}
+    </div>
+  );
+}
+
+function cssHeight(height: NonNullable<CSSProperties["height"]>) {
+  return typeof height === "number" ? `${height}px` : height;
 }
 
 export function SimpleBarChart({
@@ -27,6 +49,8 @@ export function SimpleBarChart({
   loading = false,
   height,
   orientation = "vertical",
+  emptyMessage,
+  getHref,
 }: SimpleBarChartProps) {
   function skeleton() {
     return <Skeleton className="w-full h-32" />;
@@ -34,6 +58,22 @@ export function SimpleBarChart({
 
   function formatLabel(value: string) {
     return chartConfig[value].label as string;
+  }
+
+  function linkedBar({ payload, ...props }: RectangleProps & { payload?: ChartData }) {
+    if (!getHref || !payload) {
+      return <Rectangle {...props} />;
+    }
+
+    return (
+      <Link
+        to={getHref(payload.label)}
+        aria-label={`${formatLabel(payload.label)}: ${payload.value}`}
+        className="outline-none hover:opacity-80 focus-visible:opacity-80"
+      >
+        <Rectangle {...props} />
+      </Link>
+    );
   }
 
   function axes() {
@@ -78,9 +118,7 @@ export function SimpleBarChart({
         style={
           height === undefined
             ? undefined
-            : ({
-                "--chart-height": typeof height === "number" ? `${height}px` : height,
-              } as CSSProperties)
+            : ({ "--chart-height": cssHeight(height) } as CSSProperties)
         }
       >
         <BarChart
@@ -90,7 +128,7 @@ export function SimpleBarChart({
         >
           {axes()}
           <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-          <Bar dataKey="value" radius={4}>
+          <Bar dataKey="value" radius={4} shape={getHref ? linkedBar : undefined}>
             <LabelList
               position={orientation === "horizontal" ? "right" : "top"}
               offset={orientation === "horizontal" ? 8 : 12}
@@ -103,5 +141,13 @@ export function SimpleBarChart({
     );
   }
 
-  return loading ? skeleton() : chart();
+  if (loading) {
+    return skeleton();
+  }
+
+  return chartData.some((entry) => entry.value > 0) ? (
+    chart()
+  ) : (
+    <ChartEmpty message={emptyMessage} height={height} />
+  );
 }

@@ -21,13 +21,34 @@ vi.mock("@/components/ui/chart.tsx", () => ({
   ChartTooltipContent: () => <div data-testid="chart-tooltip-content" />,
 }));
 
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ to, children, ...props }: { to: string; children?: ReactNode }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("recharts", () => ({
-  Bar: ({ children }: { children?: ReactNode }) => <div data-testid="bar">{children}</div>,
+  // Draws one bar per data item through the chart's shape, like Recharts does.
+  Bar: ({
+    children,
+    shape,
+  }: {
+    children?: ReactNode;
+    shape?: (props: { payload: (typeof chartData)[number] }) => ReactNode;
+  }) => (
+    <div data-testid="bar">
+      {shape && chartData.map((payload) => <div key={payload.label}>{shape({ payload })}</div>)}
+      {children}
+    </div>
+  ),
   BarChart: ({ children }: { children?: ReactNode }) => (
     <div data-testid="bar-chart">{children}</div>
   ),
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   LabelList: () => <div data-testid="label-list" />,
+  Rectangle: () => <div data-testid="rectangle" />,
   XAxis: ({ tickFormatter }: { tickFormatter?: (value: string) => ReactNode }) => (
     <div data-testid="x-axis">{tickFormatter?.("active")}</div>
   ),
@@ -56,7 +77,14 @@ const chartConfig = {
 async function renderChart(height?: CSSProperties["height"]) {
   const { SimpleBarChart } = await import("@/components/chart/simple-bar-chart.tsx");
 
-  render(<SimpleBarChart chartData={chartData} chartConfig={chartConfig} height={height} />);
+  render(
+    <SimpleBarChart
+      chartData={chartData}
+      chartConfig={chartConfig}
+      height={height}
+      emptyMessage="No findings yet."
+    />,
+  );
 
   return screen.getByTestId("chart-container");
 }
@@ -92,7 +120,12 @@ describe("SimpleBarChart", () => {
     const { SimpleBarChart } = await import("@/components/chart/simple-bar-chart.tsx");
 
     render(
-      <SimpleBarChart chartData={chartData} chartConfig={chartConfig} orientation="horizontal" />,
+      <SimpleBarChart
+        chartData={chartData}
+        chartConfig={chartConfig}
+        orientation="horizontal"
+        emptyMessage="No findings yet."
+      />,
     );
 
     expect(screen.getByTestId("y-axis")).toHaveTextContent("Active");
@@ -103,12 +136,59 @@ describe("SimpleBarChart", () => {
     const { SimpleBarChart } = await import("@/components/chart/simple-bar-chart.tsx");
 
     const { container } = render(
-      <SimpleBarChart chartData={chartData} chartConfig={chartConfig} loading={true} />,
+      <SimpleBarChart
+        chartData={chartData}
+        chartConfig={chartConfig}
+        loading={true}
+        emptyMessage="No findings yet."
+      />,
     );
 
     expect(container.querySelector('[data-slot="skeleton"]')).not.toBeNull();
     expect(screen.queryByTestId("chart-container")).not.toBeInTheDocument();
     expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
     expect(screen.queryByTestId("x-axis")).not.toBeInTheDocument();
+  });
+
+  it("shows the empty message instead of bare axes when no bar has a value", async () => {
+    const { SimpleBarChart } = await import("@/components/chart/simple-bar-chart.tsx");
+
+    render(
+      <SimpleBarChart
+        chartData={[{ ...chartData[0], value: 0 }]}
+        chartConfig={chartConfig}
+        height="18rem"
+        emptyMessage="No findings yet."
+      />,
+    );
+
+    expect(screen.getByText("No findings yet.").style.getPropertyValue("--chart-height")).toBe(
+      "18rem",
+    );
+    expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
+  });
+
+  it("links each bar to its href, named by its label and value", async () => {
+    const { SimpleBarChart } = await import("@/components/chart/simple-bar-chart.tsx");
+
+    render(
+      <SimpleBarChart
+        chartData={chartData}
+        chartConfig={chartConfig}
+        emptyMessage="No findings yet."
+        getHref={(label) => `/findings?status=${label}`}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Active: 4" })).toHaveAttribute(
+      "href",
+      "/findings?status=active",
+    );
+  });
+
+  it("draws plain bars without an href", async () => {
+    await renderChart();
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 });
