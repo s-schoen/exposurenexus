@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { formatWeaknessText, parseWeaknessText } from "@/features/findings/lib/weakness-text.ts";
+import {
+  formatWeaknessIdentifier,
+  formatWeaknessText,
+  parseWeaknessText,
+} from "@/features/findings/lib/weakness-text.ts";
+
+describe("formatWeaknessIdentifier", () => {
+  it("doesn't repeat a namespace the identifier already names", () => {
+    expect(formatWeaknessIdentifier("cwe", "CWE-284")).toBe("CWE-284");
+    expect(formatWeaknessIdentifier("ghsa", "GHSA-abcd-1234-efgh")).toBe("GHSA-abcd-1234-efgh");
+  });
+
+  it("prefixes other identifiers with their namespace", () => {
+    expect(formatWeaknessIdentifier("scanner", "admin-panel")).toBe("scanner:admin-panel");
+  });
+});
 
 describe("weakness text", () => {
   it("formats and parses namespaced identifiers", () => {

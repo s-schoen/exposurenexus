@@ -2,7 +2,7 @@ import { KeyRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge.tsx";
 import { UserAvatar } from "@/features/users/components/user-avatar.tsx";
-import { cn } from "@/lib/utils.ts";
+import { UserStatusIcon, UserStatusLabel } from "@/features/users/components/user-status.tsx";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
@@ -62,19 +62,10 @@ function RolesChip({
   );
 }
 
-const enabledDotClassNames = {
-  true: "bg-success",
-  false: "bg-subtle-foreground",
-} as const;
-
 function StatusChip({ enabled }: { enabled: boolean }) {
   return (
     <Badge variant="property" title="Status">
-      <span
-        className={cn("size-1.5 shrink-0 rounded-full", enabledDotClassNames[`${enabled}`])}
-        aria-hidden="true"
-      />
-      {enabled ? "Enabled" : "Disabled"}
+      <UserStatusLabel enabled={enabled} />
     </Badge>
   );
 }
@@ -150,8 +141,8 @@ export function createColumns(
         placement: "property",
         filterVariant: "select",
         options: [
-          { label: "Enabled", value: "true" },
-          { label: "Disabled", value: "false" },
+          { label: "Enabled", value: "true", icon: <UserStatusIcon enabled /> },
+          { label: "Disabled", value: "false", icon: <UserStatusIcon enabled={false} /> },
         ],
       },
     },

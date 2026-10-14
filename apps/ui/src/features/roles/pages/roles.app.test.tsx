@@ -38,10 +38,13 @@ describe("roles list", () => {
     for (const role of SEED_ROLES) {
       expect(within(list).getByText(role.name)).toBeVisible();
     }
+    // The leading icon tells built-in and custom roles apart.
     const viewerRow = await findRoleRow(VIEWER_ROLE.name);
-    expect(viewerRow).toHaveTextContent("Built-in");
+    expect(within(viewerRow).getByRole("img", { name: "Built-in" })).toBeVisible();
     expect(viewerRow).toHaveTextContent(`${VIEWER_ROLE.permissions.length} permissions`);
-    expect(await findRoleRow(CUSTOM_AUDITOR_ROLE.name)).toHaveTextContent("Custom");
+    expect(
+      within(await findRoleRow(CUSTOM_AUDITOR_ROLE.name)).getByRole("img", { name: "Custom" }),
+    ).toBeVisible();
   });
 
   it("shows the route error state when the role list fails", async () => {
@@ -191,10 +194,17 @@ describe("role detail", () => {
     renderApp({ path: `/settings/roles/${role.id}` });
 
     expect(await screen.findByRole("heading", { name: "Permissions 3" })).toBeVisible();
-    const groups = within(screen.getByRole("list", { name: "Permissions" })).getAllByRole(
-      "listitem",
-    );
-    expect(groups.map((group) => group.textContent)).toEqual(["FindingReadWrite", "AssetRead"]);
+    const permissions = screen.getByLabelText("Permissions");
+    expect(
+      within(permissions)
+        .getAllByRole("term")
+        .map((term) => term.textContent),
+    ).toEqual(["Finding", "Asset"]);
+    expect(
+      within(permissions)
+        .getAllByRole("definition")
+        .map((verbs) => verbs.textContent),
+    ).toEqual(["ReadWrite", "Read"]);
 
     const properties = screen.getByRole("region", { name: "Properties" });
     expect(within(properties).getByText("Custom")).toBeVisible();

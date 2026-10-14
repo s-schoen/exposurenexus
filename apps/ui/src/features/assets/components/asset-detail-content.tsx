@@ -13,6 +13,7 @@ import { useState } from "react";
 
 import { Inplace } from "@/components/inplace.tsx";
 import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
+import { DetailField, DetailFields } from "@/components/properties-panel/detail-rows.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import {
   PropertiesAuditLines,
@@ -33,6 +34,10 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { AssetIdentifiersSection } from "@/features/assets/components/asset-identifiers-section.tsx";
+import {
+  AssetLifecycleIcon,
+  formatAssetLifecycleState,
+} from "@/features/assets/components/asset-lifecycle-label.tsx";
 import { AssetTypeIcon } from "@/features/assets/components/asset-type-icon.tsx";
 import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
 import { formatAssetCustomFieldValue } from "@/features/assets/lib/asset-custom-fields.ts";
@@ -41,12 +46,13 @@ import {
   createAssetCustomFieldValuesQueryOptions,
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
 } from "@/features/assets/queries/assets.ts";
+import { CustomFieldTypeIcon } from "@/features/custom-fields";
 import {
-  UserAvatar,
+  OWNER_LABELS,
   createListUsersQueryOptions,
+  createUserOptions,
   createUserProfileById,
   formatUserProfileReference,
-  getUserProfileDisplayName,
 } from "@/features/users";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 import { cn } from "@/lib/utils.ts";
@@ -58,7 +64,6 @@ import type {
   AssetCustomFieldValue,
   AssetCustomFieldValueLiteral,
 } from "@exposurenexus/contracts/model/asset-custom-field";
-import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
 
 const noOwnerValue = "__no_owner__";
@@ -79,7 +84,11 @@ const environmentOptions: Array<PropertyOption<AssetEnvironment>> = Object.value
 
 const lifecycleStateOptions: Array<PropertyOption<AssetLifecycleState>> = Object.values(
   AssetLifecycleState,
-).map((state) => ({ value: state, label: formatAssetValue(state) }));
+).map((state) => ({
+  value: state,
+  label: formatAssetLifecycleState(state),
+  icon: <AssetLifecycleIcon state={state} />,
+}));
 
 function getAssetCustomFieldDraftValue(field: AssetCustomFieldValue): string {
   return field.value === null ? "" : String(field.value);
@@ -111,39 +120,6 @@ function createAssetCustomFieldValueReplacement(
           ? field.value
           : null,
   }));
-}
-
-function decorativeAvatar(userId: string | null, user: UserProfile | null | undefined) {
-  return (
-    <span aria-hidden="true" className="flex shrink-0">
-      <UserAvatar userId={userId} user={user} />
-    </span>
-  );
-}
-
-function ownerOptions(
-  asset: Asset,
-  users: Array<UserProfile> | undefined,
-): Array<PropertyOption<string>> {
-  const options: Array<PropertyOption<string>> = [
-    { value: noOwnerValue, label: "No owner", icon: decorativeAvatar(null, null) },
-    ...(users ?? []).map((user) => ({
-      value: user.id,
-      label: getUserProfileDisplayName(user),
-      icon: decorativeAvatar(user.id, user),
-    })),
-  ];
-
-  // Keep the current owner pickable while users load, or when it is no longer listed.
-  if (asset.ownerId && !options.some(({ value }) => value === asset.ownerId)) {
-    options.push({
-      value: asset.ownerId,
-      label: users ? "Unknown owner" : "Loading…",
-      icon: decorativeAvatar(asset.ownerId, users ? null : undefined),
-    });
-  }
-
-  return options;
 }
 
 function AssetPropertiesPanel({ asset }: { asset: Asset }) {
@@ -179,7 +155,10 @@ function AssetPropertiesPanel({ asset }: { asset: Asset }) {
         <PropertyRow icon={UserRound} label="Owner">
           <PropertySelect
             value={asset.ownerId ?? noOwnerValue}
-            options={ownerOptions(asset, users.data)}
+            options={createUserOptions(users.data, OWNER_LABELS, {
+              emptyValue: noOwnerValue,
+              currentUserId: asset.ownerId,
+            })}
             searchPlaceholder="Search users…"
             onCommit={(ownerId) => update({ ownerId: ownerId === noOwnerValue ? null : ownerId })}
           />
@@ -274,10 +253,16 @@ function AssetCustomFieldsSection({ asset }: { asset: Asset }) {
   } else if (customFields.isError) {
     content = <p className="text-13 text-destructive">Unable to load custom fields.</p>;
   } else if (fields.length === 0) {
-    content = <p className="text-13 text-subtle-foreground">No custom fields are assigned.</p>;
+    content = (
+      <p className="text-13 text-subtle-foreground">
+        {availableCustomFields.data?.length === 0
+          ? "No custom fields exist yet. Add them in Settings › Custom fields."
+          : "No custom fields are assigned."}
+      </p>
+    );
   } else {
     content = (
-      <dl className="flex flex-col">
+      <DetailFields>
         {fields.map((field) => (
           <AssetCustomFieldRow
             key={field.fieldId}
@@ -287,7 +272,7 @@ function AssetCustomFieldsSection({ asset }: { asset: Asset }) {
             onSave={handleSave}
           />
         ))}
-      </dl>
+      </DetailFields>
     );
   }
 
@@ -296,11 +281,13 @@ function AssetCustomFieldsSection({ asset }: { asset: Asset }) {
       title="Custom fields"
       count={customFields.data?.length}
       action={
-        <AssetCustomFieldAssignmentPicker
-          availableCustomFields={availableCustomFields.data}
-          isPending={availableCustomFields.isPending}
-          onAssign={handleAssign}
-        />
+        // Hidden while nothing can be added; the empty state says why.
+        availableCustomFields.data?.length ? (
+          <AssetCustomFieldAssignmentPicker
+            availableCustomFields={availableCustomFields.data}
+            onAssign={handleAssign}
+          />
+        ) : undefined
       }
     >
       {content}
@@ -309,18 +296,15 @@ function AssetCustomFieldsSection({ asset }: { asset: Asset }) {
 }
 
 interface AssetCustomFieldAssignmentPickerProps {
-  availableCustomFields?: Array<AssetCustomFieldDefinition>;
-  isPending: boolean;
+  availableCustomFields: Array<AssetCustomFieldDefinition>;
   onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>;
 }
 
 function AssetCustomFieldAssignmentPicker({
-  availableCustomFields = [],
-  isPending,
+  availableCustomFields,
   onAssign,
 }: AssetCustomFieldAssignmentPickerProps) {
   const [open, setOpen] = useState(false);
-  const hasAvailableFields = availableCustomFields.length > 0;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -332,7 +316,6 @@ function AssetCustomFieldAssignmentPicker({
             size="icon-sm"
             aria-label="Add custom field"
             title="Add custom field"
-            disabled={isPending || !hasAvailableFields}
           >
             <Plus strokeWidth={1.5} />
           </Button>
@@ -353,12 +336,11 @@ function AssetCustomFieldAssignmentPicker({
                     void onAssign(field);
                   }}
                 >
-                  <div className="min-w-0">
-                    <span className="block truncate">{field.name}</span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {field.key} · {capitalizeFirstLetter(field.type)}
-                    </span>
-                  </div>
+                  <CustomFieldTypeIcon type={field.type} decorative />
+                  <span className="truncate">{field.name}</span>
+                  <span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">
+                    {field.key}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -381,30 +363,11 @@ function AssetCustomFieldRow({ field, onDetach, onReset, onSave }: AssetCustomFi
   const [isEditing, setIsEditing] = useState(false);
 
   return (
-    <div className="-mx-2 flex min-h-9 items-center gap-3 rounded-md px-2 transition-colors duration-100 hover:bg-accent">
-      <dt className="w-32 shrink-0 truncate text-13 text-muted-foreground">{field.name}</dt>
-      <dd className="flex min-w-0 flex-1 items-center gap-2 text-13 text-foreground">
-        <div className="min-w-0 flex-1">
-          <Inplace
-            value={getAssetCustomFieldDraftValue(field)}
-            onSave={(value) => onSave(field, value)}
-            displayElement={() => (
-              <span
-                className={cn("block truncate", {
-                  "text-subtle-foreground": field.value === null,
-                })}
-              >
-                {formatAssetCustomFieldValue(field)}
-              </span>
-            )}
-            editElement={getCustomFieldEditElement(field)}
-            editOnClick
-            showEditIcon={false}
-            onEditingChange={setIsEditing}
-          />
-        </div>
-        {!isEditing && (
-          <div className="flex shrink-0 items-center gap-0.5">
+    <DetailField
+      label={field.name}
+      actions={
+        !isEditing && (
+          <>
             {isAssetValue && (
               <Button
                 type="button"
@@ -427,10 +390,30 @@ function AssetCustomFieldRow({ field, onDetach, onReset, onSave }: AssetCustomFi
             >
               <X strokeWidth={1.5} />
             </Button>
-          </div>
-        )}
-      </dd>
-    </div>
+          </>
+        )
+      }
+    >
+      <div className="min-w-0 flex-1">
+        <Inplace
+          value={getAssetCustomFieldDraftValue(field)}
+          onSave={(value) => onSave(field, value)}
+          displayElement={() => (
+            <span
+              className={cn("block truncate", {
+                "text-subtle-foreground": field.value === null,
+              })}
+            >
+              {formatAssetCustomFieldValue(field)}
+            </span>
+          )}
+          editElement={getCustomFieldEditElement(field)}
+          editOnClick
+          showEditIcon={false}
+          onEditingChange={setIsEditing}
+        />
+      </div>
+    </DetailField>
   );
 }
 

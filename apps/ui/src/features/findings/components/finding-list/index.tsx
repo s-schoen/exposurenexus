@@ -1,12 +1,12 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Plus, Server, ShieldAlert } from "lucide-react";
+import { Plus, ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
 
 import { DataList } from "@/components/data-list/data-list.tsx";
 import { DataListEmpty } from "@/components/data-list/empty-state.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { createListAssetsQueryOptions } from "@/features/assets";
+import { AssetTypeIcon, createListAssetsQueryOptions } from "@/features/assets";
 import {
   FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE,
   createFindingColumns,
@@ -18,7 +18,12 @@ import { useCreateFinding } from "@/features/findings/hooks/use-create-finding.t
 import { useDeleteFindings } from "@/features/findings/hooks/use-finding-record-actions.tsx";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
 import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
-import { UserAvatar, createListUsersQueryOptions, createUserProfileById } from "@/features/users";
+import {
+  ASSIGNEE_LABELS,
+  UserAvatar,
+  createListUsersQueryOptions,
+  createUserProfileById,
+} from "@/features/users";
 import { SEVERITY_ORDER, SeverityIcon, formatSeverity } from "@/features/vulnerabilities";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
@@ -100,9 +105,11 @@ export function FindingList({
         id: "assetId",
         label: "Asset",
         formatValue: (value) => assetNamesById.get(String(value)) ?? "Unknown asset",
-        renderIcon: () => (
-          <Server className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
-        ),
+        renderIcon: (value) => {
+          const asset = assetsById.get(String(value));
+
+          return asset ? <AssetTypeIcon type={asset.type} decorative /> : null;
+        },
       },
       {
         id: "responsibleOwner",
@@ -113,7 +120,7 @@ export function FindingList({
         label: "Assignee",
         formatValue: (value) =>
           String(value) === FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE
-            ? "Unassigned"
+            ? ASSIGNEE_LABELS.emptyLabel
             : formatFindingAssignee(String(value), userProfileById),
         renderIcon: (value) => {
           const userId =
@@ -123,14 +130,14 @@ export function FindingList({
             <UserAvatar
               userId={userId}
               user={userId ? (userProfileById.get(userId) ?? null) : null}
-              emptyLabel="Unassigned"
-              unknownLabel="Unknown assignee"
+              {...ASSIGNEE_LABELS}
+              decorative
             />
           );
         },
       },
     ],
-    [assetNamesById, userProfileById],
+    [assetNamesById, assetsById, userProfileById],
   );
 
   const handleOpenFinding = async (finding: Finding) => {

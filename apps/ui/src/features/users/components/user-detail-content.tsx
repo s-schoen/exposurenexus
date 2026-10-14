@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { AtSign, CircleDot, KeyRound, Mail } from "lucide-react";
+import { AtSign, CircleDot, Mail } from "lucide-react";
 
 import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
+import { DetailList, DetailListItem } from "@/components/properties-panel/detail-rows.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import {
   PropertiesPanel,
@@ -9,15 +10,11 @@ import {
   PropertyRow,
   PropertyValue,
 } from "@/components/properties-panel/properties-panel.tsx";
-import { cn } from "@/lib/utils.ts";
+import { RoleKindIcon } from "@/features/roles";
+import { UserStatusLabel } from "@/features/users/components/user-status.tsx";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
-
-const enabledDotClassNames = {
-  true: "bg-success",
-  false: "bg-subtle-foreground",
-} as const;
 
 function UserPropertiesPanel({ user }: { user: UserProfile }) {
   return (
@@ -35,14 +32,7 @@ function UserPropertiesPanel({ user }: { user: UserProfile }) {
         </PropertyRow>
         <PropertyRow icon={CircleDot} label="Status">
           <PropertyValue>
-            <span
-              className={cn(
-                "size-1.5 shrink-0 rounded-full",
-                enabledDotClassNames[`${user.enabled}`],
-              )}
-              aria-hidden="true"
-            />
-            {user.enabled ? "Enabled" : "Disabled"}
+            <UserStatusLabel enabled={user.enabled} />
           </PropertyValue>
         </PropertyRow>
       </PropertyGroup>
@@ -61,32 +51,27 @@ function RolesSection({ user, roles }: { user: UserProfile; roles: ReadonlyArray
   return (
     <DetailSection title="Roles" count={user.roleIds.length}>
       {user.roleIds.length > 0 ? (
-        <ul className="flex flex-col">
+        <DetailList label="Roles">
           {assignedRoles.map((role) => (
-            <li
-              key={role.id}
-              className="-mx-2 flex h-9 items-center gap-2 rounded-md px-2 transition-colors duration-100 hover:bg-accent"
-            >
-              <KeyRound
-                className="size-4 shrink-0 text-muted-foreground"
-                strokeWidth={1.5}
-                aria-hidden="true"
-              />
+            <DetailListItem key={role.id}>
+              <RoleKindIcon roleId={role.id} />
               <Link
                 to="/settings/roles/$id"
                 params={{ id: role.id }}
-                className="min-w-0 flex-1 truncate text-13 font-medium text-foreground hover:underline"
+                className="min-w-0 flex-1 truncate font-medium hover:underline"
               >
                 {role.name}
               </Link>
-            </li>
+            </DetailListItem>
           ))}
           {unknownRoleCount > 0 && (
-            <li className="flex h-9 items-center text-13 text-subtle-foreground">
-              {unknownRoleCount} unknown role{unknownRoleCount === 1 ? "" : "s"}
-            </li>
+            <DetailListItem>
+              <span className="text-subtle-foreground">
+                {unknownRoleCount} unknown role{unknownRoleCount === 1 ? "" : "s"}
+              </span>
+            </DetailListItem>
           )}
-        </ul>
+        </DetailList>
       ) : (
         <p className="text-13 text-subtle-foreground">No roles assigned.</p>
       )}

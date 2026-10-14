@@ -19,6 +19,12 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { Inplace } from "@/components/inplace.tsx";
 import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
+import {
+  DetailField,
+  DetailFields,
+  DetailList,
+  DetailListItem,
+} from "@/components/properties-panel/detail-rows.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import {
   PropertiesAuditLines,
@@ -42,6 +48,7 @@ import {
 } from "@/components/ui/command.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
+import { AssetTypeIcon } from "@/features/assets";
 import { STATUS_ORDER } from "@/features/findings/components/finding-list/constants.ts";
 import { FindingObservationsSection } from "@/features/findings/components/finding-observations-section.tsx";
 import { FindingStatusIcon } from "@/features/findings/components/finding-status-icon.tsx";
@@ -49,14 +56,18 @@ import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifec
 import {
   formatResourceType,
   getResourceDetails,
+  isIdentifierResourceDetail,
 } from "@/features/findings/lib/affected-resource.ts";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
+import { formatWeaknessIdentifier } from "@/features/findings/lib/weakness-text.ts";
 import {
+  ASSIGNEE_LABELS,
+  OWNER_LABELS,
   UserAvatar,
   createListUsersQueryOptions,
+  createUserOptions,
   createUserProfileById,
   formatUserProfileReference,
-  getUserProfileDisplayName,
 } from "@/features/users";
 import {
   SEVERITY_ORDER,
@@ -69,7 +80,6 @@ import { formatDateTime } from "@/lib/format.ts";
 import type { PropertyOption } from "@/components/properties-panel/property-select.tsx";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { Finding, FindingStatus, UpdateFinding } from "@exposurenexus/contracts/model/finding";
-import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type {
   VulnerabilityCatalog,
   VulnerabilitySeverity,
@@ -90,39 +100,6 @@ const severityOptions: Array<PropertyOption<VulnerabilitySeverity>> = SEVERITY_O
     icon: <SeverityIcon severity={severity} decorative />,
   }),
 );
-
-function decorativeAvatar(userId: string | null, user: UserProfile | null | undefined) {
-  return (
-    <span aria-hidden="true" className="flex shrink-0">
-      <UserAvatar userId={userId} user={user} />
-    </span>
-  );
-}
-
-function assigneeOptions(
-  finding: Finding,
-  users: Array<UserProfile> | undefined,
-): Array<PropertyOption<string>> {
-  const options: Array<PropertyOption<string>> = [
-    { value: unassignedValue, label: "Unassigned", icon: decorativeAvatar(null, null) },
-    ...(users ?? []).map((user) => ({
-      value: user.id,
-      label: getUserProfileDisplayName(user),
-      icon: decorativeAvatar(user.id, user),
-    })),
-  ];
-
-  // Keep the current assignee pickable while users load, or when it is no longer listed.
-  if (finding.assigneeId && !options.some(({ value }) => value === finding.assigneeId)) {
-    options.push({
-      value: finding.assigneeId,
-      label: users ? "Unknown assignee" : "Loading…",
-      icon: decorativeAvatar(finding.assigneeId, users ? null : undefined),
-    });
-  }
-
-  return options;
-}
 
 function FindingPropertiesPanel({ finding, asset }: { finding: Finding; asset: Asset }) {
   const findingLifecycle = useFindingLifecycle();
@@ -166,7 +143,10 @@ function FindingPropertiesPanel({ finding, asset }: { finding: Finding; asset: A
         <PropertyRow icon={UserRound} label="Assignee">
           <PropertySelect
             value={finding.assigneeId ?? unassignedValue}
-            options={assigneeOptions(finding, users.data)}
+            options={createUserOptions(users.data, ASSIGNEE_LABELS, {
+              emptyValue: unassignedValue,
+              currentUserId: finding.assigneeId,
+            })}
             searchPlaceholder="Search users…"
             onCommit={(assigneeId) =>
               correct({ assigneeId: assigneeId === unassignedValue ? null : assigneeId })
@@ -187,8 +167,9 @@ function FindingPropertiesPanel({ finding, asset }: { finding: Finding; asset: A
           <Link
             to="/assets/$id"
             params={{ id: asset.id }}
-            className="flex min-w-0 items-center gap-1 rounded-md px-2.5 py-1 text-foreground transition-colors duration-100 hover:bg-accent"
+            className="flex min-w-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-foreground transition-colors duration-100 hover:bg-accent"
           >
+            <AssetTypeIcon type={asset.type} decorative />
             <span className="truncate">{asset.displayName}</span>
             <ArrowUpRight
               className="size-3.5 shrink-0 text-muted-foreground"
@@ -199,14 +180,15 @@ function FindingPropertiesPanel({ finding, asset }: { finding: Finding; asset: A
         </PropertyRow>
         <PropertyRow icon={UserRoundCheck} label="Asset owner">
           <PropertyValue>
-            {decorativeAvatar(asset.ownerId, users.isPending ? undefined : (owner ?? null))}
+            <UserAvatar
+              userId={asset.ownerId}
+              user={users.isPending ? undefined : (owner ?? null)}
+              decorative
+            />
             <span className="truncate">
               {users.isPending
                 ? null
-                : formatUserProfileReference(asset.ownerId, userProfileById, {
-                    emptyLabel: "No owner",
-                    unknownLabel: "Unknown owner",
-                  })}
+                : formatUserProfileReference(asset.ownerId, userProfileById, OWNER_LABELS)}
             </span>
           </PropertyValue>
         </PropertyRow>
@@ -235,16 +217,22 @@ function AffectedResourceSection({ finding }: { finding: Finding }) {
 
   return (
     <DetailSection title="Affected resource">
-      <dl className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-x-6 gap-y-1.5 text-13">
-        <dt className="text-muted-foreground">Type</dt>
-        <dd className="text-foreground">{formatResourceType(finding.affectedResource.type)}</dd>
+      <DetailFields>
+        <DetailField label="Type">{formatResourceType(finding.affectedResource.type)}</DetailField>
         {details.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt className="text-muted-foreground">{label}</dt>
-            <dd className="break-all text-foreground">{value}</dd>
-          </div>
+          <DetailField key={label} label={label}>
+            <span
+              className={
+                isIdentifierResourceDetail(label)
+                  ? "min-w-0 font-mono text-xs break-all"
+                  : "min-w-0 break-all"
+              }
+            >
+              {value}
+            </span>
+          </DetailField>
         ))}
-      </dl>
+      </DetailFields>
     </DetailSection>
   );
 }
@@ -260,8 +248,7 @@ function WeaknessSection({ finding }: { finding: Finding }) {
             values.map((value) => (
               <li key={`${namespace}:${value}`}>
                 <Badge variant="property" title={namespace}>
-                  <span className="text-muted-foreground">{namespace}</span>
-                  {value}
+                  <span className="font-mono">{formatWeaknessIdentifier(namespace, value)}</span>
                 </Badge>
               </li>
             )),
@@ -272,10 +259,6 @@ function WeaknessSection({ finding }: { finding: Finding }) {
       )}
     </DetailSection>
   );
-}
-
-function formatVulnerabilityOption(vulnerability: VulnerabilityCatalog) {
-  return `${vulnerability.type.toUpperCase()}: ${vulnerability.identifier}`;
 }
 
 function LinkVulnerabilityPicker({
@@ -319,7 +302,8 @@ function LinkVulnerabilityPicker({
                   }}
                 >
                   <SeverityIcon severity={vulnerability.severity} decorative />
-                  <span className="truncate">{formatVulnerabilityOption(vulnerability)}</span>
+                  <span className="shrink-0 font-mono text-xs">{vulnerability.identifier}</span>
+                  <span className="truncate text-muted-foreground">{vulnerability.title}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -370,11 +354,23 @@ function VulnerabilitiesSection({ finding }: { finding: Finding }) {
       }
     >
       {finding.vulnerabilities.length > 0 ? (
-        <ul className="flex flex-col">
+        <DetailList label="Linked vulnerabilities">
           {finding.vulnerabilities.map((vulnerability) => (
-            <li
+            <DetailListItem
               key={vulnerability.id}
-              className="-mx-2 flex h-9 items-center gap-2 rounded-md px-2 transition-colors duration-100 hover:bg-accent"
+              actions={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Unlink ${vulnerability.identifier}`}
+                  title="Unlink"
+                  aria-busy={pendingId === vulnerability.id || undefined}
+                  disabled={pendingId !== null}
+                  onClick={() => void unlink(vulnerability)}
+                >
+                  {pendingId === vulnerability.id ? <Spinner /> : <Unlink strokeWidth={1.5} />}
+                </Button>
+              }
             >
               <SeverityIcon severity={vulnerability.severity} />
               <span className="shrink-0 font-mono text-xs text-muted-foreground">
@@ -383,22 +379,13 @@ function VulnerabilitiesSection({ finding }: { finding: Finding }) {
               <Link
                 to="/vulnerabilities/$id"
                 params={{ id: vulnerability.id }}
-                className="min-w-0 flex-1 truncate text-13 font-medium text-foreground hover:underline"
+                className="min-w-0 flex-1 truncate font-medium hover:underline"
               >
                 {vulnerability.title}
               </Link>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Unlink ${vulnerability.identifier}`}
-                disabled={pendingId !== null}
-                onClick={() => void unlink(vulnerability)}
-              >
-                {pendingId === vulnerability.id ? <Spinner /> : <Unlink strokeWidth={1.5} />}
-              </Button>
-            </li>
+            </DetailListItem>
           ))}
-        </ul>
+        </DetailList>
       ) : (
         <p className="text-13 text-subtle-foreground">No catalog entries are linked.</p>
       )}

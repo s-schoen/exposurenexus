@@ -59,7 +59,8 @@ describe("assets list", () => {
 
     const row = await findRow(API_WORKER.displayName);
     expect(within(row).getByRole("img", { name: "Software" })).toBeVisible();
-    expect(within(row).getByTitle("Type")).toHaveTextContent("Software");
+    // The leading icon carries the type, so no chip repeats it.
+    expect(within(row).queryByTitle("Type")).not.toBeInTheDocument();
     expect(within(row).getByTitle("Owner")).toHaveTextContent(owner.displayName);
     expect(within(row).getByTitle("Findings")).toHaveTextContent(String(findingCount));
   });
@@ -417,6 +418,28 @@ describe("asset detail", () => {
         db.assets.get(API_WORKER.id)?.identifiers.map((identifier) => identifier.id),
       ).not.toContain(existing.id),
     );
+  });
+
+  it("offers to add a custom field only while one is left to add", async () => {
+    const { user } = renderApp({ path: `/assets/${WEB_01.id}` });
+
+    // Every definition is already assigned, so there is nothing to add.
+    await screen.findByRole("heading", { level: 1, name: WEB_01.displayName });
+    const remove = await screen.findByRole("button", { name: `Remove ${CATEGORY.name}` });
+    expect(screen.queryByRole("button", { name: "Add custom field" })).not.toBeInTheDocument();
+
+    await user.click(remove);
+
+    expect(await screen.findByRole("button", { name: "Add custom field" })).toBeVisible();
+  });
+
+  it("says why no custom field can be added when none exist", async () => {
+    db.customFields.clear();
+    db.customFieldAssignments.clear();
+    renderApp({ path: `/assets/${WEB_01.id}` });
+
+    expect(await screen.findByText(/No custom fields exist yet/)).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Add custom field" })).not.toBeInTheDocument();
   });
 
   it("removes a custom field from the asset", async () => {

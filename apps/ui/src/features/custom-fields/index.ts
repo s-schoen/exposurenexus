@@ -1,3 +1,4 @@
+export { CustomFieldTypeIcon } from "@/features/custom-fields/components/custom-field-type-icon.tsx";
 export { CreateCustomFieldDialog } from "@/features/custom-fields/components/create-custom-field-dialog.tsx";
 export { CustomFieldDetailPage } from "@/features/custom-fields/pages/custom-field-detail-page.tsx";
 export { CustomFieldsPage } from "@/features/custom-fields/pages/custom-fields-page.tsx";

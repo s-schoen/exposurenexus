@@ -22,15 +22,17 @@ import {
 } from "@/components/ui/select.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { AssetIdentifierEditor } from "@/features/assets/components/asset-identifier-editor.tsx";
+import { AssetLifecycleLabel } from "@/features/assets/components/asset-lifecycle-label.tsx";
+import { AssetTypeIcon } from "@/features/assets/components/asset-type-icon.tsx";
 import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
-import { createListUsersQueryOptions } from "@/features/users";
+import { formatAssetType } from "@/features/assets/lib/asset-type.ts";
+import { OWNER_LABELS, UserSelect, createListUsersQueryOptions } from "@/features/users";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { Asset, CreateAsset } from "@exposurenexus/contracts/model/asset";
 import type { PropsWithCall } from "react-call";
 
 const formSchema = createAssetSchema;
-const noOwnerValue = "__no_owner__";
 
 /** Creates an asset and resolves to it, or to `null` when cancelled. */
 export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, object>) => {
@@ -121,13 +123,17 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
                     }}
                   >
                     <SelectTrigger id={field.name} className="w-full">
-                      <SelectValue>{capitalizeFirstLetter(field.state.value)}</SelectValue>
+                      <SelectValue>
+                        <AssetTypeIcon type={field.state.value} decorative />
+                        {formatAssetType(field.state.value)}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        {Object.values(AssetType).map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {capitalizeFirstLetter(t)}
+                        {Object.values(AssetType).map((type) => (
+                          <SelectItem key={type} value={type}>
+                            <AssetTypeIcon type={type} decorative />
+                            {formatAssetType(type)}
                           </SelectItem>
                         ))}
                       </SelectGroup>
@@ -153,7 +159,7 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
                   >
                     <SelectTrigger id={field.name} className="w-full">
                       <SelectValue>
-                        {capitalizeFirstLetter(field.state.value ?? AssetLifecycleState.Active)}
+                        {capitalizeFirstLetter(field.state.value ?? AssetEnvironment.Unknown)}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -186,14 +192,16 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
                   >
                     <SelectTrigger id={field.name} className="w-full">
                       <SelectValue>
-                        {capitalizeFirstLetter(field.state.value ?? AssetType.Host)}
+                        <AssetLifecycleLabel
+                          state={field.state.value ?? AssetLifecycleState.Active}
+                        />
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         {Object.values(AssetLifecycleState).map((state) => (
                           <SelectItem key={state} value={state}>
-                            {capitalizeFirstLetter(state)}
+                            <AssetLifecycleLabel state={state} />
                           </SelectItem>
                         ))}
                       </SelectGroup>
@@ -205,40 +213,20 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
           />
           <form.Field
             name="ownerId"
-            children={(field) => {
-              return (
-                <Field>
-                  <FieldLabel htmlFor={field.name}>Owner</FieldLabel>
-                  <Select
-                    value={field.state.value ?? noOwnerValue}
-                    name={field.name}
-                    onValueChange={(value) => {
-                      field.handleChange(value === noOwnerValue ? null : value);
-                      field.handleBlur();
-                    }}
-                  >
-                    <SelectTrigger id={field.name} className="w-full">
-                      <SelectValue>
-                        {field.state.value === null || field.state.value === noOwnerValue
-                          ? "No owner"
-                          : (users.data?.find((user) => user.id === field.state.value)
-                              ?.displayName ?? "Select asset owner")}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value={noOwnerValue}>No owner</SelectItem>
-                        {users.data?.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.displayName}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              );
-            }}
+            children={(field) => (
+              <Field>
+                <FieldLabel htmlFor={field.name}>Owner</FieldLabel>
+                <UserSelect
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value ?? null}
+                  onChange={field.handleChange}
+                  onBlur={field.handleBlur}
+                  users={users.data}
+                  labels={OWNER_LABELS}
+                />
+              </Field>
+            )}
           />
           <form.Field
             name="identifiers"

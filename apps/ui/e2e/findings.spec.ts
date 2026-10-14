@@ -55,10 +55,9 @@ test("edits properties in place and details from the header menu", async ({ page
 
   const dueDate = properties.getByRole("button", { name: /^Due date/ });
   await dueDate.click();
-  await page.getByRole("textbox", { name: "Due date" }).fill("2026-04-15");
-  await page.keyboard.press("Enter");
-  await expect(dueDate).toHaveText(/2026/);
-  await expect(dueDate).not.toHaveText(/Feb/);
+  await page.getByRole("button", { name: /next month/i }).click();
+  await page.getByRole("button", { name: /March 15th, 2026/ }).click();
+  await expect(dueDate).toHaveText(/Mar 15, 2026/);
 
   const title = pageContent(page).getByRole("heading", { level: 2 });
   await title.getByRole("button", { name: ADMIN_ENDPOINT.title }).click();

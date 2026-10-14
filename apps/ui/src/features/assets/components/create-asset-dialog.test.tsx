@@ -109,7 +109,7 @@ describe("CreateAssetDialog", () => {
     expect(screen.getByLabelText(/^type$/i)).toHaveValue(AssetType.Host);
     expect(screen.getByLabelText(/^environment$/i)).toHaveValue(AssetEnvironment.Unknown);
     expect(screen.getByLabelText(/^lifecycle state$/i)).toHaveValue(AssetLifecycleState.Active);
-    expect(screen.getByLabelText(/^owner$/i)).toHaveValue("__no_owner__");
+    expect(screen.getByLabelText(/^owner$/i)).toHaveValue("__no_user__");
     expect(screen.getByTestId("ownerId-trigger")).toHaveTextContent("No owner");
   });
 
@@ -197,7 +197,7 @@ describe("CreateAssetDialog", () => {
     await screen.findByRole("option", { name: OWNER.displayName });
     await user.selectOptions(screen.getByLabelText(/^owner$/i), OWNER.id);
 
-    expect(screen.getByTestId("type-trigger")).toHaveTextContent("ContainerImage");
+    expect(screen.getByTestId("type-trigger")).toHaveTextContent("Container image");
     expect(screen.getByTestId("environment-trigger")).toHaveTextContent("NotApplicable");
     expect(screen.getByTestId("lifecycleState-trigger")).toHaveTextContent("Archived");
     expect(screen.getByTestId("ownerId-trigger")).toHaveTextContent(OWNER.displayName);
@@ -228,7 +228,7 @@ describe("CreateAssetDialog", () => {
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await screen.findByRole("option", { name: OWNER.displayName });
     await user.selectOptions(screen.getByLabelText(/^owner$/i), OWNER.id);
-    await user.selectOptions(screen.getByLabelText(/^owner$/i), "__no_owner__");
+    await user.selectOptions(screen.getByLabelText(/^owner$/i), "__no_user__");
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
     expect(await createdPayload(call, posts)).toEqual({

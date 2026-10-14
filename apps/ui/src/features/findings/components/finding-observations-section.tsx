@@ -12,6 +12,11 @@ import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FormActions, FormDialog } from "@/components/form-dialog.tsx";
+import {
+  DetailField,
+  DetailFields,
+  RowActions,
+} from "@/components/properties-panel/detail-rows.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import { SafeMarkdown } from "@/components/safe-markdown.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -48,8 +53,13 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { useObservationLifecycle } from "@/features/findings/hooks/use-observation-lifecycle.ts";
+import { isIdentifierResourceDetail } from "@/features/findings/lib/affected-resource.ts";
 import { formatLocalDateTimeInput } from "@/features/findings/lib/date-input.ts";
-import { formatWeaknessText, parseWeaknessText } from "@/features/findings/lib/weakness-text.ts";
+import {
+  formatWeaknessIdentifier,
+  formatWeaknessText,
+  parseWeaknessText,
+} from "@/features/findings/lib/weakness-text.ts";
 import {
   createFindingObservationsQueryOptions,
   createListFindingsQueryOptions,
@@ -60,7 +70,7 @@ import {
   SeverityLabel,
   formatSeverity,
 } from "@/features/vulnerabilities";
-import { capitalizeFirstLetter, formatRelativeTime } from "@/lib/format.ts";
+import { capitalizeFirstLetter, formatDateTime } from "@/lib/format.ts";
 
 import type { ObservationAffectedResource as ObservationResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
@@ -777,6 +787,7 @@ function EditObservationDialog({ observation, open, onOpenChange }: ObservationD
               <Field>
                 <FieldLabel htmlFor={`${formId}-weakness`}>Weakness identifiers</FieldLabel>
                 <Input
+                  className="font-mono"
                   id={`${formId}-weakness`}
                   value={weakness}
                   placeholder="cwe=CWE-200; scanner=admin-panel"
@@ -1040,28 +1051,40 @@ function ObservationDetails({ observation }: { observation: Observation }) {
           <SafeMarkdown className="mt-1">{observation.remediation}</SafeMarkdown>
         </div>
       ) : null}
-      <dl className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-x-6 gap-y-1">
-        <dt className="text-muted-foreground">Severity</dt>
-        <dd className="flex items-center gap-1.5 text-foreground">
+      <DetailFields>
+        <DetailField label="Severity">
           <SeverityLabel severity={observation.severity} />
-        </dd>
-        <dt className="text-muted-foreground">Weakness</dt>
-        <dd className="text-foreground">
-          {identifiers.length
-            ? identifiers
-                .map(([namespace, values]) => `${namespace}: ${values.join(", ")}`)
-                .join("; ")
-            : "No identifiers recorded"}
-        </dd>
-        <dt className="text-muted-foreground">Resource</dt>
-        <dd className="text-foreground">{formatResourceType(observation.affectedResource.type)}</dd>
+        </DetailField>
+        <DetailField label="Weakness">
+          {identifiers.length ? (
+            <span className="min-w-0 font-mono text-xs break-all">
+              {identifiers
+                .flatMap(([namespace, values]) =>
+                  values.map((value) => formatWeaknessIdentifier(namespace, value)),
+                )
+                .join(", ")}
+            </span>
+          ) : (
+            <span className="text-subtle-foreground">No identifiers recorded</span>
+          )}
+        </DetailField>
+        <DetailField label="Resource">
+          {formatResourceType(observation.affectedResource.type)}
+        </DetailField>
         {details.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt className="text-muted-foreground">{label}</dt>
-            <dd className="break-all text-foreground">{value}</dd>
-          </div>
+          <DetailField key={label} label={label}>
+            <span
+              className={
+                isIdentifierResourceDetail(label)
+                  ? "min-w-0 font-mono text-xs break-all"
+                  : "min-w-0 break-all"
+              }
+            >
+              {value}
+            </span>
+          </DetailField>
         ))}
-      </dl>
+      </DetailFields>
     </div>
   );
 }
@@ -1070,7 +1093,7 @@ function ObservationDetails({ observation }: { observation: Observation }) {
 // its title.
 function ObservationItem({ observation }: { observation: Observation }) {
   return (
-    <li className="group/observation relative flex gap-3 pb-4 last:pb-0">
+    <li className="group/observation group/detail-row relative flex gap-3 pb-4 last:pb-0">
       <span
         aria-hidden="true"
         className="absolute top-6 bottom-0 left-3 w-px bg-border group-last/observation:hidden"
@@ -1087,13 +1110,14 @@ function ObservationItem({ observation }: { observation: Observation }) {
             <span className="text-muted-foreground">reported</span>{" "}
             <time
               dateTime={observation.observedAt.toISOString()}
-              title={observation.observedAt.toLocaleString()}
               className="text-xs text-subtle-foreground"
             >
-              · {formatRelativeTime(observation.observedAt)}
+              · {formatDateTime(observation.observedAt)}
             </time>
           </p>
-          <ObservationMenu observation={observation} />
+          <RowActions>
+            <ObservationMenu observation={observation} />
+          </RowActions>
         </div>
         <Collapsible>
           <CollapsibleTrigger className="flex max-w-full items-center">
@@ -1276,6 +1300,7 @@ function AddObservationDialog({ finding }: { finding: Finding }) {
                 <Field>
                   <FieldLabel htmlFor="observation-weakness">Weakness identifiers</FieldLabel>
                   <Input
+                    className="font-mono"
                     id="observation-weakness"
                     value={weakness}
                     placeholder="Use finding weakness, or cwe=CWE-200; scanner=admin-panel"

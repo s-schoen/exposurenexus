@@ -19,7 +19,7 @@ import {
   useCreateFinding,
 } from "@/features/findings";
 import { CreateRoleDialog } from "@/features/roles";
-import { CreateUserDialog } from "@/features/users";
+import { CreateUserDialog, UserAvatar } from "@/features/users";
 import { CreateVulnerabilityDialog } from "@/features/vulnerabilities";
 import { usePage } from "@/hooks/use-page-meta.tsx";
 
@@ -42,7 +42,15 @@ function Layout() {
       <CreateCustomFieldDialog.Root />
       <Toaster />
       <SidebarProvider className="h-dvh min-h-0 flex-col overflow-hidden">
-        <AppHeader accountMenu={<AccountMenu />} />
+        <AppHeader
+          accountMenu={
+            <AccountMenu
+              renderAvatar={(user) => (
+                <UserAvatar userId={user?.id ?? null} user={user} size="md" decorative />
+              )}
+            />
+          }
+        />
         <div className="flex min-h-0 flex-1 px-2 pb-2">
           <div className="flex min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
             <AppSidebar

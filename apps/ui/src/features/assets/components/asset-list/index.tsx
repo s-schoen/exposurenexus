@@ -16,6 +16,7 @@ import { formatAssetType } from "@/features/assets/lib/asset-type.ts";
 import { createListAssetsWithCustomFieldsQueryOptions } from "@/features/assets/queries/assets.ts";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields";
 import {
+  OWNER_LABELS,
   createListUsersQueryOptions,
   createUserProfileById,
   formatUserProfileReference,
@@ -47,10 +48,7 @@ export function createAssetGroupingOptions(
       formatValue: (value) =>
         typeof value === "string"
           ? value
-          : formatUserProfileReference(null, userProfileById, {
-              emptyLabel: "No owner",
-              unknownLabel: "Unknown owner",
-            }),
+          : formatUserProfileReference(null, userProfileById, OWNER_LABELS),
     },
     ...customFieldDefinitions.map((definition) => ({
       id: getAssetCustomFieldColumnId(definition.id),

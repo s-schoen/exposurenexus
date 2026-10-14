@@ -481,6 +481,7 @@ export function FindingDetailsDialog({ finding, open, onOpenChange }: FindingDet
               <Field>
                 <FieldLabel htmlFor="correction-weakness">Weakness identifiers</FieldLabel>
                 <Input
+                  className="font-mono"
                   id="correction-weakness"
                   value={weaknessDraft}
                   onChange={(event) => setWeaknessDraft(event.target.value)}

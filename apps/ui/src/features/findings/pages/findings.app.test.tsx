@@ -1,9 +1,10 @@
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { formatDate } from "@/lib/format.ts";
 import {
   SEED_ASSETS,
   SEED_FINDINGS,
@@ -397,26 +398,26 @@ describe("finding detail", () => {
     );
   });
 
-  it("sets and clears the due date in place, discarding it on Escape", async () => {
+  it("sets and clears the due date in place with a calendar", async () => {
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
     const properties = await screen.findByRole("region", { name: "Properties" });
     const dueDate = within(properties).getByRole("button", { name: /^Due date/ });
+    expect(dueDate).toHaveTextContent(formatDate(ADMIN_ENDPOINT.dueDate!, { timeZone: "UTC" }));
 
+    // The calendar opens on the current due date's month; Escape closes it unchanged.
     await user.click(dueDate);
-    fireEvent.change(await screen.findByLabelText("Due date", { selector: "input" }), {
-      target: { value: "2026-04-15" },
-    });
+    expect(
+      await screen.findByRole("button", { name: /February 1st, 2026, selected/ }),
+    ).toBeVisible();
     await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("grid")).not.toBeInTheDocument());
     expect(db.findings.get(ADMIN_ENDPOINT.id)?.dueDate).toEqual(ADMIN_ENDPOINT.dueDate);
 
     await user.click(dueDate);
-    fireEvent.change(await screen.findByLabelText("Due date", { selector: "input" }), {
-      target: { value: "2026-04-15" },
-    });
-    await user.keyboard("{Enter}");
+    await user.click(await screen.findByRole("button", { name: /February 15th, 2026/ }));
     await waitFor(() =>
       expect(db.findings.get(ADMIN_ENDPOINT.id)?.dueDate).toEqual(
-        new Date("2026-04-15T00:00:00.000Z"),
+        new Date("2026-02-15T00:00:00.000Z"),
       ),
     );
 

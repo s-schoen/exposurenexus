@@ -12,8 +12,8 @@ const statuses = [
   { status: FindingStatus.Mitigated, label: "Mitigated", shape: "check" },
   { status: FindingStatus.RiskAccepted, label: "Risk accepted", shape: "minus" },
   { status: FindingStatus.FalsePositive, label: "False positive", shape: "x" },
-  { status: FindingStatus.Duplicate, label: "Duplicate", shape: "x" },
-  { status: FindingStatus.OutOfScope, label: "Out of scope", shape: "x" },
+  { status: FindingStatus.Duplicate, label: "Duplicate", shape: "copy" },
+  { status: FindingStatus.OutOfScope, label: "Out of scope", shape: "slash" },
   { status: FindingStatus.Inactive, label: "Inactive", shape: "dashed circle" },
 ];
 
@@ -34,16 +34,10 @@ describe("FindingStatusIcon", () => {
     );
   });
 
-  it("draws one glyph per status group", () => {
-    for (const a of statuses) {
-      for (const b of statuses) {
-        if (a.shape === b.shape) {
-          expect(iconMarkup(a.status)).toBe(iconMarkup(b.status));
-        } else {
-          expect(iconMarkup(a.status)).not.toBe(iconMarkup(b.status));
-        }
-      }
-    }
+  it("draws a distinct glyph for every status", () => {
+    const glyphs = new Set(statuses.map(({ status }) => iconMarkup(status)));
+
+    expect(glyphs.size).toBe(statuses.length);
   });
 });
 

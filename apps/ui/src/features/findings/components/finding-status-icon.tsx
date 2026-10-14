@@ -42,6 +42,9 @@ const halfFilled = (
 const check = filledCircle("M5.25 8.25 7 10l3.75-4");
 const minus = filledCircle("M5 8h6");
 const cross = filledCircle("m5.75 5.75 4.5 4.5m0-4.5-4.5 4.5");
+// Two stacked squares, as in a "copy" icon.
+const copy = filledCircle("M6.5 6.5h4v4h-4zM5 9V5h4");
+const slash = filledCircle("m10.25 5.25-4.5 5.5");
 const dashed = (
   <circle
     cx="8"
@@ -55,14 +58,16 @@ const dashed = (
 );
 
 // Plane's state-group icons: unstarted, started, completed and cancelled, plus backlog for inactive.
+// The cancelled group shares Plane's filled circle and color; its inner glyph tells a false
+// positive (cross), a duplicate (copy) and out of scope (slash) apart.
 const findingStatusGlyphs = {
   [FindingStatus.Active]: ring,
   [FindingStatus.Confirmed]: halfFilled,
   [FindingStatus.Mitigated]: check,
   [FindingStatus.RiskAccepted]: minus,
   [FindingStatus.FalsePositive]: cross,
-  [FindingStatus.Duplicate]: cross,
-  [FindingStatus.OutOfScope]: cross,
+  [FindingStatus.Duplicate]: copy,
+  [FindingStatus.OutOfScope]: slash,
   [FindingStatus.Inactive]: dashed,
 } satisfies Record<FindingStatus, ReactNode>;
 

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
+import { DetailList, DetailListItem } from "@/components/properties-panel/detail-rows.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { FindingStatusBadge } from "@/features/findings/components/finding-status-badge.tsx";
@@ -35,24 +36,23 @@ export function AssetFindingsSection({ assetId }: { assetId: string }) {
     content = <p className="text-13 text-subtle-foreground">No findings on this asset.</p>;
   } else {
     content = (
-      <ul className="flex flex-col">
+      <DetailList label="Findings">
         {findings.data.map((finding) => (
-          <li
+          <DetailListItem
             key={finding.id}
-            className="-mx-2 flex h-9 items-center gap-2 rounded-md px-2 transition-colors duration-100 hover:bg-accent"
+            trailing={<FindingStatusBadge status={finding.status} />}
           >
             <SeverityIcon severity={finding.severity} />
             <Link
               to="/findings/$id"
               params={{ id: finding.id }}
-              className="min-w-0 flex-1 truncate text-13 font-medium text-foreground hover:underline"
+              className="min-w-0 flex-1 truncate font-medium hover:underline"
             >
               {finding.title}
             </Link>
-            <FindingStatusBadge status={finding.status} className="shrink-0" />
-          </li>
+          </DetailListItem>
         ))}
-      </ul>
+      </DetailList>
     );
   }
 

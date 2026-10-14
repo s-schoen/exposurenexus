@@ -2,7 +2,6 @@
 
 import { useNavigate } from "@tanstack/react-router";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +13,15 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/features/auth/providers/auth-provider.tsx";
 
-export function AccountMenu() {
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { ReactNode } from "react";
+
+interface AccountMenuProps {
+  /** Draws the signed-in user's avatar. The users feature owns it, so the shell passes it in. */
+  renderAvatar: (user: UserProfile | null) => ReactNode;
+}
+
+export function AccountMenu({ renderAvatar }: AccountMenuProps) {
   const { logout, status, user } = useAuth();
   const navigate = useNavigate();
 
@@ -27,8 +34,7 @@ export function AccountMenu() {
     return <Spinner />;
   }
 
-  const displayName = user?.displayName ?? user?.email ?? "Account";
-  const initial = displayName.at(0)?.toUpperCase() ?? "?";
+  const displayName = user?.displayName || user?.username || user?.email || "Account";
 
   return (
     <DropdownMenu>
@@ -41,9 +47,7 @@ export function AccountMenu() {
           />
         }
       >
-        <Avatar className="size-7">
-          <AvatarFallback>{initial}</AvatarFallback>
-        </Avatar>
+        {renderAvatar(user)}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">

@@ -4,13 +4,23 @@ import {
   AssetType,
 } from "@exposurenexus/contracts/model/asset";
 import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
-import { Activity, Fingerprint, Layers, ShieldAlert, Tag, UserRound } from "lucide-react";
+import { Fingerprint, Layers, ShieldAlert, Tag } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge.tsx";
+import {
+  AssetLifecycleIcon,
+  AssetLifecycleLabel,
+  formatAssetLifecycleState,
+} from "@/features/assets/components/asset-lifecycle-label.tsx";
 import { AssetTypeIcon } from "@/features/assets/components/asset-type-icon.tsx";
 import { formatAssetCustomFieldValue } from "@/features/assets/lib/asset-custom-fields.ts";
 import { formatAssetType } from "@/features/assets/lib/asset-type.ts";
-import { UserLabel, formatUserProfileReference } from "@/features/users";
+import {
+  OWNER_LABELS,
+  UserChip,
+  createUserOptions,
+  formatUserProfileReference,
+} from "@/features/users";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
@@ -45,25 +55,12 @@ function OwnerChip({
   userProfileById: Map<string, UserProfile>;
   usersLoading: boolean;
 }) {
-  return (
-    <Badge variant="property" title="Owner">
-      <UserRound strokeWidth={1.5} aria-hidden="true" />
-      <span className="max-w-40 truncate">
-        <UserLabel
-          userId={ownerId}
-          user={
-            ownerId && usersLoading
-              ? undefined
-              : ownerId
-                ? (userProfileById.get(ownerId) ?? null)
-                : null
-          }
-          emptyLabel="No owner"
-          unknownLabel="Unknown owner"
-        />
-      </span>
-    </Badge>
-  );
+  let owner: UserProfile | null | undefined = null;
+  if (ownerId) {
+    owner = usersLoading ? undefined : (userProfileById.get(ownerId) ?? null);
+  }
+
+  return <UserChip userId={ownerId} user={owner} labels={OWNER_LABELS} title="Owner" />;
 }
 
 function IdentifiersChip({ identifiers }: { identifiers: AssetWithCustomFields["identifiers"] }) {
@@ -75,7 +72,7 @@ function IdentifiersChip({ identifiers }: { identifiers: AssetWithCustomFields["
     <Badge variant="property" title={identifiers.map((identifier) => identifier.value).join("\n")}>
       <Fingerprint strokeWidth={1.5} aria-hidden="true" />
       <span className="sr-only">Identifiers</span>
-      <span className="max-w-48 truncate">{identifiers[0].value}</span>
+      <span className="max-w-48 truncate font-mono">{identifiers[0].value}</span>
       {identifiers.length > 1 && (
         <span className="text-muted-foreground tabular-nums">+{identifiers.length - 1}</span>
       )}
@@ -109,21 +106,15 @@ function createBaseColumns(
       meta: { label: "Display name", placement: "title" },
     },
     {
+      // The leading icon shows the type; this column filters and groups by it.
       id: "type",
       accessorKey: "type",
-      cell: ({ row }) => (
-        <Badge variant="property" title="Type">
-          <AssetTypeIcon type={row.original.type} decorative />
-          {formatAssetType(row.original.type)}
-        </Badge>
-      ),
       filterFn: (row, _columnId, filterValue: Array<string>) => {
         if (filterValue.length === 0) return true;
         return filterValue.includes(row.original.type);
       },
       meta: {
         label: "Type",
-        placement: "property",
         filterVariant: "select",
         options: Object.values(AssetType).map((type) => ({
           label: formatAssetType(type),
@@ -135,10 +126,7 @@ function createBaseColumns(
     {
       id: "ownerId",
       accessorFn: (asset) =>
-        formatUserProfileReference(asset.ownerId, userProfileById, {
-          emptyLabel: "No owner",
-          unknownLabel: "Unknown owner",
-        }),
+        formatUserProfileReference(asset.ownerId, userProfileById, OWNER_LABELS),
       cell: ({ row }) => (
         <OwnerChip
           ownerId={row.original.ownerId}
@@ -154,12 +142,13 @@ function createBaseColumns(
         label: "Owner",
         placement: "property",
         filterVariant: "select",
-        options: [
-          { label: "No owner", value: ASSET_OWNERLESS_FILTER_VALUE },
-          ...[...userProfileById.values()]
-            .sort((left, right) => left.displayName.localeCompare(right.displayName))
-            .map((user) => ({ label: user.displayName, value: user.id })),
-        ],
+        options: createUserOptions(
+          [...userProfileById.values()].sort((left, right) =>
+            left.displayName.localeCompare(right.displayName),
+          ),
+          OWNER_LABELS,
+          { emptyValue: ASSET_OWNERLESS_FILTER_VALUE },
+        ),
       },
     },
     {
@@ -210,8 +199,7 @@ function createBaseColumns(
       accessorKey: "lifecycleState",
       cell: ({ row }) => (
         <Badge variant="property" title="Lifecycle state">
-          <Activity strokeWidth={1.5} aria-hidden="true" />
-          {capitalizeFirstLetter(row.original.lifecycleState)}
+          <AssetLifecycleLabel state={row.original.lifecycleState} />
         </Badge>
       ),
       filterFn: (row, _columnId, filterValue: Array<string>) => {
@@ -222,7 +210,11 @@ function createBaseColumns(
         label: "Lifecycle state",
         placement: "property",
         filterVariant: "select",
-        options: createEnumFilterOptions(Object.values(AssetLifecycleState)),
+        options: Object.values(AssetLifecycleState).map((state) => ({
+          label: formatAssetLifecycleState(state),
+          value: state,
+          icon: <AssetLifecycleIcon state={state} />,
+        })),
       },
     },
   ];

@@ -70,7 +70,10 @@ AGPL-3.0: re-declare single values under our token names, never copy their files
 - **Control ladder:** controls are h-7 by default, h-6 small and h-8 for inputs and the sidebar CTA. Controls and chips
   are `rounded-md`; cards, the sheet and popovers `rounded-lg`. Pages pad `px-5`, the page header is `h-13`, list rows
   are `min-h-11`. Lucide icons use `strokeWidth={1.5}`: 16px in nav and buttons, 14px in chips.
-- **Type:** Inter at weights 450/500/600 and IBM Plex Mono for identifiers, digests and hashes. `text-13` is the dense
+- **Type:** Inter at weights 450/500/600 and IBM Plex Mono for identifiers, digests, hashes and keys (CVE ids, custom
+  field and metadata keys, asset identifiers, usernames), everywhere they appear, including the `Input` that edits them
+  (`className="font-mono"`). A weakness identifier reads through `formatWeaknessIdentifier`, which doesn't repeat its
+  namespace ("CWE-284", not "cwe CWE-284"). `text-13` is the dense
   UI size (nav, rows, property rows, menus, buttons), `text-sm` the reading size, `text-xs` chips and timestamps,
   `text-base font-medium` the page header title, `text-2xl` detail and settings titles and KPI numbers. Labels are
   sentence case with default tracking; section labels are `text-13 font-semibold text-subtle-foreground`.
@@ -82,13 +85,28 @@ AGPL-3.0: re-declare single values under our token names, never copy their files
   reduced-motion rule in `src/styles.css` zeroes every duration, so new motion needs no extra handling.
 - **Text budget:** each fact appears once per view. Pages, cards and nav items carry a title only; empty states get one
   short sentence and one action; dialogs carry a description only when the action is destructive. Labels are muted,
-  values dark.
+  values dark. A list row's leading slot carries its primary classifier (severity for findings and vulnerabilities,
+  type for assets and custom fields, avatar for users, `RoleKindIcon` for roles), and no property chip repeats it: the
+  column stays, without a `placement`, to filter, group and order.
 - **Domain icons:** severity and finding status read through their icons and color tokens: `SeverityIcon`,
   `FindingStatusIcon` and the `SeverityBadge` / `FindingStatusBadge` property chips (`Badge variant="property"`). Color
   lives in icons, dots and numbers. A dashboard number turns `text-destructive` only for a problem and `text-success`
   only for a good outcome. Every picker for severity or status, whether a `Select`, `PropertySelect` or filter, shows
   icon + label (`SeverityLabel`, `FindingStatusLabel`) in its trigger and options, ordered by `SEVERITY_ORDER` /
-  `STATUS_ORDER`. Chips are for read-only display, never inside a picker.
+  `STATUS_ORDER`. Chips are for read-only display, never inside a picker. Every finding status has its own glyph; the
+  cancelled group (false positive, duplicate, out of scope) shares Plane's filled circle and color. An asset shows
+  `AssetTypeIcon` for its real type wherever it appears (chips, group headers, links), and type pickers show
+  `AssetTypeIcon` / `CustomFieldTypeIcon` with the label. Status-like flags use icon + label in list chips, property
+  values and form `Select`s alike, never a dot, plain text, "Yes" or a checkbox: `UserStatusLabel`,
+  `AssetLifecycleLabel`, `CustomFieldRequiredLabel`.
+- **People:** a person is `UserAvatar` (two initials) everywhere, the account menu included. List chips are `UserChip`
+  (avatar + name) for owners and assignees alike. Nobody is the dashed placeholder avatar, labelled by role with
+  `OWNER_LABELS` ("No owner") or `ASSIGNEE_LABELS` ("Unassigned"), in chips, pickers, filters and forms. Person
+  pickers build their options with `createUserOptions`, and form fields use `UserSelect`.
+- **Dates:** list chips use the short format (`formatShortDate`, "Feb 1"); everything else uses the full format,
+  `formatDate` for date-only values ("Feb 1, 2026", with `timeZone: "UTC"`) and `formatDateTime` for timestamps,
+  never relative times. Dates are edited in a calendar popover (`PropertyDate`, or `DateField` in forms), never in
+  the browser's locale-dependent `<input type="date">`.
 - **Ordering:** an enumeration appears in one order wherever it's listed: pickers, filters, forms, detail pages and
   dashboard charts. Severity follows `SEVERITY_ORDER` (most severe first), finding status `STATUS_ORDER`, and role
   permissions `PERMISSION_RESOURCE_ORDER` / `PERMISSION_VERB_ORDER` (`features/roles/lib/role.ts`). Never list API keys
@@ -96,6 +114,11 @@ AGPL-3.0: re-declare single values under our token names, never copy their files
 - **Building blocks:** lists use `src/components/data-list/` rows with property chips; detail pages use
   `src/components/properties-panel/` (`DetailLayout`, `DetailSection`, `PropertiesPanel`, `PropertySelect`); row clicks
   open `DetailPeek`; edit forms and the import form sit in `PageColumn`.
+- **Detail sections:** key/value content is `DetailFields` of `DetailField`s, whose key column and value inset match
+  `PropertyRow`, so values line up with the properties panel. Related records are a `DetailList` of plain
+  `DetailListItem` rows; trays are for list fields in forms only. Row actions sit in the row's `actions` slot
+  (`RowActions`), which fades them in on hover or focus: icon buttons for up to two actions, a "⋯" menu for more. A
+  section's add button is hidden when nothing can be added, and the empty state says why.
 - **Record actions:** every entity offers its actions in the same places. A detail page's header holds only a "⋯" menu
   (`usePageMeta({ menu })`), and the peek header shows the same menu (`DetailPeek`'s `menu`), both built from the
   feature's `use<X>RecordActions` hook: the edit item first, then destructive items such as "Delete X…" last behind a

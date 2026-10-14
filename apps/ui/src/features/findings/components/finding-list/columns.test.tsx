@@ -9,7 +9,7 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 import { cleanup, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { formatShortDate } from "@/lib/format.ts";
+import { formatDateTime, formatShortDate } from "@/lib/format.ts";
 import { renderWithAppProviders } from "@/test/harness.tsx";
 
 import type { Asset } from "@exposurenexus/contracts/model/asset";
@@ -161,16 +161,17 @@ describe("createFindingColumns", () => {
     expect(screen.getByText("Active")).toBeVisible();
     cleanup();
 
-    renderCell(findColumn(columns, "assetId"));
+    const { container: assetChip } = renderCell(findColumn(columns, "assetId"));
     expect(screen.getByText("api-01")).toBeVisible();
+    expect(assetChip.querySelector("svg.lucide-server")).toBeInTheDocument();
     cleanup();
 
     renderCell(findColumn(columns, "responsibleOwner"));
-    expect(screen.getByText("Robin Owner")).toBeVisible();
+    expect(screen.getByTitle("Asset owner")).toHaveTextContent("RORobin Owner");
     cleanup();
 
     renderCell(findColumn(columns, "assignee"));
-    expect(screen.getByRole("img", { name: "Alex Assignee" })).toHaveTextContent("AA");
+    expect(screen.getByTitle("Assignee")).toHaveTextContent("AAAlex Assignee");
     cleanup();
 
     renderCell(findColumn(columns, "dueDate"), { ...finding, dueDate });
@@ -184,9 +185,9 @@ describe("createFindingColumns", () => {
     cleanup();
 
     renderCell(findColumn(columns, "firstSeen"));
-    expect(
-      screen.getByTitle(`First seen ${finding.firstSeen!.toLocaleString()}`),
-    ).toHaveTextContent(formatShortDate(finding.firstSeen!));
+    expect(screen.getByTitle(`First seen ${formatDateTime(finding.firstSeen!)}`)).toHaveTextContent(
+      formatShortDate(finding.firstSeen!),
+    );
   });
 
   it("renders fallbacks for unresolved assets, missing dates and no assignee", async () => {
@@ -208,7 +209,7 @@ describe("createFindingColumns", () => {
     cleanup();
 
     renderCell(findColumn(columns, "assignee"), fallbackFinding);
-    expect(screen.getByRole("img", { name: "Unassigned" })).toBeVisible();
+    expect(screen.getByTitle("Assignee")).toHaveTextContent("Unassigned");
     cleanup();
 
     renderCell(findColumn(columns, "dueDate"), fallbackFinding);
@@ -336,7 +337,7 @@ describe("createFindingColumns", () => {
     );
 
     renderCell(findColumn(unknownAssigneeColumns, "assignee"));
-    expect(screen.getByRole("img", { name: "Unknown assignee" })).toBeVisible();
+    expect(screen.getByTitle("Assignee")).toHaveTextContent("?Unknown assignee");
     cleanup();
 
     const loadingAssigneeColumns = await createColumns(
@@ -347,7 +348,7 @@ describe("createFindingColumns", () => {
     );
 
     renderCell(findColumn(loadingAssigneeColumns, "assignee"));
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByTitle("Assignee")).toHaveTextContent("");
   });
 
   it("keeps assignee accessors label-based while grouping by stable identity", async () => {
@@ -527,14 +528,14 @@ describe("createFindingColumns", () => {
 
     expect(assigneeColumn.meta?.options).toEqual(
       expect.arrayContaining([
-        {
+        expect.objectContaining({
           label: "Unassigned",
           value: unassignedAssigneeFilterValue,
-        },
-        {
+        }),
+        expect.objectContaining({
           label: "Alex Assignee",
           value: assignee.id,
-        },
+        }),
       ]),
     );
   });
