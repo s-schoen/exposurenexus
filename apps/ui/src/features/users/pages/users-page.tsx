@@ -1,4 +1,3 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { Plus, Users } from "lucide-react";
 import { lazy, useMemo } from "react";
 
@@ -6,7 +5,6 @@ import { DetailPeek } from "@/components/detail-peek.tsx";
 import { UserList } from "@/features/users/components/user-list/index.tsx";
 import { useCreateUser } from "@/features/users/hooks/use-create-user.ts";
 import { useUserTableSearchState } from "@/features/users/hooks/use-user-table-search-state.ts";
-import { createListUsersQueryOptions } from "@/features/users/queries/users.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
@@ -33,7 +31,6 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
   const { filterState, onFilterStateChange } = useUserTableSearchState({
     search,
   });
-  const users = useSuspenseQuery(createListUsersQueryOptions());
   const selectedSearch = useSelectedSearchParam<UserProfile>({
     selectedId: selected,
     to: "/settings/users",
@@ -56,7 +53,6 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
   usePageMeta({
     title: "Users",
     icon: Users,
-    count: users.data.length,
     actions,
   });
 

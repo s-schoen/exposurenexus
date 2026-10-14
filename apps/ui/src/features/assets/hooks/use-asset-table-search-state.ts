@@ -40,6 +40,9 @@ export function validateAssetTableSearch(search: Record<string, unknown>) {
     ...(getSearchParamString(search.assetOwnerId)
       ? { assetOwnerId: getSearchParamString(search.assetOwnerId) }
       : {}),
+    ...(getSearchParamString(search.assetOpenFindings)
+      ? { assetOpenFindings: getSearchParamString(search.assetOpenFindings) }
+      : {}),
   };
 }
 
@@ -95,6 +98,7 @@ export function createAssetTableFilterState(
       environment: getSearchParamArray(search.assetEnvironment),
       lifecycleState: getSearchParamArray(search.assetLifecycleState),
       ownerId: getSearchParamArray(search.assetOwnerId),
+      openFindings: getSearchParamArray(search.assetOpenFindings),
       ...customFieldFilters.select,
     },
     textFilters: customFieldFilters.text,
@@ -146,6 +150,7 @@ export function createAssetTableSearchParams(
     assetEnvironment: createSearchParamArray(filterState.selectFilters.environment),
     assetLifecycleState: createSearchParamArray(filterState.selectFilters.lifecycleState),
     assetOwnerId: createSearchParamArray(filterState.selectFilters.ownerId),
+    assetOpenFindings: createSearchParamArray(filterState.selectFilters.openFindings),
     ...createClearedAssetCustomFieldSearchParams(customFieldDefinitions),
     ...createAssetCustomFieldSearchParams(filterState, customFieldDefinitions),
   };

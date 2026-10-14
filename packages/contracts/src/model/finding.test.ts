@@ -14,7 +14,11 @@ describe("finding statistics schema", () => {
     severity: Object.fromEntries(
       Object.values(VulnerabilitySeverity).map((severity) => [severity, 0]),
     ),
+    activeSeverity: Object.fromEntries(
+      Object.values(VulnerabilitySeverity).map((severity) => [severity, 0]),
+    ),
     assets: { [assetId]: 1 },
+    openAssets: {},
   };
 
   it("contains only finding-owned aggregate dimensions", () => {

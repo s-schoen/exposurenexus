@@ -15,16 +15,22 @@ describe("exposure statistics", () => {
   });
 
   it("normalizes sparse finding statistics in query order", async () => {
-    statisticsPersistence.countFindingsBy.mockImplementation(async (_database, field: string) => {
-      switch (field) {
-        case "severity":
-          return { [VulnerabilitySeverity.High]: 2, [VulnerabilitySeverity.Medium]: 1 };
-        case "status":
-          return { [FindingStatus.Active]: 2, [FindingStatus.Mitigated]: 1 };
-        default:
-          return { "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 3 };
-      }
-    });
+    statisticsPersistence.countFindingsBy.mockImplementation(
+      async (_database, field: string, statuses?: Array<FindingStatus>) => {
+        switch (field) {
+          case "severity":
+            return statuses
+              ? { [VulnerabilitySeverity.High]: 1 }
+              : { [VulnerabilitySeverity.High]: 2, [VulnerabilitySeverity.Medium]: 1 };
+          case "status":
+            return { [FindingStatus.Active]: 2, [FindingStatus.Mitigated]: 1 };
+          default:
+            return statuses
+              ? { "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 2 }
+              : { "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 3 };
+        }
+      },
+    );
 
     const statistics = createStatisticsBehavior({
       database: database as never,
@@ -51,11 +57,26 @@ describe("exposure statistics", () => {
         [VulnerabilitySeverity.High]: 2,
         [VulnerabilitySeverity.Critical]: 0,
       },
+      activeSeverity: {
+        [VulnerabilitySeverity.Info]: 0,
+        [VulnerabilitySeverity.Low]: 0,
+        [VulnerabilitySeverity.Medium]: 0,
+        [VulnerabilitySeverity.High]: 1,
+        [VulnerabilitySeverity.Critical]: 0,
+      },
       assets: { "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 3 },
+      openAssets: { "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 2 },
     });
     expect(statisticsPersistence.countFindingsBy).toHaveBeenNthCalledWith(1, database, "severity");
     expect(statisticsPersistence.countFindingsBy).toHaveBeenNthCalledWith(2, database, "status");
     expect(statisticsPersistence.countFindingsBy).toHaveBeenNthCalledWith(3, database, "assetId");
+    expect(statisticsPersistence.countFindingsBy).toHaveBeenNthCalledWith(4, database, "severity", [
+      FindingStatus.Active,
+    ]);
+    expect(statisticsPersistence.countFindingsBy).toHaveBeenNthCalledWith(5, database, "assetId", [
+      FindingStatus.Active,
+      FindingStatus.Confirmed,
+    ]);
   });
 
   it("maps persistence failures to the statistics application error", async () => {

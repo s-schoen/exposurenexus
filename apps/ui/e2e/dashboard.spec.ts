@@ -13,7 +13,10 @@ test("draws the KPI cards and charts for the seeded findings", async ({ page }) 
   for (const chart of await content.locator(".recharts-wrapper").all()) {
     await expect(chart.locator(".recharts-bar-rectangle path").first()).toBeVisible();
   }
-  await expect(content.getByRole("definition").filter({ hasText: "%" })).toHaveText("25%");
+  await expect(content.getByRole("link", { name: /mitigated rate/i })).toContainText("25%");
+  // Each top-asset bar links to its asset.
+  await content.getByRole("link", { name: "container-01: 1" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "container-01" })).toBeVisible();
 });
 
 test("shows empty states without findings", async ({ page }) => {
@@ -21,7 +24,8 @@ test("shows empty states without findings", async ({ page }) => {
 
   const content = pageContent(page);
   await expect(content.getByText("No affected assets.")).toBeVisible();
-  await expect(content.getByRole("definition").filter({ hasText: "%" })).toHaveText("0%");
-  await expect(content.locator(".recharts-bar-rectangle path")).toHaveCount(0);
+  await expect(content.getByText("No findings yet.")).toHaveCount(2);
+  await expect(content.getByRole("link", { name: /mitigated rate/i })).toContainText("0%");
+  await expect(content.locator(".recharts-wrapper")).toHaveCount(0);
   await expect(content.getByText("NaN")).toHaveCount(0);
 });

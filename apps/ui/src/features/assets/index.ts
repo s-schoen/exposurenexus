@@ -1,4 +1,5 @@
 export { AssetCombobox } from "@/features/assets/components/asset-combobox.tsx";
+export { AssetOpenFindingsFilter } from "@/features/assets/components/asset-list/columns.tsx";
 export { AssetTypeIcon } from "@/features/assets/components/asset-type-icon.tsx";
 export { CreateAssetDialog } from "@/features/assets/components/create-asset-dialog.tsx";
 export { AssetDetailPage } from "@/features/assets/pages/asset-detail-page.tsx";

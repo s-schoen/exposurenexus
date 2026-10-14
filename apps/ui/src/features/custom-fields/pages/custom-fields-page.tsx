@@ -61,7 +61,6 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
   usePageMeta({
     title: "Custom fields",
     icon: Tags,
-    count: customFieldsQuery.data.length,
     actions,
   });
 

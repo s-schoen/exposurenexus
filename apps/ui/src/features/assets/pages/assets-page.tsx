@@ -13,10 +13,7 @@ import {
   useAssetTableSearchState,
 } from "@/features/assets/hooks/use-asset-table-search-state.ts";
 import { useCreateAsset } from "@/features/assets/hooks/use-create-asset.ts";
-import {
-  createAssetByIDQueryOptions,
-  createListAssetsWithCustomFieldsQueryOptions,
-} from "@/features/assets/queries/assets.ts";
+import { createAssetByIDQueryOptions } from "@/features/assets/queries/assets.ts";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
@@ -30,6 +27,8 @@ interface AssetsPageProps {
   selected?: string;
   /** Each asset's finding count. The route reads it from the findings feature. */
   findingCountByAssetId?: FindingCountByAssetId;
+  /** Each asset's open finding count, for the open-findings filter. */
+  openFindingCountByAssetId?: FindingCountByAssetId;
   /** The findings section for an asset's peek. The route renders it from the findings feature. */
   renderAssetFindings?: (assetId: string) => ReactNode;
 }
@@ -38,6 +37,7 @@ export function AssetsPage({
   search = {},
   selected,
   findingCountByAssetId,
+  openFindingCountByAssetId,
   renderAssetFindings,
 }: AssetsPageProps) {
   const customFieldDefinitionsQuery = useSuspenseQuery(
@@ -52,7 +52,6 @@ export function AssetsPage({
       customFieldDefinitions,
     },
   );
-  const assets = useSuspenseQuery(createListAssetsWithCustomFieldsQueryOptions(assetListOptions));
   const selectedSearch = useSelectedSearchParam<Asset>({
     selectedId: selected,
     to: "/assets",
@@ -75,7 +74,6 @@ export function AssetsPage({
   usePageMeta({
     title: "Assets",
     icon: Server,
-    count: assets.data.length,
     actions,
   });
 
@@ -84,6 +82,7 @@ export function AssetsPage({
       <AssetList
         assetListOptions={assetListOptions}
         findingCountByAssetId={findingCountByAssetId}
+        openFindingCountByAssetId={openFindingCountByAssetId}
         grouping={grouping}
         onGroupingChange={onGroupingChange}
         filterState={filterState}

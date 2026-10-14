@@ -3,7 +3,7 @@ import { LayoutGrid } from "lucide-react";
 import { useMemo } from "react";
 
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx";
-import { MetricCard, metricValueClassName } from "@/components/metric-card.tsx";
+import { MetricCard } from "@/components/metric-card.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { createListAssetsQueryOptions } from "@/features/assets";
 import { computeDashboardOverview } from "@/features/dashboard/lib/metrics.ts";
@@ -14,13 +14,13 @@ import {
 } from "@/features/findings";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 
-import type { MetricTone } from "@/components/metric-card.tsx";
 import type { ChartConfig } from "@/components/ui/chart.tsx";
+import type { DashboardMetric } from "@/features/dashboard/lib/metrics.ts";
 
 const CHART_HEIGHT = "18rem";
 
-// Top affected assets is a single series, so every bar takes the first chart color.
-const TOP_ASSETS_COLOR = "var(--chart-1)";
+// Top affected assets is a single series. It takes the primary color, not a severity's.
+const TOP_ASSETS_COLOR = "var(--primary)";
 
 export function DashboardPage() {
   usePageMeta({
@@ -40,13 +40,7 @@ export function DashboardPage() {
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {overview.priorityItems.map((item) => (
-          <MetricCard
-            key={item.label}
-            title={item.label}
-            value={formatNumber(item.value)}
-            href={item.href}
-            tone={item.tone}
-          />
+          <DashboardMetricCard key={item.label} metric={item} />
         ))}
       </div>
 
@@ -57,40 +51,27 @@ export function DashboardPage() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <TopAffectedAssetsCard data={overview.topAssets} className="xl:col-span-2" />
-        <Card>
-          <CardHeader>
-            <CardTitle>Coverage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="flex flex-col divide-y divide-border">
-              <CoverageStat label="Healthy assets" value={formatNumber(overview.healthyAssets)} />
-              <CoverageStat
-                label="Mitigated rate"
-                value={`${overview.mitigatedRate}%`}
-                tone={overview.mitigatedRate > 0 ? "success" : "default"}
-              />
-            </dl>
-          </CardContent>
-        </Card>
+        <section
+          aria-label="Coverage"
+          className="grid content-start gap-4 sm:grid-cols-2 xl:grid-cols-1"
+        >
+          {overview.coverageItems.map((item) => (
+            <DashboardMetricCard key={item.label} metric={item} />
+          ))}
+        </section>
       </div>
     </div>
   );
 }
 
-function CoverageStat({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  tone?: MetricTone;
-}) {
+function DashboardMetricCard({ metric }: { metric: DashboardMetric }) {
   return (
-    <div className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
-      <dt className="text-13 text-muted-foreground">{label}</dt>
-      <dd className={metricValueClassName(tone)}>{value}</dd>
-    </div>
+    <MetricCard
+      title={metric.label}
+      value={metric.displayValue ?? formatNumber(metric.value)}
+      href={metric.href}
+      tone={metric.tone}
+    />
   );
 }
 
@@ -98,7 +79,7 @@ function TopAffectedAssetsCard({
   data,
   className,
 }: {
-  data: Array<{ key: string; name: string; value: number }>;
+  data: Array<{ key: string; name: string; value: number; href: string }>;
   className?: string;
 }) {
   const chartConfig = useMemo(
@@ -108,7 +89,7 @@ function TopAffectedAssetsCard({
           config[item.key] = { label: item.name, color: TOP_ASSETS_COLOR };
           return config;
         },
-        { value: { label: "Findings" } },
+        { value: { label: "Open findings" } },
       ),
     [data],
   );
@@ -118,19 +99,21 @@ function TopAffectedAssetsCard({
     [data],
   );
 
+  const hrefByKey = useMemo(() => new Map(data.map((item) => [item.key, item.href])), [data]);
+
   return (
     <Card className={className}>
       <CardHeader>
         <CardTitle>Top affected assets</CardTitle>
       </CardHeader>
       <CardContent>
-        {chartData.length === 0 ? (
-          <div className="flex h-72 items-center justify-center text-13 text-muted-foreground">
-            No affected assets.
-          </div>
-        ) : (
-          <SimpleBarChart chartData={chartData} chartConfig={chartConfig} height={CHART_HEIGHT} />
-        )}
+        <SimpleBarChart
+          chartData={chartData}
+          chartConfig={chartConfig}
+          height={CHART_HEIGHT}
+          emptyMessage="No affected assets."
+          getHref={(key) => hrefByKey.get(key) ?? "/assets"}
+        />
       </CardContent>
     </Card>
   );

@@ -1,4 +1,3 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { Bug, Plus } from "lucide-react";
 import { lazy, useMemo } from "react";
 
@@ -7,7 +6,6 @@ import { VulnerabilityList } from "@/features/vulnerabilities/components/vulnera
 import { useCreateVulnerability } from "@/features/vulnerabilities/hooks/use-create-vulnerability.ts";
 import { useDeleteVulnerabilities } from "@/features/vulnerabilities/hooks/use-vulnerability-record-actions.ts";
 import { useVulnerabilityTableSearchState } from "@/features/vulnerabilities/hooks/use-vulnerability-table-search-state.ts";
-import { createListVulnerabilitiesQueryOptions } from "@/features/vulnerabilities/queries/vulnerabilities.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
@@ -36,7 +34,6 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
     useVulnerabilityTableSearchState({
       search,
     });
-  const vulnerabilitiesQuery = useSuspenseQuery(createListVulnerabilitiesQueryOptions());
   const selectedSearch = useSelectedSearchParam<VulnerabilityCatalog>({
     selectedId: selected,
     to: "/vulnerabilities",
@@ -59,7 +56,6 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
   usePageMeta({
     title: "Vulnerabilities",
     icon: Bug,
-    count: vulnerabilitiesQuery.data.length,
     actions,
   });
 

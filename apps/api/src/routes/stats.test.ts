@@ -70,7 +70,17 @@ describe("finding stats routes", () => {
         [VulnerabilitySeverity.High]: 2,
         [VulnerabilitySeverity.Critical]: 0,
       },
+      activeSeverity: {
+        [VulnerabilitySeverity.Info]: 0,
+        [VulnerabilitySeverity.Low]: 0,
+        [VulnerabilitySeverity.Medium]: 0,
+        [VulnerabilitySeverity.High]: 2,
+        [VulnerabilitySeverity.Critical]: 0,
+      },
       assets: {
+        "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 3,
+      },
+      openAssets: {
         "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 3,
       },
     };
