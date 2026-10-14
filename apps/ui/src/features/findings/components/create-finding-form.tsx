@@ -40,7 +40,11 @@ import {
 } from "@/features/findings/lib/finding-form.ts";
 import { formatWeaknessText } from "@/features/findings/lib/weakness-text.ts";
 import { ASSIGNEE_LABELS, UserSelect, createListUsersQueryOptions } from "@/features/users";
-import { SEVERITY_ORDER, SeverityLabel } from "@/features/vulnerabilities";
+import {
+  SEVERITY_ORDER,
+  SeverityLabel,
+  VulnerabilityMultiSelect,
+} from "@/features/vulnerabilities";
 
 import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { CreateManualFinding } from "@exposurenexus/contracts/model/finding";
@@ -566,7 +570,7 @@ export function CreateFindingForm({ onSubmit, onCancel }: CreateFindingFormProps
 
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor="affected-resource-type">Affected resource</FieldLabel>
+                    <FieldLabel htmlFor="affected-resource-type">Affected resource type</FieldLabel>
                     <Select
                       value={field.state.value.type}
                       onValueChange={(value) => {
@@ -607,20 +611,12 @@ export function CreateFindingForm({ onSubmit, onCancel }: CreateFindingFormProps
               name="vulnerabilityIds"
               children={(field) => (
                 <Field>
-                  <FieldLabel htmlFor={field.name}>Catalog entry IDs</FieldLabel>
-                  <Input
+                  <FieldLabel htmlFor={field.name}>Vulnerabilities</FieldLabel>
+                  <VulnerabilityMultiSelect
                     id={field.name}
-                    name={field.name}
-                    value={field.state.value.join(", ")}
-                    onChange={(event) =>
-                      field.handleChange(
-                        event.target.value
-                          .split(",")
-                          .map((id) => id.trim())
-                          .filter(Boolean),
-                      )
-                    }
-                    placeholder="Optional catalog entry UUIDs"
+                    value={field.state.value}
+                    onChange={(vulnerabilityIds) => field.handleChange(vulnerabilityIds)}
+                    onBlur={field.handleBlur}
                   />
                 </Field>
               )}

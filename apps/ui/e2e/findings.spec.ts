@@ -71,18 +71,18 @@ test("edits properties in place and details from the header menu", async ({ page
   await page.getByRole("menuitem", { name: "Edit details…" }).click();
   const dialog = page.getByRole("dialog", { name: "Edit details" });
   await dialog.getByLabel("Mitigation").fill("Restrict the admin endpoint.");
-  await dialog.getByRole("button", { name: "Save" }).click();
+  await dialog.getByRole("button", { name: "Save changes" }).click();
 
   await expect(dialog).toBeHidden();
   await expect(pageContent(page).getByText("Restrict the admin endpoint.")).toBeVisible();
 });
 
-test("links a catalog entry from the vulnerabilities section", async ({ page }) => {
+test("links a vulnerability from the vulnerabilities section", async ({ page }) => {
   await page.goto(`/findings/${ADMIN_ENDPOINT.id}`);
   const content = pageContent(page);
   await expect(content.getByText(ACCOUNT_TAKEOVER.title)).toBeHidden();
 
-  await page.getByRole("button", { name: "Link catalog entry" }).click();
+  await page.getByRole("button", { name: "Link vulnerability" }).click();
   await page.getByRole("option", { name: new RegExp(ACCOUNT_TAKEOVER.identifier) }).click();
 
   await expect(content.getByRole("link", { name: ACCOUNT_TAKEOVER.title })).toBeVisible();

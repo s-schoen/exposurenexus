@@ -549,7 +549,7 @@ export function FindingDetailsDialog({ finding, open, onOpenChange }: FindingDet
           </Button>
           <Button type="submit" disabled={submitting}>
             {submitting && <Spinner />}
-            Save
+            Save changes
           </Button>
         </FormActions>
       </form>

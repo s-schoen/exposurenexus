@@ -46,7 +46,7 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
   const actions = useMemo(
     () => [
       {
-        label: "New catalog entry",
+        label: "New vulnerability",
         icon: Plus,
         onClick: () => {
           void createVulnerability();
@@ -81,7 +81,7 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
       />
       <DetailPeek
         selectedId={selectedSearch.selectedId}
-        label="Catalog entry details"
+        label="Vulnerability details"
         getFullPageHref={(id) => `/vulnerabilities/${id}`}
         menu={(id) => <VulnerabilityPeekMenu vulnerabilityId={id} />}
         onClose={() => {

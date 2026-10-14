@@ -12,12 +12,7 @@ describe("ImportFindingsPage", () => {
   it("communicates that automated imports are unavailable and cannot submit", () => {
     renderImportFindingsPage();
 
-    expect(screen.getByText("Automated imports are work in progress")).toBeTruthy();
-    expect(
-      screen.getByText(
-        "Importing scan results is temporarily unavailable while observation-based finding matching is being implemented.",
-      ),
-    ).toBeTruthy();
+    expect(screen.getByText("Importing scan results is temporarily unavailable.")).toBeTruthy();
     expect(screen.getByRole("button", { name: /import findings unavailable/i })).toBeDisabled();
     expect(screen.queryByText("Select another file")).toBeNull();
   });

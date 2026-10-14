@@ -21,8 +21,8 @@ async function selectRow(user: ReturnType<typeof renderApp>["user"], title: stri
 
 async function openCreateDialog() {
   const view = renderApp({ path: "/vulnerabilities?severity=high" });
-  await view.user.click(await screen.findByRole("button", { name: "New catalog entry" }));
-  const dialog = await screen.findByRole("dialog", { name: "Create catalog entry" });
+  await view.user.click(await screen.findByRole("button", { name: "New vulnerability" }));
+  const dialog = await screen.findByRole("dialog", { name: "Create vulnerability" });
 
   return { ...view, dialog };
 }
@@ -34,7 +34,7 @@ function rowTitles(list: HTMLElement) {
 }
 
 describe("vulnerabilities list", () => {
-  it("lists the catalog as rows that link to their pages", async () => {
+  it("lists vulnerabilities as rows that link to their pages", async () => {
     renderApp({ path: "/vulnerabilities" });
 
     const list = await screen.findByRole("list", { name: "Vulnerabilities" });
@@ -113,10 +113,10 @@ describe("vulnerabilities list", () => {
     );
   });
 
-  it("shows an empty state without catalog entries", async () => {
+  it("shows an empty state without vulnerabilities", async () => {
     renderApp({ path: "/vulnerabilities", scenario: "empty" });
 
-    expect(await screen.findByText("No catalog entries yet.")).toBeVisible();
+    expect(await screen.findByText("No vulnerabilities yet.")).toBeVisible();
     expect(screen.queryByRole("list", { name: "Vulnerabilities" })).not.toBeInTheDocument();
   });
 
@@ -138,7 +138,7 @@ describe("vulnerabilities list", () => {
 
     await user.click(await screen.findByText(ACCOUNT_TAKEOVER.title));
 
-    const dialog = await screen.findByRole("dialog", { name: "Catalog entry details" });
+    const dialog = await screen.findByRole("dialog", { name: "Vulnerability details" });
     expect(
       (await within(dialog).findAllByText(ACCOUNT_TAKEOVER.identifier)).length,
     ).toBeGreaterThan(0);
@@ -152,7 +152,7 @@ describe("vulnerabilities list", () => {
     mockApiError("get", "/vulnerabilities/:id", 500, "Catalog request failed");
     renderApp({ path: `/vulnerabilities?selected=${ACCOUNT_TAKEOVER.id}` });
 
-    const dialog = await screen.findByRole("dialog", { name: "Catalog entry details" });
+    const dialog = await screen.findByRole("dialog", { name: "Vulnerability details" });
     expect(await within(dialog).findByText("Catalog request failed")).toBeVisible();
     expect(screen.getByText(OUTDATED_DEPENDENCY.title)).toBeInTheDocument();
   });
@@ -186,10 +186,10 @@ describe("vulnerability peek", () => {
     const { router, user } = renderApp({
       path: `/vulnerabilities?selected=${ACCOUNT_TAKEOVER.id}`,
     });
-    const peek = await screen.findByRole("dialog", { name: "Catalog entry details" });
+    const peek = await screen.findByRole("dialog", { name: "Vulnerability details" });
 
     await user.click(await within(peek).findByRole("button", { name: "More actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry…" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete vulnerability…" }));
     await user.click(await screen.findByRole("button", { name: "Confirm" }));
 
     await waitFor(() => expect(router.state.location.search).not.toHaveProperty("selected"));
@@ -205,7 +205,7 @@ describe("vulnerability detail", () => {
       await screen.findByRole("heading", { level: 1, name: ADMIN_ENDPOINT.title }),
     ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "More actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Edit catalog entry" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit vulnerability" }));
 
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/vulnerabilities/${ADMIN_ENDPOINT.id}/edit`),
@@ -216,7 +216,7 @@ describe("vulnerability detail", () => {
     const { router, user } = renderApp({ path: `/vulnerabilities/${ADMIN_ENDPOINT.id}` });
 
     await user.click(await screen.findByRole("button", { name: "More actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry…" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete vulnerability…" }));
     await user.click(await screen.findByRole("button", { name: "Confirm" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/vulnerabilities"));
@@ -228,10 +228,10 @@ describe("vulnerability detail", () => {
     const { router, user } = renderApp({ path: `/vulnerabilities/${ADMIN_ENDPOINT.id}` });
 
     await user.click(await screen.findByRole("button", { name: "More actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry…" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete vulnerability…" }));
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
     await user.click(screen.getByRole("button", { name: "More actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry…" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete vulnerability…" }));
     await user.click(await screen.findByRole("button", { name: "Confirm" }));
 
     expect((await screen.findAllByText(/Failed to delete/)).length).toBeGreaterThan(0);
@@ -261,7 +261,7 @@ describe("creating and editing entries", () => {
 
     await user.type(within(dialog).getByLabelText("Identifier"), "internal-001");
     await user.type(within(dialog).getByLabelText("Title"), "Weak session handling");
-    await user.click(within(dialog).getByRole("button", { name: "Create catalog entry" }));
+    await user.click(within(dialog).getByRole("button", { name: "Create vulnerability" }));
 
     const created = await waitFor(() => {
       const entry = db.vulnerabilities.all().find((item) => item.identifier === "internal-001");
@@ -287,7 +287,7 @@ describe("creating and editing entries", () => {
 
     await user.type(within(dialog).getByLabelText("Identifier"), "internal-001");
     await user.type(within(dialog).getByLabelText("Title"), "Weak session handling");
-    await user.click(within(dialog).getByRole("button", { name: "Create catalog entry" }));
+    await user.click(within(dialog).getByRole("button", { name: "Create vulnerability" }));
 
     expect((await screen.findAllByText(/Create failed/)).length).toBeGreaterThan(0);
     expect(within(dialog).getByLabelText("Title")).toHaveValue("Weak session handling");

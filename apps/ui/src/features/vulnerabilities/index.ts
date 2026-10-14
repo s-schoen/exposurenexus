@@ -1,6 +1,7 @@
 export { SeverityBadge } from "@/features/vulnerabilities/components/severity-badge.tsx";
 export { SeverityIcon } from "@/features/vulnerabilities/components/severity-icon.tsx";
 export { SeverityLabel } from "@/features/vulnerabilities/components/severity-label.tsx";
+export { VulnerabilityMultiSelect } from "@/features/vulnerabilities/components/vulnerability-multi-select.tsx";
 export { canonicalizeKnownSecurityIdentifier } from "@/features/vulnerabilities/lib/security-identifier";
 export { validateVulnerabilityTableSearch } from "@/features/vulnerabilities/hooks/use-vulnerability-table-search-state.ts";
 export {

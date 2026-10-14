@@ -39,7 +39,7 @@ describe("buildCreateFindingPayload", () => {
     });
   });
 
-  it("deduplicates catalog IDs", () => {
+  it("deduplicates vulnerability IDs", () => {
     const [first, second] = SEED_VULNERABILITIES;
     const result = buildCreateFindingPayload(
       { ...values, vulnerabilityIds: [first.id, second.id, first.id] },
