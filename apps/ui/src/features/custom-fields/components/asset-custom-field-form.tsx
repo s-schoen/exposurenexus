@@ -8,7 +8,6 @@ import { z } from "zod/v4";
 
 import { FormActions } from "@/components/form-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
   Field,
   FieldDescription,
@@ -26,6 +25,8 @@ import {
   updateAssetCustomFieldDefinitionPayloadFromFormValues,
   validateAssetCustomFieldFormRuleValues,
 } from "@/features/custom-fields/components/asset-custom-field-rule-validation.ts";
+import { CustomFieldRequiredLabel } from "@/features/custom-fields/components/custom-field-required-label.tsx";
+import { CustomFieldTypeIcon } from "@/features/custom-fields/components/custom-field-type-icon.tsx";
 import { formatCustomFieldType } from "@/features/custom-fields/lib/custom-field-type.ts";
 
 import type {
@@ -253,6 +254,7 @@ export function AssetCustomFieldForm({
               <Field data-invalid={isInvalid}>
                 <FieldLabel htmlFor={field.name}>Key</FieldLabel>
                 <Input
+                  className="font-mono"
                   id={field.name}
                   name={field.name}
                   value={field.state.value}
@@ -291,13 +293,15 @@ export function AssetCustomFieldForm({
                     className="w-full"
                     disabled={isSubmitting}
                   >
-                    <span className="min-w-0 flex-1 truncate text-left">
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left">
+                      <CustomFieldTypeIcon type={field.state.value} decorative />
                       {formatCustomFieldType(field.state.value)}
                     </span>
                   </SelectTrigger>
                   <SelectContent>
                     {Object.values(AssetCustomFieldType).map((type) => (
                       <SelectItem key={type} value={type}>
+                        <CustomFieldTypeIcon type={type} decorative />
                         {formatCustomFieldType(type)}
                       </SelectItem>
                     ))}
@@ -311,15 +315,28 @@ export function AssetCustomFieldForm({
         <form.Field
           name="required"
           children={(field) => (
-            <Field orientation="horizontal">
-              <Checkbox
-                id={field.name}
-                checked={field.state.value}
-                onCheckedChange={(value) => field.handleChange(!!value)}
-                onBlur={field.handleBlur}
-                disabled={isSubmitting}
-              />
+            <Field>
               <FieldLabel htmlFor={field.name}>Required</FieldLabel>
+              <Select
+                value={String(field.state.value)}
+                onValueChange={(value) => {
+                  field.handleChange(value === "true");
+                  field.handleBlur();
+                }}
+              >
+                <SelectTrigger id={field.name} className="w-full" disabled={isSubmitting}>
+                  <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left">
+                    <CustomFieldRequiredLabel required={field.state.value} />
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {[true, false].map((required) => (
+                    <SelectItem key={String(required)} value={String(required)}>
+                      <CustomFieldRequiredLabel required={required} />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           )}
         />

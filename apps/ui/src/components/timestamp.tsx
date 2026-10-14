@@ -1,3 +1,5 @@
+import { formatDateTime } from "@/lib/format.ts";
+
 interface TimestampProps {
   timestamp: Date | string;
 }
@@ -9,5 +11,5 @@ export function Timestamp({ timestamp }: TimestampProps) {
     return <span className="text-muted-foreground">Invalid date</span>;
   }
 
-  return <time dateTime={date.toISOString()}>{date.toLocaleString()}</time>;
+  return <time dateTime={date.toISOString()}>{formatDateTime(date)}</time>;
 }

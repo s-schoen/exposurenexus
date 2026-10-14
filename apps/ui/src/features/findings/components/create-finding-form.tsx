@@ -5,6 +5,7 @@ import { useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { DateField } from "@/components/date-picker.tsx";
 import { FormActions } from "@/components/form-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -21,7 +22,6 @@ import { Input } from "@/components/ui/input.tsx";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -30,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea.tsx";
 import { AssetCombobox } from "@/features/assets";
 import { STATUS_ORDER } from "@/features/findings/components/finding-list/constants.ts";
 import { FindingStatusLabel } from "@/features/findings/components/finding-status-label.tsx";
-import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/features/findings/lib/date-input.ts";
+import { formatLocalDateTimeInput } from "@/features/findings/lib/date-input.ts";
 import {
   buildCreateFindingPayload,
   emptyResource,
@@ -39,9 +39,8 @@ import {
   updateResourceLocation,
 } from "@/features/findings/lib/finding-form.ts";
 import { formatWeaknessText } from "@/features/findings/lib/weakness-text.ts";
-import { createListUsersQueryOptions, getUserProfileDisplayName } from "@/features/users";
+import { ASSIGNEE_LABELS, UserSelect, createListUsersQueryOptions } from "@/features/users";
 import { SEVERITY_ORDER, SeverityLabel } from "@/features/vulnerabilities";
-import { normalizeDateToUtcStart } from "@/lib/utc-date";
 
 import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { CreateManualFinding } from "@exposurenexus/contracts/model/finding";
@@ -51,7 +50,6 @@ interface CreateFindingFormProps {
   onCancel: () => void;
 }
 
-const unassignedAssigneeValue = "__unassigned__";
 const resourceTypes = Object.values(AffectedResourceType);
 const networkTransportOptions = ["tcp", "udp"];
 
@@ -69,18 +67,6 @@ const defaultFindingValues: CreateManualFinding = {
   observation: {},
 };
 const { weakness: defaultWeakness, ...defaultFormValues } = defaultFindingValues;
-
-function formatDateInputValue(value: Date | null | undefined) {
-  if (!value) return "";
-
-  return formatUtcDateOnly(value);
-}
-
-function parseDateInputValue(value: string) {
-  if (!value) return null;
-
-  return normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`));
-}
 
 function isFindingStatus(value: unknown): value is FindingStatus {
   return STATUS_ORDER.includes(value as FindingStatus);
@@ -502,43 +488,20 @@ export function CreateFindingForm({ onSubmit, onCancel }: CreateFindingFormProps
           />
           <form.Field
             name="assigneeId"
-            children={(field) => {
-              const selectedAssignee = users.data.find((user) => user.id === field.state.value);
-
-              return (
-                <Field>
-                  <FieldLabel htmlFor={field.name}>Assignee</FieldLabel>
-                  <Select
-                    value={field.state.value ?? unassignedAssigneeValue}
-                    name={field.name}
-                    onValueChange={(value) => {
-                      field.handleChange(value === unassignedAssigneeValue ? null : value);
-                      field.handleBlur();
-                    }}
-                  >
-                    <SelectTrigger id={field.name} className="w-full">
-                      <SelectValue>
-                        {field.state.value === null
-                          ? "Unassigned"
-                          : selectedAssignee
-                            ? getUserProfileDisplayName(selectedAssignee)
-                            : "Select assignee"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value={unassignedAssigneeValue}>Unassigned</SelectItem>
-                        {users.data.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {getUserProfileDisplayName(user)}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              );
-            }}
+            children={(field) => (
+              <Field>
+                <FieldLabel htmlFor={field.name}>Assignee</FieldLabel>
+                <UserSelect
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value ?? null}
+                  onChange={field.handleChange}
+                  onBlur={field.handleBlur}
+                  users={users.data}
+                  labels={ASSIGNEE_LABELS}
+                />
+              </Field>
+            )}
           />
           <form.Field
             name="dueDate"
@@ -548,16 +511,13 @@ export function CreateFindingForm({ onSubmit, onCancel }: CreateFindingFormProps
               return (
                 <Field data-invalid={isInvalid}>
                   <FieldLabel htmlFor={field.name}>Due date</FieldLabel>
-                  <Input
+                  <DateField
                     id={field.name}
-                    name={field.name}
-                    type="date"
-                    value={formatDateInputValue(field.state.value)}
+                    value={field.state.value ?? null}
+                    onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    onChange={(event) =>
-                      field.handleChange(parseDateInputValue(event.target.value))
-                    }
-                    aria-invalid={isInvalid}
+                    placeholder="No due date"
+                    invalid={isInvalid}
                   />
                   {isInvalid && <FieldError errors={field.state.meta.errors} />}
                 </Field>
@@ -588,6 +548,7 @@ export function CreateFindingForm({ onSubmit, onCancel }: CreateFindingFormProps
             <Field>
               <FieldLabel htmlFor="weakness">Weakness identifiers</FieldLabel>
               <Input
+                className="font-mono"
                 id="weakness"
                 name="weakness"
                 value={weaknessDraft}

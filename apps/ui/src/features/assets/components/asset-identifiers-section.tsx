@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FormDialog } from "@/components/form-dialog.tsx";
+import { DetailField, DetailFields } from "@/components/properties-panel/detail-rows.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
@@ -54,7 +55,7 @@ export function AssetIdentifiersSection({
     const isBusy = pendingAction !== null;
 
     return (
-      <div className="flex shrink-0 gap-0.5">
+      <>
         <Button
           type="button"
           variant="ghost"
@@ -72,12 +73,13 @@ export function AssetIdentifiersSection({
           size="icon-sm"
           aria-label={`Delete identifier ${label}`}
           title="Delete identifier"
+          aria-busy={isDeleting || undefined}
           onClick={() => void handleDelete(identifier)}
           disabled={isBusy}
         >
           {isDeleting ? <Spinner /> : <Trash2 strokeWidth={1.5} />}
         </Button>
-      </div>
+      </>
     );
   }
 
@@ -143,28 +145,25 @@ export function AssetIdentifiersSection({
         }
       >
         {identifiers.length > 0 ? (
-          <ul className="flex flex-col">
+          <DetailFields>
             {identifiers.map((identifier) => (
-              <li
+              <DetailField
                 key={identifier.id}
-                className="-mx-2 flex h-9 items-center gap-3 rounded-md px-2 transition-colors duration-100 hover:bg-accent"
+                label={identifierTypeLabel(identifier.type)}
+                actions={renderActions(identifier)}
               >
-                <span className="w-32 shrink-0 truncate text-13 text-muted-foreground">
-                  {identifierTypeLabel(identifier.type)}
-                </span>
                 <span
-                  className="min-w-0 flex-1 truncate font-mono text-xs text-foreground"
+                  className="min-w-0 flex-1 truncate font-mono text-xs"
                   title={identifier.value}
                 >
                   {identifier.value}
                 </span>
-                <span className="shrink-0 truncate text-13 text-subtle-foreground">
+                <span className="shrink-0 truncate text-subtle-foreground">
                   {identifier.namespace ?? "Global"}
                 </span>
-                {renderActions(identifier)}
-              </li>
+              </DetailField>
             ))}
-          </ul>
+          </DetailFields>
         ) : (
           <p className="text-13 text-subtle-foreground">No identifiers are recorded.</p>
         )}

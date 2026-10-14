@@ -168,6 +168,7 @@ function IdentifierFields({
         <FieldLabel htmlFor={`${inputId}-value`}>Canonical value</FieldLabel>
         <div className="flex items-center gap-2">
           <Input
+            className="font-mono"
             id={`${inputId}-value`}
             aria-label={`Identifier value${labelSuffix}`}
             value={draft.value}

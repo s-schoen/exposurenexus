@@ -1,11 +1,11 @@
-import { Boxes, KeyRound, Lock, ShieldCheck, UserCog } from "lucide-react";
+import { Boxes, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge.tsx";
+import { RoleKindIcon } from "@/features/roles/components/role-kind-icon.tsx";
 import {
   formatPermissionLabel,
   getRoleKindLabel,
   getUniqueRoleResources,
-  isBuiltInRoleId,
 } from "@/features/roles/lib/role.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
@@ -13,19 +13,11 @@ import type { Role } from "@exposurenexus/contracts/model/rbac";
 
 const VISIBLE_RESOURCE_COUNT = 3;
 
-function RoleKindIcon({ roleId }: { roleId: string }) {
-  const Icon = isBuiltInRoleId(roleId) ? Lock : UserCog;
-
-  return <Icon strokeWidth={1.5} aria-hidden="true" />;
-}
-
 export const columns: Array<DataTableColumnDef<Role>> = [
   {
     id: "icon",
     accessorFn: (role) => role.name,
-    cell: () => (
-      <KeyRound className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
-    ),
+    cell: ({ row }) => <RoleKindIcon roleId={row.original.id} />,
     enableColumnFilter: false,
     enableGlobalFilter: false,
     enableGrouping: false,
@@ -42,14 +34,9 @@ export const columns: Array<DataTableColumnDef<Role>> = [
     meta: { label: "Role", placement: "title" },
   },
   {
+    // The leading icon shows the type; this column filters and groups by it.
     id: "kind",
     accessorFn: (role) => getRoleKindLabel(role.id),
-    cell: ({ row }) => (
-      <Badge variant="property" title="Type">
-        <RoleKindIcon roleId={row.original.id} />
-        {getRoleKindLabel(row.original.id)}
-      </Badge>
-    ),
     filterFn: (row, _columnId, filterValue: Array<string>) => {
       if (filterValue.length === 0) {
         return true;
@@ -59,7 +46,6 @@ export const columns: Array<DataTableColumnDef<Role>> = [
     },
     meta: {
       label: "Type",
-      placement: "property",
       filterVariant: "select",
       options: [
         { label: "Built-in", value: "Built-in" },

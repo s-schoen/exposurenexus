@@ -1,5 +1,15 @@
 import type { Weakness } from "@exposurenexus/contracts/model/weakness";
 
+/**
+ * One weakness identifier as a label. An identifier that already names its namespace, such as
+ * "CWE-284" under "cwe", reads as itself; any other is prefixed, such as "scanner:admin-panel".
+ */
+export function formatWeaknessIdentifier(namespace: string, identifier: string): string {
+  return identifier.toLowerCase().startsWith(namespace.toLowerCase())
+    ? identifier
+    : `${namespace}:${identifier}`;
+}
+
 export function formatWeaknessText(weakness: Pick<Weakness, "identifiers">): string {
   return Object.entries(weakness.identifiers)
     .map(([namespace, identifiers]) => `${namespace}=${identifiers.join(",")}`)

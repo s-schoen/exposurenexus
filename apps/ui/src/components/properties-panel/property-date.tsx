@@ -1,23 +1,10 @@
 import { useId, useState } from "react";
 
+import { DatePickerPanel } from "@/components/date-picker.tsx";
 import { usePropertyLabelId } from "@/components/properties-panel/properties-panel.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Input } from "@/components/ui/input.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
-
-import type { Popover as PopoverPrimitive } from "@base-ui/react/popover";
-
-function toInputValue(value: Date | null) {
-  return value ? value.toISOString().slice(0, 10) : "";
-}
-
-function fromInputValue(value: string) {
-  return value ? new Date(`${value}T00:00:00.000Z`) : null;
-}
-
-function formatDate(value: Date) {
-  return value.toLocaleDateString(undefined, { dateStyle: "medium", timeZone: "UTC" });
-}
+import { formatDate } from "@/lib/format.ts";
 
 interface PropertyDateProps {
   /** A date-only value at UTC midnight, or null. */
@@ -26,23 +13,22 @@ interface PropertyDateProps {
   onCommit: (value: Date | null) => Promise<boolean>;
   /** Shown when there is no date, such as "No due date". */
   emptyLabel: string;
-  /** Names the date input, and the trigger outside a `PropertyRow`. */
+  /** Names the trigger outside a `PropertyRow`. */
   label: string;
 }
 
-// An editable date property. The popover holds a native date input: closing it, or pressing Enter,
-// commits the picked date, and Escape discards it. Committing on close rather than on every change
-// keeps a half-typed year from being saved.
+// An editable date property: a ghost chip that opens a calendar and commits the picked day, or
+// "Clear". The picked date shows at once and crossfades in; it reverts if the save fails.
 export function PropertyDate({ value, onCommit, emptyLabel, label }: PropertyDateProps) {
   const labelId = usePropertyLabelId();
   const triggerId = useId();
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState("");
   const [pendingValue, setPendingValue] = useState<Date | null | undefined>(undefined);
   const [edited, setEdited] = useState(false);
   const shownValue = pendingValue === undefined ? value : pendingValue;
 
-  const commit = async (next: Date | null) => {
+  const pick = async (next: Date | null) => {
+    setOpen(false);
     if (pendingValue !== undefined || next?.getTime() === value?.getTime()) {
       return;
     }
@@ -53,22 +39,8 @@ export function PropertyDate({ value, onCommit, emptyLabel, label }: PropertyDat
     setPendingValue(undefined);
   };
 
-  const changeOpen = (nextOpen: boolean, details: PopoverPrimitive.Root.ChangeEventDetails) => {
-    setOpen(nextOpen);
-    if (nextOpen) {
-      setDraft(toInputValue(value));
-    } else if (details.reason !== "escape-key") {
-      void commit(fromInputValue(draft));
-    }
-  };
-
-  const close = (next: Date | null) => {
-    setOpen(false);
-    void commit(next);
-  };
-
   return (
-    <Popover open={open} onOpenChange={changeOpen}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         id={triggerId}
         aria-labelledby={labelId ? `${labelId} ${triggerId}` : undefined}
@@ -85,25 +57,11 @@ export function PropertyDate({ value, onCommit, emptyLabel, label }: PropertyDat
           }
           data-empty={shownValue ? undefined : ""}
         >
-          {shownValue ? formatDate(shownValue) : emptyLabel}
+          {shownValue ? formatDate(shownValue, { timeZone: "UTC" }) : emptyLabel}
         </span>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-56 gap-2 p-2">
-        <Input
-          type="date"
-          aria-label={label}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              close(fromInputValue(draft));
-            }
-          }}
-        />
-        <Button type="button" variant="ghost" size="sm" onClick={() => close(null)}>
-          Clear
-        </Button>
+      <PopoverContent align="start" className="w-auto gap-0 p-2">
+        <DatePickerPanel value={shownValue} onPick={(next) => void pick(next)} />
       </PopoverContent>
     </Popover>
   );

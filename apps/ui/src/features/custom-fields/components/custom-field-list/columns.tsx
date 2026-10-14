@@ -1,16 +1,17 @@
 import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
-import { Asterisk, List, SquareDashed } from "lucide-react";
+import { List, SquareDashed } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge.tsx";
+import {
+  CustomFieldRequiredIcon,
+  CustomFieldRequiredLabel,
+  formatCustomFieldRequired,
+} from "@/features/custom-fields/components/custom-field-required-label.tsx";
 import { CustomFieldTypeIcon } from "@/features/custom-fields/components/custom-field-type-icon.tsx";
 import { formatCustomFieldType } from "@/features/custom-fields/lib/custom-field-type.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
-
-function getRequiredLabel(required: boolean): string {
-  return required ? "Required" : "Optional";
-}
 
 function formatDefaultValue(field: AssetCustomFieldDefinition): string | null {
   if (field.defaultValue === null) {
@@ -61,13 +62,8 @@ export const columns: Array<DataTableColumnDef<AssetCustomFieldDefinition>> = [
     meta: { label: "Key" },
   },
   {
+    // The leading icon shows the type; this column filters and groups by it.
     accessorKey: "type",
-    cell: ({ row }) => (
-      <Badge variant="property" title="Type">
-        <CustomFieldTypeIcon type={row.original.type} decorative />
-        {formatCustomFieldType(row.original.type)}
-      </Badge>
-    ),
     filterFn: (row, _columnId, filterValue: Array<string>) => {
       if (filterValue.length === 0) {
         return true;
@@ -77,7 +73,6 @@ export const columns: Array<DataTableColumnDef<AssetCustomFieldDefinition>> = [
     },
     meta: {
       label: "Type",
-      placement: "property",
       filterVariant: "select",
       options: Object.values(AssetCustomFieldType).map((type) => ({
         label: formatCustomFieldType(type),
@@ -88,11 +83,10 @@ export const columns: Array<DataTableColumnDef<AssetCustomFieldDefinition>> = [
   },
   {
     id: "required",
-    accessorFn: (field) => getRequiredLabel(field.required),
+    accessorFn: (field) => formatCustomFieldRequired(field.required),
     cell: ({ row }) => (
       <Badge variant="property" title="Required">
-        <Asterisk strokeWidth={1.5} aria-hidden="true" />
-        {getRequiredLabel(row.original.required)}
+        <CustomFieldRequiredLabel required={row.original.required} />
       </Badge>
     ),
     filterFn: (row, _columnId, filterValue: Array<string>) => {
@@ -100,16 +94,17 @@ export const columns: Array<DataTableColumnDef<AssetCustomFieldDefinition>> = [
         return true;
       }
 
-      return filterValue.includes(getRequiredLabel(row.original.required));
+      return filterValue.includes(formatCustomFieldRequired(row.original.required));
     },
     meta: {
       label: "Required",
       placement: "property",
       filterVariant: "select",
-      options: [
-        { label: "Required", value: "Required" },
-        { label: "Optional", value: "Optional" },
-      ],
+      options: [true, false].map((required) => ({
+        label: formatCustomFieldRequired(required),
+        value: formatCustomFieldRequired(required),
+        icon: <CustomFieldRequiredIcon required={required} />,
+      })),
     },
   },
   {

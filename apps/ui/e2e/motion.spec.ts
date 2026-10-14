@@ -1,10 +1,16 @@
-import { SEED_FINDINGS, SEED_USERS, SEED_VULNERABILITIES } from "@/mocks/fixtures/index.ts";
+import {
+  SEED_ASSETS,
+  SEED_FINDINGS,
+  SEED_USERS,
+  SEED_VULNERABILITIES,
+} from "@/mocks/fixtures/index.ts";
 
 import { expect, test } from "./fixtures.ts";
 
 import type { Locator, Page } from "@playwright/test";
 
 const [ROBIN] = SEED_USERS;
+const [WEB_01] = SEED_ASSETS;
 const [ADMIN_ENDPOINT] = SEED_VULNERABILITIES;
 const [ADMIN_ENDPOINT_FINDING, , ROOT_CONTAINER_FINDING] = SEED_FINDINGS;
 
@@ -96,6 +102,20 @@ test("tints list rows on hover and fades their checkbox in", async ({ page }) =>
 
   await row.hover();
   await expect.poll(async () => (await motionOf(checkbox)).opacity).toBe("1");
+});
+
+test("fades a detail section's row actions in on hover", async ({ page }) => {
+  await page.goto(`/assets/${WEB_01.id}`);
+  const [identifier] = WEB_01.identifiers;
+  const edit = page.getByRole("button", {
+    name: new RegExp(`^Edit identifier .*${identifier.value}`),
+  });
+  const actions = edit.locator("..");
+
+  expect(await motionOf(actions)).toMatchObject({ transitionDuration: "0.075s", opacity: "0" });
+
+  await page.getByText(identifier.value, { exact: true }).hover();
+  await expect.poll(async () => (await motionOf(actions)).opacity).toBe("1");
 });
 
 test("collapses list groups by height and opacity over 300ms", async ({ page }) => {

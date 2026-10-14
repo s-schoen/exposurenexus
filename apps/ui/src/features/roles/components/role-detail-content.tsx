@@ -1,6 +1,7 @@
-import { Boxes, Lock, Shapes, UserCog } from "lucide-react";
+import { Boxes, Shapes } from "lucide-react";
 
 import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
+import { DetailField, DetailFields } from "@/components/properties-panel/detail-rows.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import {
   PropertiesPanel,
@@ -8,20 +9,18 @@ import {
   PropertyRow,
   PropertyValue,
 } from "@/components/properties-panel/properties-panel.tsx";
-import { PropertyTray, PropertyTrayRow } from "@/components/properties-panel/property-tray.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
+import { RoleKindIcon } from "@/features/roles/components/role-kind-icon.tsx";
 import {
   formatPermissionLabel,
   getRoleKindLabel,
   getUniqueRoleResources,
   groupRolePermissionsByResource,
-  isBuiltInRoleId,
 } from "@/features/roles/lib/role.ts";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 
 function RolePropertiesPanel({ role }: { role: Role }) {
-  const KindIcon = isBuiltInRoleId(role.id) ? Lock : UserCog;
   const resourceCount = getUniqueRoleResources(role.permissions).length;
 
   return (
@@ -29,11 +28,7 @@ function RolePropertiesPanel({ role }: { role: Role }) {
       <PropertyGroup>
         <PropertyRow icon={Shapes} label="Type">
           <PropertyValue>
-            <KindIcon
-              className="size-4 shrink-0 text-muted-foreground"
-              strokeWidth={1.5}
-              aria-hidden="true"
-            />
+            <RoleKindIcon roleId={role.id} decorative />
             {getRoleKindLabel(role.id)}
           </PropertyValue>
         </PropertyRow>
@@ -53,20 +48,19 @@ function PermissionsSection({ role }: { role: Role }) {
   return (
     <DetailSection title="Permissions" count={role.permissions.length}>
       {permissionsByResource.length > 0 ? (
-        <PropertyTray label="Permissions">
+        <DetailFields label="Permissions">
           {permissionsByResource.map(({ resource, verbs }) => (
-            <PropertyTrayRow
-              key={resource}
-              trailing={verbs.map((verb) => (
-                <Badge key={verb} variant="secondary">
-                  {formatPermissionLabel(verb)}
-                </Badge>
-              ))}
-            >
-              <span className="truncate font-medium">{formatPermissionLabel(resource)}</span>
-            </PropertyTrayRow>
+            <DetailField key={resource} label={formatPermissionLabel(resource)}>
+              <span className="flex flex-wrap gap-1">
+                {verbs.map((verb) => (
+                  <Badge key={verb} variant="secondary">
+                    {formatPermissionLabel(verb)}
+                  </Badge>
+                ))}
+              </span>
+            </DetailField>
           ))}
-        </PropertyTray>
+        </DetailFields>
       ) : (
         <p className="text-13 text-subtle-foreground">No permissions granted.</p>
       )}

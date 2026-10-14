@@ -13,7 +13,8 @@ const [CATEGORY, PRIORITY, DEPLOYMENT_TIER] = SEED_CUSTOM_FIELDS;
 async function fillTextField(user: ReturnType<typeof renderApp>["user"]) {
   await user.type(await screen.findByRole("textbox", { name: /^name$/i }), "  Risk Owner  ");
   await user.type(screen.getByRole("textbox", { name: /^key$/i }), "  risk_owner  ");
-  await user.click(screen.getByRole("checkbox", { name: /required/i }));
+  await user.click(screen.getByLabelText("Required"));
+  await user.click(await screen.findByRole("option", { name: "Required" }));
   await user.type(screen.getByRole("textbox", { name: /default value/i }), "Security");
 }
 
@@ -35,8 +36,10 @@ describe("custom fields list", () => {
       expect(within(list).getByText(field.name)).toBeVisible();
     }
     const priorityRow = within(list).getByText(PRIORITY.name).closest("li")!;
-    expect(priorityRow).toHaveTextContent("Number");
-    expect(priorityRow).toHaveTextContent("Required");
+    // The leading icon carries the type, so no chip repeats it.
+    expect(within(priorityRow).getByRole("img", { name: "Number" })).toBeVisible();
+    expect(priorityRow).not.toHaveTextContent("Number");
+    expect(within(priorityRow).getByTitle("Required")).toHaveTextContent("Required");
   });
 
   it("keeps the search filter in the URL", async () => {
@@ -138,17 +141,24 @@ describe("custom field detail", () => {
     renderApp({ path: `/settings/custom-fields/${DEPLOYMENT_TIER.id}` });
 
     const rules = (await screen.findByRole("heading", { name: "Rules" })).closest("section")!;
-    expect(within(rules).getByText("Yes")).toBeVisible();
-    expect(within(rules).getByText("Production")).toBeVisible();
+    expect(
+      within(rules)
+        .getAllByRole("definition")
+        .map((value) => value.textContent),
+    ).toEqual(["Required", "Production"]);
 
     expect(screen.getByRole("heading", { name: "Allowed values 2" })).toBeVisible();
-    const values = within(screen.getByRole("list", { name: "Allowed values" })).getAllByRole(
-      "listitem",
-    );
-    expect(values.map((value) => value.textContent)).toEqual([
-      "Productionproduction",
-      "Stagingstaging",
-    ]);
+    const values = screen.getByLabelText("Allowed values");
+    expect(
+      within(values)
+        .getAllByRole("term")
+        .map((label) => label.textContent),
+    ).toEqual(["Production", "Staging"]);
+    expect(
+      within(values)
+        .getAllByRole("definition")
+        .map((value) => value.textContent),
+    ).toEqual(["production", "staging"]);
 
     const properties = screen.getByRole("region", { name: "Properties" });
     expect(within(properties).getByText(DEPLOYMENT_TIER.key)).toBeVisible();
@@ -159,7 +169,7 @@ describe("custom field detail", () => {
     renderApp({ path: `/settings/custom-fields/${CATEGORY.id}` });
 
     const rules = (await screen.findByRole("heading", { name: "Rules" })).closest("section")!;
-    expect(within(rules).getByText("No")).toBeVisible();
+    expect(within(rules).getByText("Optional")).toBeVisible();
     expect(within(rules).getByText("None")).toBeVisible();
     expect(screen.queryByRole("heading", { name: /Allowed values/ })).not.toBeInTheDocument();
   });

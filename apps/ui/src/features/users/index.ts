@@ -1,6 +1,10 @@
 export { UserAvatar } from "@/features/users/components/user-avatar.tsx";
-export { UserLabel } from "@/features/users/components/user-label.tsx";
+export { UserChip, createUserOptions } from "@/features/users/components/user-chip.tsx";
+export type { UserOption } from "@/features/users/components/user-chip.tsx";
+export { UserSelect } from "@/features/users/components/user-select.tsx";
 export {
+  ASSIGNEE_LABELS,
+  OWNER_LABELS,
   createUserProfileById,
   formatUserProfileReference,
   getUserProfileDisplayName,

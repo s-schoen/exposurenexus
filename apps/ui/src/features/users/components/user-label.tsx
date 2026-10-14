@@ -1,25 +1,25 @@
-import { useQuery } from "@tanstack/react-query";
-
-import { Badge } from "@/components/ui/badge.tsx";
-import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { createListUsersQueryOptions } from "@/features/users/queries/users.ts";
-import { cn } from "@/lib/utils";
-
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 export const USER_LABEL_EMPTY_LABEL = "No user";
 export const USER_LABEL_UNKNOWN_LABEL = "Unknown user";
 
-export type UserLabelVariant = "chip" | "text";
-
-interface UserLabelProps {
-  user?: UserProfile | null;
-  userId?: string | null;
-  emptyLabel?: string;
-  unknownLabel?: string;
-  variant?: UserLabelVariant;
-  className?: string;
+/** What a person reference reads when it is empty or no longer resolves. */
+export interface UserReferenceLabels {
+  emptyLabel: string;
+  unknownLabel: string;
 }
+
+/** An asset's owner. Nobody reads "No owner" in chips, pickers and forms. */
+export const OWNER_LABELS = {
+  emptyLabel: "No owner",
+  unknownLabel: "Unknown owner",
+} as const satisfies UserReferenceLabels;
+
+/** A finding's assignee. Nobody reads "Unassigned" in chips, pickers and forms. */
+export const ASSIGNEE_LABELS = {
+  emptyLabel: "Unassigned",
+  unknownLabel: "Unknown assignee",
+} as const satisfies UserReferenceLabels;
 
 export function createUserProfileById(
   users: Array<UserProfile> | undefined,
@@ -49,47 +49,4 @@ export function formatUserProfileReference(
   const user = userProfileById.get(userId);
 
   return user ? getUserProfileDisplayName(user) : unknownLabel;
-}
-
-export function UserLabel({
-  user,
-  userId,
-  emptyLabel = USER_LABEL_EMPTY_LABEL,
-  unknownLabel = USER_LABEL_UNKNOWN_LABEL,
-  variant = "text",
-  className,
-}: UserLabelProps) {
-  const shouldResolveUser = typeof user === "undefined" && Boolean(userId);
-  const resolvedUser = useQuery({
-    ...createListUsersQueryOptions(),
-    enabled: shouldResolveUser,
-    select: (users) => users.find((candidate) => candidate.id === userId) ?? null,
-  });
-  const effectiveUser = typeof user === "undefined" ? resolvedUser.data : user;
-
-  function renderLabel(children: string, fallback = false) {
-    if (variant === "chip") {
-      return (
-        <Badge variant={fallback ? "secondary" : "outline"} className={cn("max-w-full", className)}>
-          <span className="truncate">{children}</span>
-        </Badge>
-      );
-    }
-
-    return <span className={cn(fallback && "text-muted-foreground", className)}>{children}</span>;
-  }
-
-  if (!userId && !effectiveUser) {
-    return renderLabel(emptyLabel, true);
-  }
-
-  if (shouldResolveUser && resolvedUser.isPending) {
-    return <Skeleton className={cn("inline-flex h-4 w-24", className)} />;
-  }
-
-  if (!effectiveUser) {
-    return renderLabel(unknownLabel, true);
-  }
-
-  return renderLabel(getUserProfileDisplayName(effectiveUser));
 }

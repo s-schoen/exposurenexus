@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  formatCount,
-  formatDate,
-  formatDateTime,
-  formatRelativeTime,
-  formatShortDate,
-} from "@/lib/format.ts";
+import { formatCount, formatDate, formatDateTime, formatShortDate } from "@/lib/format.ts";
 
 describe("formatCount", () => {
   it("uses the singular label for one item", () => {
@@ -24,10 +18,18 @@ describe("formatCount", () => {
 });
 
 describe("formatDate", () => {
-  it("uses the runtime locale date representation", () => {
-    const date = new Date("2026-06-07T09:00:00.000Z");
+  it("shows the medium date", () => {
+    const date = new Date(2026, 5, 7, 9);
 
-    expect(formatDate(date)).toBe(date.toLocaleDateString());
+    expect(formatDate(date)).toBe(date.toLocaleDateString(undefined, { dateStyle: "medium" }));
+  });
+
+  it("reads date-only values in UTC", () => {
+    const date = new Date("2026-05-06T00:00:00.000Z");
+
+    expect(formatDate(date, { timeZone: "UTC" })).toBe(
+      date.toLocaleDateString(undefined, { dateStyle: "medium", timeZone: "UTC" }),
+    );
   });
 });
 
@@ -66,21 +68,5 @@ describe("formatShortDate", () => {
     expect(formatShortDate(date, { timeZone: "UTC", today })).toBe(
       date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }),
     );
-  });
-});
-
-describe("formatRelativeTime", () => {
-  const now = new Date("2026-06-07T09:00:00.000Z");
-  const ago = (seconds: number) => new Date(now.getTime() - seconds * 1000);
-  const format = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-
-  it("uses the largest whole unit", () => {
-    expect(formatRelativeTime(ago(2 * 24 * 60 * 60 + 300), now)).toBe(format.format(-2, "day"));
-    expect(formatRelativeTime(ago(3 * 60 * 60), now)).toBe(format.format(-3, "hour"));
-    expect(formatRelativeTime(ago(400 * 24 * 60 * 60), now)).toBe(format.format(-1, "year"));
-  });
-
-  it("treats anything under a minute as now", () => {
-    expect(formatRelativeTime(ago(20), now)).toBe(format.format(0, "minute"));
   });
 });

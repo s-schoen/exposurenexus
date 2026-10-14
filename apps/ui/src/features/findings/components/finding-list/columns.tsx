@@ -1,19 +1,21 @@
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
-import { CalendarDays, Clock3, Eye, Server, UserRound } from "lucide-react";
+import { CalendarDays, Clock3, Eye } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge.tsx";
+import { AssetTypeIcon } from "@/features/assets";
 import { STATUS_ORDER } from "@/features/findings/components/finding-list/constants.ts";
 import { FindingStatusBadge } from "@/features/findings/components/finding-status-badge.tsx";
 import { FindingStatusIcon } from "@/features/findings/components/finding-status-icon.tsx";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
 import {
-  UserAvatar,
-  UserLabel,
+  ASSIGNEE_LABELS,
+  OWNER_LABELS,
+  UserChip,
+  createUserOptions,
   formatUserProfileReference,
-  getUserProfileDisplayName,
 } from "@/features/users";
 import { SEVERITY_ORDER, SeverityIcon, formatSeverity } from "@/features/vulnerabilities";
-import { formatShortDate } from "@/lib/format.ts";
+import { formatDateTime, formatShortDate } from "@/lib/format.ts";
 import { normalizeDateToUtcStart } from "@/lib/utc-date";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
@@ -82,20 +84,14 @@ export function formatFindingAssetOwner(
     return "Unknown asset";
   }
 
-  return formatUserProfileReference(asset.ownerId, userProfileById, {
-    emptyLabel: "No owner",
-    unknownLabel: "Unknown owner",
-  });
+  return formatUserProfileReference(asset.ownerId, userProfileById, OWNER_LABELS);
 }
 
 export function formatFindingAssignee(
   assigneeId: string | null,
   userProfileById: Map<string, UserProfile>,
 ): string {
-  return formatUserProfileReference(assigneeId, userProfileById, {
-    emptyLabel: "Unassigned",
-    unknownLabel: "Unknown assignee",
-  });
+  return formatUserProfileReference(assigneeId, userProfileById, ASSIGNEE_LABELS);
 }
 
 function DateChip({ label, value }: { label: string; value: Date | null | undefined }) {
@@ -104,7 +100,7 @@ function DateChip({ label, value }: { label: string; value: Date | null | undefi
   }
 
   return (
-    <Badge variant="property" title={`${label} ${value.toLocaleString()}`}>
+    <Badge variant="property" title={`${label} ${formatDateTime(value)}`}>
       <Clock3 strokeWidth={1.5} aria-hidden="true" />
       <span className="sr-only">{label}</span>
       {formatShortDate(value)}
@@ -212,14 +208,18 @@ export function createFindingColumns(
       // Search and order by the asset's name; group by its id, so equally named assets stay apart.
       accessorFn: (finding) => assetNamesById.get(finding.assetId) ?? "Unknown asset",
       getGroupingValue: (finding) => finding.assetId,
-      cell: ({ row }) => (
-        <Badge variant="property" title="Asset">
-          <Server strokeWidth={1.5} aria-hidden="true" />
-          <span className="max-w-40 truncate">
-            {assetNamesById.get(row.original.assetId) ?? "Unknown asset"}
-          </span>
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const asset = assetsById.get(row.original.assetId);
+
+        return (
+          <Badge variant="property" title="Asset">
+            {asset && <AssetTypeIcon type={asset.type} decorative />}
+            <span className="max-w-40 truncate">
+              {assetNamesById.get(row.original.assetId) ?? "Unknown asset"}
+            </span>
+          </Badge>
+        );
+      },
       meta: { label: "Asset", placement: "property" },
     },
     {
@@ -229,22 +229,21 @@ export function createFindingColumns(
       cell: ({ row }) => {
         const asset = assetsById.get(row.original.assetId);
 
+        if (!asset) {
+          return (
+            <Badge variant="property" title="Asset owner">
+              <span className="text-muted-foreground">Unknown asset</span>
+            </Badge>
+          );
+        }
+
         return (
-          <Badge variant="property" title="Asset owner">
-            <UserRound strokeWidth={1.5} aria-hidden="true" />
-            <span className="max-w-40 truncate">
-              {asset ? (
-                <UserLabel
-                  userId={asset.ownerId}
-                  user={resolveUser(asset.ownerId, userProfileById, usersLoading)}
-                  emptyLabel="No owner"
-                  unknownLabel="Unknown owner"
-                />
-              ) : (
-                "Unknown asset"
-              )}
-            </span>
-          </Badge>
+          <UserChip
+            userId={asset.ownerId}
+            user={resolveUser(asset.ownerId, userProfileById, usersLoading)}
+            labels={OWNER_LABELS}
+            title="Asset owner"
+          />
         );
       },
       enableColumnFilter: false,
@@ -262,11 +261,11 @@ export function createFindingColumns(
       accessorFn: (finding) => formatFindingAssignee(finding.assigneeId, userProfileById),
       getGroupingValue: (finding) => finding.assigneeId ?? FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE,
       cell: ({ row }) => (
-        <UserAvatar
+        <UserChip
           userId={row.original.assigneeId}
           user={resolveUser(row.original.assigneeId, userProfileById, usersLoading)}
-          emptyLabel="Unassigned"
-          unknownLabel="Unknown assignee"
+          labels={ASSIGNEE_LABELS}
+          title="Assignee"
         />
       ),
       filterFn: (row, _columnId, filterValue: Array<string>) => {
@@ -281,16 +280,9 @@ export function createFindingColumns(
         label: "Assignee",
         placement: "property",
         filterVariant: "select",
-        options: [
-          {
-            label: "Unassigned",
-            value: FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE,
-          },
-          ...Array.from(userProfileById.values()).map((user) => ({
-            label: getUserProfileDisplayName(user),
-            value: user.id,
-          })),
-        ],
+        options: createUserOptions([...userProfileById.values()], ASSIGNEE_LABELS, {
+          emptyValue: FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE,
+        }),
       },
     },
     {

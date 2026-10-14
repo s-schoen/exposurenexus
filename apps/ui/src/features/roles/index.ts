@@ -1,3 +1,4 @@
+export { RoleKindIcon } from "@/features/roles/components/role-kind-icon.tsx";
 export { CreateRoleDialog } from "@/features/roles/components/create-role-dialog.tsx";
 export { EditRolePage } from "@/features/roles/pages/edit-role-page.tsx";
 export { RoleDetailPage } from "@/features/roles/pages/role-detail-page.tsx";

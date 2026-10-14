@@ -9,7 +9,6 @@ import { z } from "zod/v4";
 
 import { FormActions } from "@/components/form-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
   Command,
   CommandEmpty,
@@ -21,7 +20,15 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
+import { UserStatusLabel } from "@/features/users/components/user-status.tsx";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { CreateUserProfile, UpdateUserProfile } from "@exposurenexus/contracts/model/user";
@@ -293,6 +300,7 @@ export function UserForm({
                 <Field data-invalid={isInvalid}>
                   <FieldLabel htmlFor={field.name}>Username</FieldLabel>
                   <Input
+                    className="font-mono"
                     id={field.name}
                     name={field.name}
                     value={field.state.value}
@@ -356,20 +364,32 @@ export function UserForm({
         />
         <form.Field
           name="enabled"
-          children={(field) => {
-            return (
-              <Field orientation="horizontal">
-                <Checkbox
-                  id={field.name}
-                  checked={field.state.value}
-                  onCheckedChange={(value) => field.handleChange(!!value)}
-                  onBlur={field.handleBlur}
-                  disabled={isSubmitting}
-                />
-                <FieldLabel htmlFor={field.name}>Enabled</FieldLabel>
-              </Field>
-            );
-          }}
+          children={(field) => (
+            <Field>
+              <FieldLabel htmlFor={field.name}>Status</FieldLabel>
+              <Select
+                value={String(field.state.value)}
+                name={field.name}
+                onValueChange={(value) => {
+                  field.handleChange(value === "true");
+                  field.handleBlur();
+                }}
+              >
+                <SelectTrigger id={field.name} className="w-full" disabled={isSubmitting}>
+                  <SelectValue>
+                    <UserStatusLabel enabled={field.state.value} />
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {[true, false].map((enabled) => (
+                    <SelectItem key={String(enabled)} value={String(enabled)}>
+                      <UserStatusLabel enabled={enabled} />
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
         />
         <form.Field
           name="password"

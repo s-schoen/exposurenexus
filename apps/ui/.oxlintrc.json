@@ -117,7 +117,7 @@
                 "deny": ["font-*"]
               },
               { "pattern": "^Skeleton$", "allow": ["layout", "shape"] },
-              { "pattern": "^Textarea$", "allow": ["layout", "font-mono"] }
+              { "pattern": "^(Input|Textarea)$", "allow": ["layout", "font-mono"] }
             ]
           }
         ],

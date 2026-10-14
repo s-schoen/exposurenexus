@@ -54,6 +54,18 @@ function formatResourceDetails(
   return details;
 }
 
+// Resource details that are identifiers or digests, rather than names, render in mono.
+const identifierResourceDetails = new Set([
+  "Digest",
+  "Location fingerprint",
+  "Resource ID",
+  "Revision",
+]);
+
+export function isIdentifierResourceDetail(label: string) {
+  return identifierResourceDetails.has(label);
+}
+
 /** The recorded identity fields of a finding's affected resource, as label/value pairs. */
 export function getResourceDetails(resource: FindingAffectedResource): Array<[string, string]> {
   switch (resource.type) {

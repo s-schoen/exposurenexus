@@ -275,7 +275,7 @@ describe("asset list columns", () => {
     ).toBe(0);
   });
 
-  it("places the type icon before the name and the properties after it", () => {
+  it("places the type icon before the name and the properties after it, without a type chip", () => {
     const columns = createAssetColumns(SEED_CUSTOM_FIELDS);
     const placements = Object.fromEntries(
       columns.map((column) => [column.id, column.meta?.placement]),
@@ -284,7 +284,7 @@ describe("asset list columns", () => {
     expect(placements).toMatchObject({
       typeIcon: "leading",
       displayName: "title",
-      type: "property",
+      type: undefined,
       ownerId: "property",
       findingCount: "property",
       [getAssetCustomFieldColumnId("8f0365b2-1bbb-46e2-b1f4-06300ade23f3")]: "property",

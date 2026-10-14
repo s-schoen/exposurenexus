@@ -2,6 +2,7 @@ import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custo
 import { Key, Shapes } from "lucide-react";
 
 import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
+import { DetailField, DetailFields } from "@/components/properties-panel/detail-rows.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import {
   PropertiesPanel,
@@ -9,7 +10,7 @@ import {
   PropertyRow,
   PropertyValue,
 } from "@/components/properties-panel/properties-panel.tsx";
-import { PropertyTray, PropertyTrayRow } from "@/components/properties-panel/property-tray.tsx";
+import { CustomFieldRequiredLabel } from "@/features/custom-fields/components/custom-field-required-label.tsx";
 import { CustomFieldTypeIcon } from "@/features/custom-fields/components/custom-field-type-icon.tsx";
 import { formatCustomFieldType } from "@/features/custom-fields/lib/custom-field-type.ts";
 
@@ -54,14 +55,18 @@ function RulesSection({ field }: { field: AssetCustomFieldDefinition }) {
 
   return (
     <DetailSection title="Rules">
-      <dl className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-x-6 gap-y-1.5 text-13">
-        <dt className="text-muted-foreground">Required</dt>
-        <dd className="text-foreground">{field.required ? "Yes" : "No"}</dd>
-        <dt className="text-muted-foreground">Default value</dt>
-        <dd className={defaultValue === null ? "text-subtle-foreground" : "text-foreground"}>
-          {defaultValue ?? "None"}
-        </dd>
-      </dl>
+      <DetailFields>
+        <DetailField label="Required">
+          <CustomFieldRequiredLabel required={field.required} />
+        </DetailField>
+        <DetailField label="Default value">
+          {defaultValue === null ? (
+            <span className="text-subtle-foreground">None</span>
+          ) : (
+            <span className="min-w-0 break-words">{defaultValue}</span>
+          )}
+        </DetailField>
+      </DetailFields>
     </DetailSection>
   );
 }
@@ -73,18 +78,13 @@ function AllowedValuesSection({ field }: { field: AssetCustomFieldDefinition }) 
 
   return (
     <DetailSection title="Allowed values" count={field.options.length}>
-      <PropertyTray label="Allowed values">
+      <DetailFields label="Allowed values">
         {field.options.map((option) => (
-          <PropertyTrayRow
-            key={option.id}
-            trailing={
-              <span className="font-mono text-xs text-muted-foreground">{option.value}</span>
-            }
-          >
-            <span className="truncate">{option.label}</span>
-          </PropertyTrayRow>
+          <DetailField key={option.id} label={option.label}>
+            <span className="min-w-0 truncate font-mono text-xs">{option.value}</span>
+          </DetailField>
         ))}
-      </PropertyTray>
+      </DetailFields>
     </DetailSection>
   );
 }

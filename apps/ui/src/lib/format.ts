@@ -6,8 +6,12 @@ export function formatCount(count: number, singular: string, plural = `${singula
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-export function formatDate(date: Date) {
-  return date.toLocaleDateString();
+/**
+ * A date in the full format, such as "Jan 8, 2026", for property values, editors and forms.
+ * Pass `timeZone: "UTC"` for date-only values such as due dates.
+ */
+export function formatDate(date: Date, { timeZone }: { timeZone?: "UTC" } = {}) {
+  return date.toLocaleDateString(undefined, { dateStyle: "medium", timeZone });
 }
 
 /** A date with its time, such as "Jan 8, 2026, 1:30 PM", for audit lines and timestamps. */
@@ -31,27 +35,4 @@ export function formatShortDate(
     year: year(date) === year(today) ? undefined : "numeric",
     timeZone,
   });
-}
-
-const relativeTimeUnits: Array<[Intl.RelativeTimeFormatUnit, number]> = [
-  ["year", 365 * 24 * 60 * 60],
-  ["month", 30 * 24 * 60 * 60],
-  ["week", 7 * 24 * 60 * 60],
-  ["day", 24 * 60 * 60],
-  ["hour", 60 * 60],
-  ["minute", 60],
-];
-
-/** A timeline time such as "2 days ago" or "yesterday", in the largest whole unit. */
-export function formatRelativeTime(date: Date, now = new Date()) {
-  const seconds = Math.round((date.getTime() - now.getTime()) / 1000);
-  const format = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-
-  for (const [unit, unitSeconds] of relativeTimeUnits) {
-    if (Math.abs(seconds) >= unitSeconds) {
-      return format.format(Math.trunc(seconds / unitSeconds), unit);
-    }
-  }
-
-  return format.format(0, "minute");
 }
