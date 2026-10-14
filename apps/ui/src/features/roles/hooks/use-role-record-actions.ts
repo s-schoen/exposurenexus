@@ -8,6 +8,7 @@ import { useRoleLifecycle } from "@/features/roles/hooks/use-role-lifecycle.ts";
 import { isBuiltInRoleId } from "@/features/roles/lib/role.ts";
 import { useLeaveDeletedRecords } from "@/hooks/use-leave-deleted-records.ts";
 import { useStableCallback } from "@/hooks/use-stable-callback.ts";
+import { formatCount } from "@/lib/format.ts";
 
 import type { PageAction } from "@/hooks/use-page-meta.tsx";
 import type { Role } from "@exposurenexus/contracts/model/rbac";
@@ -27,8 +28,8 @@ export function useDeleteRoles() {
 
     const confirmed = await ConfirmDialog.call({
       title: "Delete roles",
-      description: "This action cannot be undone",
-      message: `Are you sure you want to delete ${customRoles.length} custom role(s)?`,
+      description: "This action cannot be undone.",
+      message: `Are you sure you want to delete ${formatCount(customRoles.length, "custom role")}?`,
       confirmVariant: "destructive",
     });
 

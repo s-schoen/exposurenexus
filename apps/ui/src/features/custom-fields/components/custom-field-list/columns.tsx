@@ -9,6 +9,7 @@ import {
 } from "@/features/custom-fields/components/custom-field-required-label.tsx";
 import { CustomFieldTypeIcon } from "@/features/custom-fields/components/custom-field-type-icon.tsx";
 import { formatCustomFieldType } from "@/features/custom-fields/lib/custom-field-type.ts";
+import { formatCount } from "@/lib/format.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
@@ -143,9 +144,7 @@ export const columns: Array<DataTableColumnDef<AssetCustomFieldDefinition>> = [
       return (
         <Badge variant="property" title="Options">
           <List strokeWidth={1.5} aria-hidden="true" />
-          <span className="tabular-nums">
-            {count} option{count === 1 ? "" : "s"}
-          </span>
+          <span className="tabular-nums">{formatCount(count, "option")}</span>
         </Badge>
       );
     },

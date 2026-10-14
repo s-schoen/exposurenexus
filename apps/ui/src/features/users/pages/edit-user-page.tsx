@@ -20,6 +20,7 @@ export function EditUserPage({ userId }: EditUserPageProps) {
 
   usePageMeta({
     title: "Edit",
+    heading: "Edit user",
     icon: Users,
     breadcrumbs: [
       { label: "Users", to: "/settings/users" },

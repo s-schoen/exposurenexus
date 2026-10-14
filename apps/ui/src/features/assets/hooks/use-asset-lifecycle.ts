@@ -19,6 +19,7 @@ import {
   createListAssetsWithCustomFieldsQueryOptions,
 } from "@/features/assets/queries/assets.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
+import { formatCount } from "@/lib/format.ts";
 
 import type {
   Asset,
@@ -109,7 +110,7 @@ function isFilteredAssetListQuery(queryKey: ReadonlyArray<unknown>) {
 }
 
 function formatAssetCount(count: number) {
-  return `${count} asset${count === 1 ? "" : "s"}`;
+  return formatCount(count, "asset");
 }
 
 function createBatchResult(

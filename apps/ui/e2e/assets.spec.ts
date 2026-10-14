@@ -19,7 +19,7 @@ test("creates an asset through the type, environment and owner selects", async (
   await dialog.getByRole("combobox", { name: "Owner" }).click();
   await page.getByRole("option", { name: MORGAN.displayName }).click();
   await expect(dialog.getByRole("combobox", { name: "Type" })).toContainText("Software");
-  await dialog.getByRole("button", { name: "Create" }).click();
+  await dialog.getByRole("button", { name: "Create asset" }).click();
 
   await expect(dialog).toBeHidden();
   await expect(page).toHaveURL(/\/assets\/[^/]+$/);

@@ -11,6 +11,7 @@ import {
   createRoleByIDQueryOptions,
 } from "@/features/roles/queries/roles.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
+import { formatCount } from "@/lib/format.ts";
 
 import type { CreateRole, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 
@@ -37,7 +38,7 @@ function detailQueryKey(roleId: string) {
 }
 
 function formatRoleCount(count: number) {
-  return `${count} role${count === 1 ? "" : "s"}`;
+  return formatCount(count, "role");
 }
 
 function createBatchResult(

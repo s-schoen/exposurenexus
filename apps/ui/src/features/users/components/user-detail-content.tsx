@@ -12,6 +12,7 @@ import {
 } from "@/components/properties-panel/properties-panel.tsx";
 import { RoleKindIcon } from "@/features/roles";
 import { UserStatusLabel } from "@/features/users/components/user-status.tsx";
+import { formatCount } from "@/lib/format.ts";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
@@ -67,7 +68,7 @@ function RolesSection({ user, roles }: { user: UserProfile; roles: ReadonlyArray
           {unknownRoleCount > 0 && (
             <DetailListItem>
               <span className="text-subtle-foreground">
-                {unknownRoleCount} unknown role{unknownRoleCount === 1 ? "" : "s"}
+                {formatCount(unknownRoleCount, "unknown role")}
               </span>
             </DetailListItem>
           )}

@@ -112,7 +112,7 @@ export function LoginPage({ auth, redirects, redirect, navigate }: LoginPageProp
               )}
               <Button type="submit" size="lg" className="w-full">
                 {isLoading && <Spinner />}
-                Login
+                Sign in
               </Button>
             </FieldGroup>
           </form>

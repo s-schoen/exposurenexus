@@ -3,6 +3,7 @@ import { KeyRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { UserAvatar } from "@/features/users/components/user-avatar.tsx";
 import { UserStatusIcon, UserStatusLabel } from "@/features/users/components/user-status.tsx";
+import { formatCount } from "@/lib/format.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
@@ -33,9 +34,7 @@ function RolesChip({
       <Badge variant="property" title="Roles">
         <KeyRound strokeWidth={1.5} aria-hidden="true" />
         <span className="text-muted-foreground">
-          {roleIds.length === 0
-            ? "No roles"
-            : `${roleIds.length} role${roleIds.length === 1 ? "" : "s"}`}
+          {roleIds.length === 0 ? "No roles" : formatCount(roleIds.length, "role")}
         </span>
       </Badge>
     );

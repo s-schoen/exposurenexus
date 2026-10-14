@@ -7,6 +7,7 @@ import {
   getRoleKindLabel,
   getUniqueRoleResources,
 } from "@/features/roles/lib/role.ts";
+import { formatCount } from "@/lib/format.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { Role } from "@exposurenexus/contracts/model/rbac";
@@ -62,9 +63,7 @@ export const columns: Array<DataTableColumnDef<Role>> = [
       return (
         <Badge variant="property" title="Permissions">
           <ShieldCheck strokeWidth={1.5} aria-hidden="true" />
-          <span className="tabular-nums">
-            {count} permission{count === 1 ? "" : "s"}
-          </span>
+          <span className="tabular-nums">{formatCount(count, "permission")}</span>
         </Badge>
       );
     },

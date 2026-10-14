@@ -27,6 +27,7 @@ export function EditRolePage({ roleId }: EditRolePageProps) {
 
   usePageMeta({
     title: "Edit",
+    heading: "Edit role",
     icon: KeyRound,
     breadcrumbs: [
       { label: "Roles", to: "/settings/roles" },

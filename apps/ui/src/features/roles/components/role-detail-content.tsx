@@ -1,4 +1,4 @@
-import { Boxes, Shapes } from "lucide-react";
+import { Shapes } from "lucide-react";
 
 import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
 import { DetailField, DetailFields } from "@/components/properties-panel/detail-rows.tsx";
@@ -14,15 +14,12 @@ import { RoleKindIcon } from "@/features/roles/components/role-kind-icon.tsx";
 import {
   formatPermissionLabel,
   getRoleKindLabel,
-  getUniqueRoleResources,
   groupRolePermissionsByResource,
 } from "@/features/roles/lib/role.ts";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 
 function RolePropertiesPanel({ role }: { role: Role }) {
-  const resourceCount = getUniqueRoleResources(role.permissions).length;
-
   return (
     <PropertiesPanel>
       <PropertyGroup>
@@ -30,11 +27,6 @@ function RolePropertiesPanel({ role }: { role: Role }) {
           <PropertyValue>
             <RoleKindIcon roleId={role.id} decorative />
             {getRoleKindLabel(role.id)}
-          </PropertyValue>
-        </PropertyRow>
-        <PropertyRow icon={Boxes} label="Resources">
-          <PropertyValue>
-            <span className="tabular-nums">{resourceCount}</span>
           </PropertyValue>
         </PropertyRow>
       </PropertyGroup>

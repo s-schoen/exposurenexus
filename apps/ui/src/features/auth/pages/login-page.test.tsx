@@ -43,7 +43,7 @@ describe("LoginPage", () => {
   it("does not submit empty credentials", async () => {
     const { user, login } = renderLoginPage();
 
-    await user.click(screen.getByRole("button", { name: /^login$/i }));
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => {
       expect(login).not.toHaveBeenCalled();
@@ -58,7 +58,7 @@ describe("LoginPage", () => {
 
     await user.type(screen.getByLabelText(/username/i), "alice");
     await user.type(screen.getByLabelText(/password/i), "wrong-password");
-    await user.click(screen.getByRole("button", { name: /^login$/i }));
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     expect(await screen.findByText("Invalid username or password.")).toBeInTheDocument();
     expect(login).toHaveBeenCalledWith("alice", "wrong-password");
@@ -73,7 +73,7 @@ describe("LoginPage", () => {
 
     await user.type(screen.getByLabelText(/username/i), "alice");
     await user.type(screen.getByLabelText(/password/i), "correct-horse-battery-staple");
-    await user.click(screen.getByRole("button", { name: /^login$/i }));
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => {
       expect(login).toHaveBeenCalledWith("alice", "correct-horse-battery-staple");
@@ -92,7 +92,7 @@ describe("LoginPage", () => {
 
     await user.type(screen.getByLabelText(/username/i), "alice");
     await user.type(screen.getByLabelText(/password/i), "correct-horse-battery-staple");
-    await user.click(screen.getByRole("button", { name: /^login$/i }));
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => {
       expect(login).toHaveBeenCalledWith("alice", "correct-horse-battery-staple");

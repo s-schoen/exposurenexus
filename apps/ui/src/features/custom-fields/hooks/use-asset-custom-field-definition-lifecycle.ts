@@ -11,6 +11,7 @@ import {
   createListAssetCustomFieldDefinitionsQueryOptions,
 } from "@/features/custom-fields/queries/definitions.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
+import { formatCount } from "@/lib/format.ts";
 
 import type {
   AssetCustomFieldDefinition,
@@ -48,7 +49,7 @@ function detailQueryKey(definitionId: string) {
 }
 
 function formatDefinitionCount(count: number) {
-  return `${count} custom field${count === 1 ? "" : "s"}`;
+  return formatCount(count, "custom field");
 }
 
 function createBatchResult(

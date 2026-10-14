@@ -50,7 +50,7 @@ describe("AssetCombobox", () => {
     const { user } = renderWithAppProviders(<AssetCombobox />);
 
     await openCombobox(user);
-    await user.type(screen.getByPlaceholderText("Select asset..."), CONTAINER_01.displayName);
+    await user.type(screen.getByPlaceholderText("Search assets…"), CONTAINER_01.displayName);
 
     expect(
       screen.getByRole("option", { name: new RegExp(CONTAINER_01.displayName) }),

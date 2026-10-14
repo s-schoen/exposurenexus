@@ -24,6 +24,7 @@ export function EditCustomFieldPage({ customFieldId }: EditCustomFieldPageProps)
 
   usePageMeta({
     title: "Edit",
+    heading: "Edit custom field",
     icon: Tags,
     breadcrumbs: [
       { label: "Custom fields", to: "/settings/custom-fields" },

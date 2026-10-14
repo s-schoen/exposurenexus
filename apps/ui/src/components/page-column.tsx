@@ -16,14 +16,14 @@ export function isPageColumnPath(pathname: string) {
   return EDIT_PATH.test(pathname) || IMPORT_PATH.test(pathname);
 }
 
-// Page forms sit in a centered column under a 24px title. The title is the page's
-// heading here, so the page header shows it as plain text.
+// Page forms sit in a centered column under a 24px title. The title (or the fuller heading) is the
+// page's heading here, so the page header shows it as plain text.
 export function PageColumn({ children }: { children: React.ReactNode }) {
-  const { title } = usePage();
+  const { title, heading } = usePage();
 
   return (
     <div className="mx-auto w-full max-w-200 pt-5">
-      <h1 className="mb-6 truncate text-2xl font-medium text-foreground">{title}</h1>
+      <h1 className="mb-6 truncate text-2xl font-medium text-foreground">{heading ?? title}</h1>
       {children}
     </div>
   );

@@ -25,9 +25,9 @@ import { AssetIdentifierEditor } from "@/features/assets/components/asset-identi
 import { AssetLifecycleLabel } from "@/features/assets/components/asset-lifecycle-label.tsx";
 import { AssetTypeIcon } from "@/features/assets/components/asset-type-icon.tsx";
 import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
+import { formatAssetEnvironment } from "@/features/assets/lib/asset-environment.ts";
 import { formatAssetType } from "@/features/assets/lib/asset-type.ts";
 import { OWNER_LABELS, UserSelect, createListUsersQueryOptions } from "@/features/users";
-import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { Asset, CreateAsset } from "@exposurenexus/contracts/model/asset";
 import type { PropsWithCall } from "react-call";
@@ -159,14 +159,14 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
                   >
                     <SelectTrigger id={field.name} className="w-full">
                       <SelectValue>
-                        {capitalizeFirstLetter(field.state.value ?? AssetEnvironment.Unknown)}
+                        {formatAssetEnvironment(field.state.value ?? AssetEnvironment.Unknown)}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         {Object.values(AssetEnvironment).map((environment) => (
                           <SelectItem key={environment} value={environment}>
-                            {capitalizeFirstLetter(environment)}
+                            {formatAssetEnvironment(environment)}
                           </SelectItem>
                         ))}
                       </SelectGroup>
@@ -181,7 +181,7 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
             children={(field) => {
               return (
                 <Field>
-                  <FieldLabel htmlFor={field.name}>Lifecycle state</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>Lifecycle</FieldLabel>
                   <Select
                     value={field.state.value}
                     name={field.name}
@@ -249,7 +249,7 @@ export const CreateAssetDialog = ({ call }: PropsWithCall<object, Asset | null, 
           </Button>
           <Button type="submit" disabled={submitting}>
             {submitting && <Spinner />}
-            Create
+            Create asset
           </Button>
         </FormActions>
       </form>
