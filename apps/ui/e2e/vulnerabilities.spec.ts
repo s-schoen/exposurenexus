@@ -15,7 +15,7 @@ function rowLink(page: Page, { identifier, title }: (typeof SEED_VULNERABILITIES
   return page.getByRole("link", { name: `${identifier} ${title}`, exact: true });
 }
 
-test("opens a catalog entry's detail page from the list and uses its actions", async ({ page }) => {
+test("opens a vulnerability's detail page from the list and uses its actions", async ({ page }) => {
   await page.goto("/vulnerabilities");
 
   await rowLink(page, ADMIN_ENDPOINT).dblclick();
@@ -24,7 +24,7 @@ test("opens a catalog entry's detail page from the list and uses its actions", a
   await expect(page.getByRole("heading", { level: 1, name: ADMIN_ENDPOINT.title })).toBeVisible();
   // Open and cancel a header menu action: the page's actions are what re-rendered in a loop.
   await page.getByRole("button", { name: "More actions" }).click();
-  await page.getByRole("menuitem", { name: "Delete catalog entry…" }).click();
+  await page.getByRole("menuitem", { name: "Delete vulnerability…" }).click();
   await page.getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByRole("button", { name: "Cancel" })).toBeHidden();
   await expect(page).toHaveURL(`/vulnerabilities/${ADMIN_ENDPOINT.id}`);
@@ -36,7 +36,7 @@ test("opens an entry from the list and deletes it after confirmation", async ({ 
   await rowLink(page, ACCOUNT_TAKEOVER).dblclick();
   await expect(page.getByRole("heading", { level: 1, name: ACCOUNT_TAKEOVER.title })).toBeVisible();
   await page.getByRole("button", { name: "More actions" }).click();
-  await page.getByRole("menuitem", { name: "Delete catalog entry…" }).click();
+  await page.getByRole("menuitem", { name: "Delete vulnerability…" }).click();
   await page.getByRole("button", { name: "Confirm" }).click();
 
   await expect(page).toHaveURL("/vulnerabilities");

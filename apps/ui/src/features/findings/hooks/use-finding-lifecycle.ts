@@ -214,10 +214,10 @@ export function useFindingLifecycle(): FindingLifecycleActions {
         });
         writeFindingToCaches(finding);
         await invalidateFindingReads([findingId]);
-        toast.success("Linked catalog entry to finding");
+        toast.success("Linked vulnerability to finding");
         return finding;
       } catch (error) {
-        toastActionError(error, `Failed to link catalog entry: ${formatActionError(error)}`);
+        toastActionError(error, `Failed to link vulnerability: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }
@@ -231,10 +231,10 @@ export function useFindingLifecycle(): FindingLifecycleActions {
         });
         writeFindingToCaches(finding);
         await invalidateFindingReads([findingId]);
-        toast.success("Unlinked catalog entry from finding");
+        toast.success("Unlinked vulnerability from finding");
         return finding;
       } catch (error) {
-        toastActionError(error, `Failed to unlink catalog entry: ${formatActionError(error)}`);
+        toastActionError(error, `Failed to unlink vulnerability: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }

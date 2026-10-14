@@ -279,16 +279,16 @@ function LinkVulnerabilityPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         disabled={pending}
-        render={<Button variant="ghost" size="icon-sm" aria-label="Link catalog entry" />}
+        render={<Button variant="ghost" size="icon-sm" aria-label="Link vulnerability" />}
       >
         {pending ? <Spinner /> : <Plus strokeWidth={1.5} />}
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 gap-0 p-0">
         <Command>
-          <CommandInput aria-label="Search catalog entries" placeholder="Search catalog…" />
+          <CommandInput aria-label="Search vulnerabilities" placeholder="Search vulnerabilities…" />
           <CommandList>
             <CommandEmpty>
-              {vulnerabilities.isPending ? "Loading…" : "No catalog entries to link."}
+              {vulnerabilities.isPending ? "Loading…" : "No vulnerabilities to link."}
             </CommandEmpty>
             <CommandGroup>
               {available.map((vulnerability) => (
@@ -326,7 +326,7 @@ function VulnerabilitiesSection({ finding }: { finding: Finding }) {
 
   const unlink = async (vulnerability: VulnerabilityCatalog) => {
     const confirmed = await ConfirmDialog.call({
-      title: "Unlink catalog entry",
+      title: "Unlink vulnerability",
       description: "This does not change the finding's title, severity, or workflow state.",
       message: `Remove ${vulnerability.identifier} from this finding?`,
       confirmText: "Unlink",
@@ -387,7 +387,7 @@ function VulnerabilitiesSection({ finding }: { finding: Finding }) {
           ))}
         </DetailList>
       ) : (
-        <p className="text-13 text-subtle-foreground">No catalog entries are linked.</p>
+        <p className="text-13 text-subtle-foreground">No vulnerabilities are linked.</p>
       )}
     </DetailSection>
   );
@@ -425,11 +425,7 @@ export function FindingDetailContent({ finding, asset }: FindingDetailContentPro
       header={
         <>
           <FindingTitle finding={finding} />
-          {finding.mitigation ? (
-            <SafeMarkdown className="mt-3">{finding.mitigation}</SafeMarkdown>
-          ) : (
-            <p className="mt-3 text-sm text-subtle-foreground">No mitigation recorded.</p>
-          )}
+          {finding.mitigation && <SafeMarkdown className="mt-3">{finding.mitigation}</SafeMarkdown>}
         </>
       }
       panel={<FindingPropertiesPanel finding={finding} asset={asset} />}

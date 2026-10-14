@@ -74,7 +74,7 @@ function firstIssueMessage(prefix: string, error: z.ZodError) {
 
 /**
  * Builds the create payload from the form values and the weakness text: trims the title,
- * parses and canonicalizes the weakness, and deduplicates catalog IDs.
+ * parses and canonicalizes the weakness, and deduplicates vulnerability IDs.
  */
 export function buildCreateFindingPayload(
   values: Omit<CreateManualFinding, "weakness">,

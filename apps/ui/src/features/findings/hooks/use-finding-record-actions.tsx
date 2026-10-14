@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FindingDetailsDialog } from "@/features/findings/components/finding-details-dialog.tsx";
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
+import { formatFindingCount } from "@/features/findings/lib/format.ts";
 import { useLeaveDeletedRecords } from "@/hooks/use-leave-deleted-records.ts";
 import { useStableCallback } from "@/hooks/use-stable-callback.ts";
 
@@ -18,8 +19,8 @@ export function useDeleteFindings() {
   return useStableCallback(async (findings: Array<Finding>) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete findings",
-      description: "This action cannot be undone",
-      message: `Are you sure you want to delete ${findings.length} findings(s)?`,
+      description: "This action cannot be undone.",
+      message: `Are you sure you want to delete ${formatFindingCount(findings.length)}?`,
       confirmVariant: "destructive",
     });
 

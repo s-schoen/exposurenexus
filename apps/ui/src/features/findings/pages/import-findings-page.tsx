@@ -2,7 +2,7 @@ import { CircleAlert, FileJson2, ShieldAlert, UploadCloud, X } from "lucide-reac
 import { useId, useState } from "react";
 
 import { FormActions } from "@/components/form-dialog.tsx";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
+import { Alert, AlertTitle } from "@/components/ui/alert.tsx";
 import { Button, buttonVariants } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -47,11 +47,7 @@ export function ImportFindingsPage() {
     <div className="flex flex-col gap-5">
       <Alert>
         <CircleAlert />
-        <AlertTitle>Automated imports are work in progress</AlertTitle>
-        <AlertDescription>
-          Importing scan results is temporarily unavailable while observation-based finding matching
-          is being implemented.
-        </AlertDescription>
+        <AlertTitle>Importing scan results is temporarily unavailable.</AlertTitle>
       </Alert>
 
       <Input

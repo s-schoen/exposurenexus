@@ -341,7 +341,7 @@ describe("triage queue", () => {
 });
 
 describe("finding detail", () => {
-  it("shows the finding with its asset, assignee and catalog entries", async () => {
+  it("shows the finding with its asset, assignee and vulnerabilities", async () => {
     renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
 
     expect(
@@ -498,7 +498,7 @@ describe("finding detail", () => {
     const mitigation = within(dialog).getByLabelText("Mitigation");
     await user.clear(mitigation);
     await user.type(mitigation, "Restrict the admin endpoint.");
-    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
 
     await waitFor(() =>
       expect(db.findings.get(ADMIN_ENDPOINT.id)?.mitigation).toBe("Restrict the admin endpoint."),
@@ -516,7 +516,7 @@ describe("finding detail", () => {
     const dialog = await screen.findByRole("dialog", { name: "Edit details" });
     await user.clear(within(dialog).getByLabelText("Mitigation"));
     await user.type(within(dialog).getByLabelText("Mitigation"), "Restrict the admin endpoint.");
-    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
 
     await waitFor(() =>
       expect(db.findings.get(ADMIN_ENDPOINT.id)?.mitigation).toBe("Restrict the admin endpoint."),
@@ -533,7 +533,7 @@ describe("finding detail", () => {
     const weakness = within(dialog).getByLabelText("Weakness identifiers");
     await user.clear(weakness);
     await user.type(weakness, "not an identifier");
-    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
     expect(
       await within(dialog).findByText(
         "Weakness identifiers must use namespace=identifier entries.",
@@ -542,7 +542,7 @@ describe("finding detail", () => {
 
     await user.clear(weakness);
     await user.type(weakness, "cwe=CWE-200");
-    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
     expect(await within(dialog).findByText("Unable to save correction. Try again.")).toBeVisible();
     expect(db.findings.get(ADMIN_ENDPOINT.id)?.weakness).toEqual(ADMIN_ENDPOINT.weakness);
   });
@@ -566,6 +566,7 @@ describe("finding detail", () => {
 
     await user.click(await screen.findByRole("button", { name: "More actions" }));
     await user.click(await screen.findByRole("menuitem", { name: "Delete finding…" }));
+    expect(await screen.findByText("Are you sure you want to delete 1 finding?")).toBeVisible();
     await user.click(await screen.findByRole("button", { name: "Confirm" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/findings"));
@@ -599,12 +600,12 @@ describe("finding detail", () => {
     expect(screen.queryByRole("link", { name: ADMIN_ENDPOINT_CVE.title })).not.toBeInTheDocument();
   });
 
-  it("links a catalog entry, guarding against duplicate submits while pending", async () => {
+  it("links a vulnerability, guarding against duplicate submits while pending", async () => {
     const pending = holdApiResponses("put", "/findings/:id/vulnerabilities/:vulnerabilityId");
     const requests = recordApiRequests();
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
 
-    const link = await screen.findByRole("button", { name: "Link catalog entry" });
+    const link = await screen.findByRole("button", { name: "Link vulnerability" });
     await user.click(link);
     await user.click(
       await screen.findByRole("option", { name: new RegExp(ACCOUNT_TAKEOVER.identifier) }),
@@ -622,7 +623,7 @@ describe("finding detail", () => {
     expect(requests.filter((request) => request.startsWith("PUT"))).toHaveLength(1);
   });
 
-  it("unlinks a catalog entry only after confirmation", async () => {
+  it("unlinks a vulnerability only after confirmation", async () => {
     const { user } = renderApp({ path: `/findings/${ADMIN_ENDPOINT.id}` });
     const unlink = await screen.findByRole("button", {
       name: `Unlink ${ADMIN_ENDPOINT_CVE.identifier}`,
@@ -637,7 +638,7 @@ describe("finding detail", () => {
     await user.click(await screen.findByRole("button", { name: "Unlink" }));
 
     await waitFor(() => expect(db.findings.get(ADMIN_ENDPOINT.id)?.vulnerabilityIds).toEqual([]));
-    expect(await screen.findByText("No catalog entries are linked.")).toBeVisible();
+    expect(await screen.findByText("No vulnerabilities are linked.")).toBeVisible();
   });
 });
 
@@ -688,16 +689,23 @@ describe("creating findings", () => {
     await fillRequiredFields(user);
     await user.type(screen.getByLabelText("Weakness identifiers"), "cwe=CWE-798");
     // A field of another resource type is dropped when the type changes.
-    await user.click(screen.getByLabelText("Affected resource"));
+    await user.click(screen.getByLabelText("Affected resource type"));
     await user.click(await screen.findByRole("option", { name: "Network service" }));
     await user.type(screen.getByLabelText("Host"), "10.0.0.5");
-    await user.click(screen.getByLabelText("Affected resource"));
+    await user.click(screen.getByLabelText("Affected resource type"));
     await user.click(await screen.findByRole("option", { name: "Source code" }));
     expect(screen.queryByLabelText("Host")).not.toBeInTheDocument();
     await user.type(screen.getByLabelText("Repository"), "github.com/acme/api");
     await user.type(screen.getByLabelText("File"), "src/config.ts");
     await user.type(screen.getByLabelText("Start line"), "42");
-    await user.type(screen.getByLabelText("Catalog entry IDs"), ACCOUNT_TAKEOVER.id);
+    await user.click(screen.getByRole("combobox", { name: "Vulnerabilities" }));
+    await user.click(
+      await screen.findByRole("option", { name: new RegExp(ACCOUNT_TAKEOVER.identifier) }),
+    );
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("combobox", { name: "Vulnerabilities" })).toHaveTextContent(
+      ACCOUNT_TAKEOVER.identifier,
+    );
 
     await user.type(screen.getByLabelText("Observation title"), "Secret in config");
     await user.type(screen.getByLabelText("Evidence"), "API_KEY=…");

@@ -120,7 +120,7 @@ describe("useFindingLifecycle", () => {
     expect(toast.error).toHaveBeenCalledWith("Failed to update finding");
   });
 
-  it("links and unlinks catalog entries through the caches", async () => {
+  it("links and unlinks vulnerabilities through the caches", async () => {
     const { queryClient, result } = renderLifecycle();
 
     await act(async () => {
@@ -131,13 +131,13 @@ describe("useFindingLifecycle", () => {
         .getQueryData<Finding>(detailKey(ADMIN_ENDPOINT.id))
         ?.vulnerabilities.map((vulnerability) => vulnerability.id),
     ).toContain(ACCOUNT_TAKEOVER.id);
-    expect(toast.success).toHaveBeenCalledWith("Linked catalog entry to finding");
+    expect(toast.success).toHaveBeenCalledWith("Linked vulnerability to finding");
 
     await act(async () => {
       await result.current.unlinkVulnerability(ADMIN_ENDPOINT.id, ACCOUNT_TAKEOVER.id);
     });
     expect(db.findings.get(ADMIN_ENDPOINT.id)?.vulnerabilityIds).not.toContain(ACCOUNT_TAKEOVER.id);
-    expect(toast.success).toHaveBeenCalledWith("Unlinked catalog entry from finding");
+    expect(toast.success).toHaveBeenCalledWith("Unlinked vulnerability from finding");
   });
 
   it("reports failed links with the API message", async () => {
