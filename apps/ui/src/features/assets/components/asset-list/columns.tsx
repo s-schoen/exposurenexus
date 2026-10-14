@@ -14,6 +14,7 @@ import {
 } from "@/features/assets/components/asset-lifecycle-label.tsx";
 import { AssetTypeIcon } from "@/features/assets/components/asset-type-icon.tsx";
 import { formatAssetCustomFieldValue } from "@/features/assets/lib/asset-custom-fields.ts";
+import { formatAssetEnvironment } from "@/features/assets/lib/asset-environment.ts";
 import { formatAssetType } from "@/features/assets/lib/asset-type.ts";
 import {
   OWNER_LABELS,
@@ -21,7 +22,6 @@ import {
   createUserOptions,
   formatUserProfileReference,
 } from "@/features/users";
-import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
@@ -38,13 +38,6 @@ export const ASSET_OWNERLESS_FILTER_VALUE = "none";
 
 /** Each asset's number of findings, keyed by asset id; missing assets have none. */
 export type FindingCountByAssetId = Readonly<Partial<Record<string, number>>>;
-
-function createEnumFilterOptions<T extends string>(values: ReadonlyArray<T>) {
-  return values.map((value) => ({
-    label: capitalizeFirstLetter(value),
-    value,
-  }));
-}
 
 function OwnerChip({
   ownerId,
@@ -180,7 +173,7 @@ function createBaseColumns(
       cell: ({ row }) => (
         <Badge variant="property" title="Environment">
           <Layers strokeWidth={1.5} aria-hidden="true" />
-          {capitalizeFirstLetter(row.original.environment)}
+          {formatAssetEnvironment(row.original.environment)}
         </Badge>
       ),
       filterFn: (row, _columnId, filterValue: Array<string>) => {
@@ -191,14 +184,17 @@ function createBaseColumns(
         label: "Environment",
         placement: "property",
         filterVariant: "select",
-        options: createEnumFilterOptions(Object.values(AssetEnvironment)),
+        options: Object.values(AssetEnvironment).map((environment) => ({
+          label: formatAssetEnvironment(environment),
+          value: environment,
+        })),
       },
     },
     {
       id: "lifecycleState",
       accessorKey: "lifecycleState",
       cell: ({ row }) => (
-        <Badge variant="property" title="Lifecycle state">
+        <Badge variant="property" title="Lifecycle">
           <AssetLifecycleLabel state={row.original.lifecycleState} />
         </Badge>
       ),
@@ -207,7 +203,7 @@ function createBaseColumns(
         return filterValue.includes(row.original.lifecycleState);
       },
       meta: {
-        label: "Lifecycle state",
+        label: "Lifecycle",
         placement: "property",
         filterVariant: "select",
         options: Object.values(AssetLifecycleState).map((state) => ({

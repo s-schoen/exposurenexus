@@ -18,6 +18,8 @@ export interface PageBreadcrumb {
 
 export interface PageMeta {
   title: string;
+  /** The page column's heading when it says more than the title, as on edit pages ("Edit role"). */
+  heading?: string;
   icon?: LucideIcon;
   breadcrumbs: Array<PageBreadcrumb>;
   count?: number;
@@ -72,6 +74,7 @@ function useSetPageMeta() {
 
 export function usePageMeta({
   title,
+  heading,
   icon,
   breadcrumbs = EMPTY_BREADCRUMBS,
   count,
@@ -81,8 +84,8 @@ export function usePageMeta({
   const setMeta = useSetPageMeta();
 
   useEffect(() => {
-    setMeta((previous) => ({ ...previous, title, icon, breadcrumbs, count }));
-  }, [breadcrumbs, count, icon, setMeta, title]);
+    setMeta((previous) => ({ ...previous, title, heading, icon, breadcrumbs, count }));
+  }, [breadcrumbs, count, heading, icon, setMeta, title]);
 
   useEffect(() => {
     setMeta((previous) => ({ ...previous, actions, menu }));

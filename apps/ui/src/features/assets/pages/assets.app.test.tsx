@@ -178,7 +178,7 @@ describe("creating and deleting assets", () => {
     await user.click(await screen.findByRole("button", { name: "New asset" }));
     const dialog = await screen.findByRole("dialog", { name: "Create asset" });
     await user.type(within(dialog).getByLabelText("Display name"), "db-01");
-    await user.click(within(dialog).getByRole("button", { name: "Create" }));
+    await user.click(within(dialog).getByRole("button", { name: "Create asset" }));
 
     const created = await waitFor(() => {
       const asset = db.assets.all().find((candidate) => candidate.displayName === "db-01");
@@ -211,7 +211,7 @@ describe("creating and deleting assets", () => {
     await user.click(await screen.findByRole("button", { name: "New asset" }));
     const dialog = await screen.findByRole("dialog", { name: "Create asset" });
     await user.type(within(dialog).getByLabelText("Display name"), "db-01");
-    await user.click(within(dialog).getByRole("button", { name: "Create" }));
+    await user.click(within(dialog).getByRole("button", { name: "Create asset" }));
 
     expect((await screen.findAllByText(/Create failed/)).length).toBeGreaterThan(0);
     expect(within(dialog).getByLabelText("Display name")).toHaveValue("db-01");

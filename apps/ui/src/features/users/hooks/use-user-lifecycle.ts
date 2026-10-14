@@ -7,6 +7,7 @@ import {
   createUserByIDQueryOptions,
 } from "@/features/users/queries/users.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
+import { formatCount } from "@/lib/format.ts";
 
 import type {
   CreateUserProfile,
@@ -41,7 +42,7 @@ function detailQueryKey(userId: string) {
 }
 
 function formatUserCount(count: number) {
-  return `${count} user${count === 1 ? "" : "s"}`;
+  return formatCount(count, "user");
 }
 
 function createBatchResult(

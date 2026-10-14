@@ -41,6 +41,7 @@ import {
 import { AssetTypeIcon } from "@/features/assets/components/asset-type-icon.tsx";
 import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
 import { formatAssetCustomFieldValue } from "@/features/assets/lib/asset-custom-fields.ts";
+import { formatAssetEnvironment } from "@/features/assets/lib/asset-environment.ts";
 import { formatAssetType } from "@/features/assets/lib/asset-type.ts";
 import {
   createAssetCustomFieldValuesQueryOptions,
@@ -54,7 +55,6 @@ import {
   createUserProfileById,
   formatUserProfileReference,
 } from "@/features/users";
-import { capitalizeFirstLetter } from "@/lib/format.ts";
 import { cn } from "@/lib/utils.ts";
 
 import type { PropertyOption } from "@/components/properties-panel/property-select.tsx";
@@ -68,10 +68,6 @@ import type { ReactNode } from "react";
 
 const noOwnerValue = "__no_owner__";
 
-function formatAssetValue(value: string) {
-  return capitalizeFirstLetter(value.replace(/([a-z])([A-Z])/gu, "$1 $2"));
-}
-
 const typeOptions: Array<PropertyOption<AssetType>> = Object.values(AssetType).map((type) => ({
   value: type,
   label: formatAssetType(type),
@@ -80,7 +76,7 @@ const typeOptions: Array<PropertyOption<AssetType>> = Object.values(AssetType).m
 
 const environmentOptions: Array<PropertyOption<AssetEnvironment>> = Object.values(
   AssetEnvironment,
-).map((environment) => ({ value: environment, label: formatAssetValue(environment) }));
+).map((environment) => ({ value: environment, label: formatAssetEnvironment(environment) }));
 
 const lifecycleStateOptions: Array<PropertyOption<AssetLifecycleState>> = Object.values(
   AssetLifecycleState,
@@ -175,7 +171,7 @@ function AssetPropertiesPanel({ asset }: { asset: Asset }) {
           <PropertySelect
             value={asset.lifecycleState}
             options={lifecycleStateOptions}
-            searchPlaceholder="Search states…"
+            searchPlaceholder="Search lifecycles…"
             onCommit={(lifecycleState) => update({ lifecycleState })}
           />
         </PropertyRow>

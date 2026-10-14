@@ -6,6 +6,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { useAssetCustomFieldDefinitionLifecycle } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
 import { useLeaveDeletedRecords } from "@/hooks/use-leave-deleted-records.ts";
 import { useStableCallback } from "@/hooks/use-stable-callback.ts";
+import { formatCount } from "@/lib/format.ts";
 
 import type { PageAction } from "@/hooks/use-page-meta.tsx";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
@@ -18,8 +19,8 @@ export function useDeleteCustomFields() {
   return useStableCallback(async (fields: Array<AssetCustomFieldDefinition>) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete custom fields",
-      description: "This action cannot be undone",
-      message: `Are you sure you want to delete ${fields.length} custom field(s)?`,
+      description: "This action cannot be undone.",
+      message: `Are you sure you want to delete ${formatCount(fields.length, "custom field")}?`,
       confirmVariant: "destructive",
     });
 

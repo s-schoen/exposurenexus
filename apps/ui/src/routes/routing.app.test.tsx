@@ -24,7 +24,7 @@ describe("list routes", () => {
     ["/findings", "Findings", SEED_FINDINGS[0].id, "Finding details"],
     ["/findings/triage", "Triage", SEED_FINDINGS[0].id, "Finding details"],
     ["/settings/users", "Users", SEED_USERS[1].id, "User details"],
-    ["/vulnerabilities", "Vulnerabilities", SEED_VULNERABILITIES[0].id, "Catalog entry details"],
+    ["/vulnerabilities", "Vulnerabilities", SEED_VULNERABILITIES[0].id, "Vulnerability details"],
     ["/settings/custom-fields", "Custom fields", SEED_CUSTOM_FIELDS[0].id, "Custom field details"],
     ["/settings/roles", "Roles", CUSTOM_AUDITOR_ROLE.id, "Role details"],
   ])("%s renders its page and opens ?selected= as a preview", async (path, title, id, preview) => {
@@ -119,7 +119,8 @@ describe("authenticated shell", () => {
     const { router, user } = renderApp({ path: `/settings/users/${ROBIN.id}/edit` });
     const breadcrumb = () => screen.findByRole("navigation", { name: "Breadcrumb" });
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Edit" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Edit user" })).toBeVisible();
+    expect(within(await breadcrumb()).getByText("Edit")).toBeVisible();
     await user.click(within(await breadcrumb()).getByRole("link", { name: ROBIN.displayName }));
     expect(await screen.findByRole("heading", { level: 1, name: ROBIN.displayName })).toBeVisible();
     expect(router.state.location.pathname).toBe(`/settings/users/${ROBIN.id}`);

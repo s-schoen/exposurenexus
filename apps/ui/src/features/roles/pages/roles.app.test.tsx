@@ -208,7 +208,7 @@ describe("role detail", () => {
 
     const properties = screen.getByRole("region", { name: "Properties" });
     expect(within(properties).getByText("Custom")).toBeVisible();
-    expect(within(properties).getByText("2")).toBeVisible();
+    expect(within(properties).queryByText("Resources")).not.toBeInTheDocument();
   });
 
   it("shows a role without permissions", async () => {

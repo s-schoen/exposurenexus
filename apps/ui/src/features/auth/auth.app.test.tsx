@@ -13,7 +13,7 @@ const [ROBIN, MORGAN] = SEED_USERS;
 async function signIn(user: ReturnType<typeof renderApp>["user"], username: string) {
   await user.type(await screen.findByLabelText("Username"), username);
   await user.type(screen.getByLabelText("Password"), "any password");
-  await user.click(screen.getByRole("button", { name: "Login" }));
+  await user.click(screen.getByRole("button", { name: "Sign in" }));
 }
 
 describe("authentication", () => {

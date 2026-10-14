@@ -108,7 +108,7 @@ describe("CreateAssetDialog", () => {
     expect(nameInput).toHaveValue("");
     expect(screen.getByLabelText(/^type$/i)).toHaveValue(AssetType.Host);
     expect(screen.getByLabelText(/^environment$/i)).toHaveValue(AssetEnvironment.Unknown);
-    expect(screen.getByLabelText(/^lifecycle state$/i)).toHaveValue(AssetLifecycleState.Active);
+    expect(screen.getByLabelText(/^lifecycle$/i)).toHaveValue(AssetLifecycleState.Active);
     expect(screen.getByLabelText(/^owner$/i)).toHaveValue("__no_user__");
     expect(screen.getByTestId("ownerId-trigger")).toHaveTextContent("No owner");
   });
@@ -136,7 +136,7 @@ describe("CreateAssetDialog", () => {
     const { call, posts } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
-    await user.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.click(screen.getByRole("button", { name: /^create asset$/i }));
 
     expect(await createdPayload(call, posts)).toEqual({
       displayName: "api-01",
@@ -152,7 +152,7 @@ describe("CreateAssetDialog", () => {
     const { call, posts } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
-    await user.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.click(screen.getByRole("button", { name: /^create asset$/i }));
 
     expect(await createdPayload(call, posts)).toEqual({
       displayName: "api-01",
@@ -170,7 +170,7 @@ describe("CreateAssetDialog", () => {
 
     await user.type(screen.getByLabelText(/^display name$/i), "container-01");
     await user.selectOptions(screen.getByLabelText(/^type$/i), AssetType.ContainerImage);
-    await user.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.click(screen.getByRole("button", { name: /^create asset$/i }));
 
     expect(await createdPayload(call, posts)).toEqual({
       displayName: "container-01",
@@ -190,15 +190,12 @@ describe("CreateAssetDialog", () => {
       screen.getByLabelText(/^environment$/i),
       AssetEnvironment.NotApplicable,
     );
-    await user.selectOptions(
-      screen.getByLabelText(/^lifecycle state$/i),
-      AssetLifecycleState.Archived,
-    );
+    await user.selectOptions(screen.getByLabelText(/^lifecycle$/i), AssetLifecycleState.Archived);
     await screen.findByRole("option", { name: OWNER.displayName });
     await user.selectOptions(screen.getByLabelText(/^owner$/i), OWNER.id);
 
     expect(screen.getByTestId("type-trigger")).toHaveTextContent("Container image");
-    expect(screen.getByTestId("environment-trigger")).toHaveTextContent("NotApplicable");
+    expect(screen.getByTestId("environment-trigger")).toHaveTextContent("Not applicable");
     expect(screen.getByTestId("lifecycleState-trigger")).toHaveTextContent("Archived");
     expect(screen.getByTestId("ownerId-trigger")).toHaveTextContent(OWNER.displayName);
   });
@@ -210,7 +207,7 @@ describe("CreateAssetDialog", () => {
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await screen.findByRole("option", { name: OWNER.displayName });
     await user.selectOptions(screen.getByLabelText(/^owner$/i), OWNER.id);
-    await user.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.click(screen.getByRole("button", { name: /^create asset$/i }));
 
     expect(await createdPayload(call, posts)).toEqual({
       displayName: "api-01",
@@ -229,7 +226,7 @@ describe("CreateAssetDialog", () => {
     await screen.findByRole("option", { name: OWNER.displayName });
     await user.selectOptions(screen.getByLabelText(/^owner$/i), OWNER.id);
     await user.selectOptions(screen.getByLabelText(/^owner$/i), "__no_user__");
-    await user.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.click(screen.getByRole("button", { name: /^create asset$/i }));
 
     expect(await createdPayload(call, posts)).toEqual({
       displayName: "api-01",
@@ -250,7 +247,7 @@ describe("CreateAssetDialog", () => {
 
     expect(screen.queryByRole("option", { name: OWNER.displayName })).toBeNull();
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
-    await user.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.click(screen.getByRole("button", { name: /^create asset$/i }));
 
     expect(await createdPayload(call, posts)).toEqual({
       displayName: "api-01",
@@ -270,11 +267,8 @@ describe("CreateAssetDialog", () => {
       screen.getByLabelText(/^environment$/i),
       AssetEnvironment.NotApplicable,
     );
-    await user.selectOptions(
-      screen.getByLabelText(/^lifecycle state$/i),
-      AssetLifecycleState.Archived,
-    );
-    await user.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.selectOptions(screen.getByLabelText(/^lifecycle$/i), AssetLifecycleState.Archived);
+    await user.click(screen.getByRole("button", { name: /^create asset$/i }));
 
     expect(await createdPayload(call, posts)).toEqual({
       displayName: "api-01",
@@ -292,7 +286,7 @@ describe("CreateAssetDialog", () => {
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await user.click(screen.getByRole("button", { name: /add identifier/i }));
     await user.type(screen.getByLabelText("Identifier value 1"), "API.Example.com.");
-    await user.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.click(screen.getByRole("button", { name: /^create asset$/i }));
 
     expect(await createdPayload(call, posts)).toEqual({
       displayName: "api-01",
@@ -315,10 +309,12 @@ describe("CreateAssetDialog", () => {
     const { call, posts } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
-    await user.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.click(screen.getByRole("button", { name: /^create asset$/i }));
 
     await waitFor(() => expect(posts).toHaveLength(1));
-    await waitFor(() => expect(screen.getByRole("button", { name: /^create$/i })).toBeEnabled());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /^create asset$/i })).toBeEnabled(),
+    );
     expect(call.end).not.toHaveBeenCalled();
     expect(screen.getByLabelText(/^display name$/i)).toHaveValue("api-01");
   });
@@ -327,7 +323,7 @@ describe("CreateAssetDialog", () => {
     const user = userEvent.setup();
     const { call } = renderAssetDialog();
 
-    await user.click(screen.getByRole("button", { name: /^create$/i }));
+    await user.click(screen.getByRole("button", { name: /^create asset$/i }));
     await waitFor(() => {
       expect(call.end).not.toHaveBeenCalled();
     });

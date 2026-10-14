@@ -69,7 +69,7 @@ export function AssetCombobox({
               {value ? (
                 assets.data?.find((a) => a.id === value.id)?.displayName
               ) : (
-                <span className="text-subtle-foreground">Select asset...</span>
+                <span className="text-subtle-foreground">Select asset…</span>
               )}
             </div>
             <ChevronDownIcon data-icon="inline-end" className="text-muted-foreground" />
@@ -78,7 +78,7 @@ export function AssetCombobox({
       ></PopoverTrigger>
       <PopoverContent className="p-0">
         <Command>
-          <CommandInput aria-label="Search assets" placeholder="Select asset..." />
+          <CommandInput aria-label="Search assets" placeholder="Search assets…" />
           <CommandList id={listboxId}>
             <CommandEmpty>No assets available</CommandEmpty>
             <CommandGroup>

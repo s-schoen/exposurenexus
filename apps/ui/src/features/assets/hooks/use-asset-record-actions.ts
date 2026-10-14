@@ -5,6 +5,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
 import { useLeaveDeletedRecords } from "@/hooks/use-leave-deleted-records.ts";
 import { useStableCallback } from "@/hooks/use-stable-callback.ts";
+import { formatCount } from "@/lib/format.ts";
 
 import type { PageAction } from "@/hooks/use-page-meta.tsx";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
@@ -17,8 +18,8 @@ export function useDeleteAssets() {
   return useStableCallback(async (assets: Array<Asset>) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete assets",
-      description: "This action cannot be undone",
-      message: `Are you sure you want to delete ${assets.length} asset(s)?`,
+      description: "This action cannot be undone.",
+      message: `Are you sure you want to delete ${formatCount(assets.length, "asset")}?`,
       confirmVariant: "destructive",
     });
 

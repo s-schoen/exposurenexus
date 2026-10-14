@@ -14,7 +14,7 @@ test("signs in from a deep link and continues to the target", async ({ page, con
   await expect(page).toHaveURL(/\/login\?redirect=/);
   await page.getByLabel("Username").fill(MORGAN.username);
   await page.getByLabel("Password").fill("any password");
-  await page.getByRole("button", { name: "Login" }).click();
+  await page.getByRole("button", { name: "Sign in" }).click();
 
   await expect(page).toHaveURL(/\/settings\/roles\?.*kind=Custom/);
   await expect(page.getByRole("heading", { level: 1, name: "Roles" })).toBeVisible();
