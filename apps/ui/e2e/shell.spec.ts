@@ -16,6 +16,6 @@ test("collapses the sidebar into a sheet on a phone", async ({ page }) => {
   await expect(page).toHaveURL(/\/findings/);
   await expect(sidebar).toBeHidden();
   await expect(page.getByRole("heading", { level: 1, name: "Findings" })).toBeInViewport();
-  await expect(page.getByRole("button", { name: "More actions" })).toBeInViewport();
+  await expect(page.getByRole("button", { name: "New finding" })).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

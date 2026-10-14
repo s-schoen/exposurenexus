@@ -3,7 +3,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { Plus, Server } from "lucide-react";
 import { useMemo } from "react";
 
-import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DataList } from "@/components/data-list/data-list.tsx";
 import { DataListEmpty } from "@/components/data-list/empty-state.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -12,7 +11,7 @@ import {
   getAssetCustomFieldColumnId,
 } from "@/features/assets/components/asset-list/columns.tsx";
 import { AssetTypeIcon } from "@/features/assets/components/asset-type-icon.tsx";
-import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
+import { useDeleteAssets } from "@/features/assets/hooks/use-asset-record-actions.ts";
 import { formatAssetType } from "@/features/assets/lib/asset-type.ts";
 import { createListAssetsWithCustomFieldsQueryOptions } from "@/features/assets/queries/assets.ts";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields";
@@ -86,7 +85,7 @@ export function AssetList({
   onCreateAsset,
 }: AssetListProps = {}) {
   const navigate = useNavigate();
-  const assetLifecycle = useAssetLifecycle();
+  const deleteAssets = useDeleteAssets();
   const assetsQuery = useSuspenseQuery(
     createListAssetsWithCustomFieldsQueryOptions(assetListOptions),
   );
@@ -135,21 +134,6 @@ export function AssetList({
     });
   };
 
-  const handleDeleteAssets = async (assets: Array<AssetWithCustomFields>) => {
-    const confirmed = await ConfirmDialog.call({
-      title: "Delete assets",
-      description: "This action cannot be undone",
-      message: `Are you sure you want to delete ${assets.length} asset(s)?`,
-      confirmVariant: "destructive",
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    await assetLifecycle.deleteAssets(assets);
-  };
-
   return (
     <DataList
       label="Assets"
@@ -166,7 +150,7 @@ export function AssetList({
       onRowClick={onSelectAsset}
       onRowDoubleClick={handleOpenAsset}
       isRowActive={(asset) => asset.id === selectedAssetId}
-      onRowDelete={handleDeleteAssets}
+      onRowDelete={deleteAssets}
       emptyState={
         <DataListEmpty icon={Server} message="No assets yet.">
           {onCreateAsset && (

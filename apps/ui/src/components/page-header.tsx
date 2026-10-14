@@ -2,11 +2,11 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight, Ellipsis } from "lucide-react";
 import { Fragment } from "react";
 
+import { RecordMenuItems } from "@/components/record-menu.tsx";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -117,12 +117,7 @@ function PageMenu({ menu }: { menu: Array<PageAction> }) {
         <Ellipsis />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {menu.map((item) => (
-          <DropdownMenuItem key={item.label} disabled={item.disabled} onClick={item.onClick}>
-            {item.icon && <item.icon />}
-            {item.label}
-          </DropdownMenuItem>
-        ))}
+        <RecordMenuItems actions={menu} />
       </DropdownMenuContent>
     </DropdownMenu>
   );

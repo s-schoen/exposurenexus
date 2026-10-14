@@ -8,6 +8,7 @@ import { DataListEmpty } from "@/components/data-list/empty-state.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { createListRolesQueryOptions } from "@/features/roles";
 import { createColumns } from "@/features/users/components/user-list/columns.tsx";
+import { useUserBulkActions } from "@/features/users/hooks/use-user-record-actions.ts";
 import { createListUsersQueryOptions } from "@/features/users/queries/users.ts";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
@@ -38,6 +39,7 @@ export function UserList({
 }: UserListProps = {}) {
   const navigate = useNavigate();
   const usersQuery = useSuspenseQuery(createListUsersQueryOptions());
+  const bulkActions = useUserBulkActions();
   const rolesQuery = useSuspenseQuery(createListRolesQueryOptions());
   const roleLabelById = useMemo(
     () => new Map(rolesQuery.data.map((role) => [role.id, role.name])),
@@ -69,6 +71,7 @@ export function UserList({
       onFilterStateChange={onFilterStateChange}
       onRowClick={onSelectUser}
       onRowDoubleClick={handleOpenUser}
+      bulkActions={bulkActions}
       isRowActive={(user) => user.id === selectedUserId}
       emptyState={
         <DataListEmpty icon={Users} message="No users yet.">

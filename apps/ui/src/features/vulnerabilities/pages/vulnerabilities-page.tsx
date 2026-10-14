@@ -2,11 +2,10 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Bug, Plus } from "lucide-react";
 import { lazy, useMemo } from "react";
 
-import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPeek } from "@/components/detail-peek.tsx";
 import { VulnerabilityList } from "@/features/vulnerabilities/components/vulnerability-list/index.tsx";
 import { useCreateVulnerability } from "@/features/vulnerabilities/hooks/use-create-vulnerability.ts";
-import { useVulnerabilityLifecycle } from "@/features/vulnerabilities/hooks/use-vulnerability-lifecycle.ts";
+import { useDeleteVulnerabilities } from "@/features/vulnerabilities/hooks/use-vulnerability-record-actions.ts";
 import { useVulnerabilityTableSearchState } from "@/features/vulnerabilities/hooks/use-vulnerability-table-search-state.ts";
 import { createListVulnerabilitiesQueryOptions } from "@/features/vulnerabilities/queries/vulnerabilities.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -19,6 +18,11 @@ const VulnerabilityPreview = lazy(() =>
     default: module.VulnerabilityPreview,
   })),
 );
+const VulnerabilityPeekMenu = lazy(() =>
+  import("@/features/vulnerabilities/components/vulnerability-preview.tsx").then((module) => ({
+    default: module.VulnerabilityPeekMenu,
+  })),
+);
 
 interface VulnerabilitiesPageProps {
   search?: Record<string, unknown>;
@@ -27,7 +31,7 @@ interface VulnerabilitiesPageProps {
 
 export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPageProps) {
   const createVulnerability = useCreateVulnerability();
-  const vulnerabilityLifecycle = useVulnerabilityLifecycle();
+  const deleteVulnerabilities = useDeleteVulnerabilities();
   const { filterState, onFilterStateChange, grouping, onGroupingChange } =
     useVulnerabilityTableSearchState({
       search,
@@ -59,28 +63,6 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
     actions,
   });
 
-  const handleDeleteVulnerabilities = async (vulnerabilities: Array<VulnerabilityCatalog>) => {
-    const confirmed = await ConfirmDialog.call({
-      title: "Delete vulnerabilities",
-      description: "This action cannot be undone",
-      message: `Are you sure you want to delete ${vulnerabilities.length} catalog entr${vulnerabilities.length === 1 ? "y" : "ies"}? Linked enrichment will be removed while findings and observations are preserved.`,
-      confirmVariant: "destructive",
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    const result = await vulnerabilityLifecycle.deleteVulnerabilities(vulnerabilities);
-    const deletedVulnerabilityIds = new Set(
-      result.successful.map((vulnerability) => vulnerability.id),
-    );
-
-    if (selected && deletedVulnerabilityIds.has(selected)) {
-      await selectedSearch.clearSelected();
-    }
-  };
-
   return (
     <>
       <VulnerabilityList
@@ -95,12 +77,13 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
         onSelectVulnerability={(vulnerability) => {
           void selectedSearch.selectRow(vulnerability);
         }}
-        onDeleteVulnerabilities={handleDeleteVulnerabilities}
+        onDeleteVulnerabilities={deleteVulnerabilities}
       />
       <DetailPeek
         selectedId={selectedSearch.selectedId}
         label="Catalog entry details"
         getFullPageHref={(id) => `/vulnerabilities/${id}`}
+        menu={(id) => <VulnerabilityPeekMenu vulnerabilityId={id} />}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}

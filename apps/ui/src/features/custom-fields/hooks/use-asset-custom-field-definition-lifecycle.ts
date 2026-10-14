@@ -99,7 +99,10 @@ export function useAssetCustomFieldDefinitionLifecycle(): AssetCustomFieldDefini
   const definitionUpdate = useUpdateAssetCustomFieldDefinitionMutation();
   const definitionDelete = useDeleteAssetCustomFieldDefinitionMutation();
 
-  async function invalidateDefinitionReads(definitionIds: Array<string>) {
+  async function invalidateDefinitionReads(
+    definitionIds: Array<string>,
+    { deleted = false }: { deleted?: boolean } = {},
+  ) {
     await Promise.all([
       queryClient.invalidateQueries({
         queryKey: listQueryKey,
@@ -109,6 +112,9 @@ export function useAssetCustomFieldDefinitionLifecycle(): AssetCustomFieldDefini
         queryClient.invalidateQueries({
           queryKey: detailQueryKey(definitionId),
           exact: true,
+          // A deleted record's open detail page would refetch it only to get a retried 404,
+          // delaying the navigation away. Mark it stale instead.
+          refetchType: deleted ? "none" : "active",
         }),
       ),
     ]);
@@ -168,7 +174,10 @@ export function useAssetCustomFieldDefinitionLifecycle(): AssetCustomFieldDefini
         console.error(failure.error);
       }
 
-      await invalidateDefinitionReads(definitions.map((definition) => definition.id));
+      await invalidateDefinitionReads(
+        definitions.map((definition) => definition.id),
+        { deleted: true },
+      );
       toastDeleteSummary(result);
 
       return result;

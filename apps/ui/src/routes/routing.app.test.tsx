@@ -107,14 +107,11 @@ describe("authenticated shell", () => {
     expect(heading.parentElement).toHaveTextContent(String(SEED_VULNERABILITIES.length));
   });
 
-  it("opens the import page from the findings header menu", async () => {
-    const { router, user } = renderApp({ path: "/findings" });
+  it("offers no import entry point while the import page is disabled", async () => {
+    renderApp({ path: "/findings" });
 
-    await user.click(await screen.findByRole("button", { name: "More actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Import findings" }));
-
-    await waitFor(() => expect(router.state.location.pathname).toBe("/findings/import"));
-    expect(await screen.findByRole("heading", { level: 1, name: "Import findings" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Findings" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "More actions" })).not.toBeInTheDocument();
   });
 
   it("links detail pages back to their list through breadcrumbs", async () => {

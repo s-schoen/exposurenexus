@@ -17,7 +17,7 @@ vi.mock("sonner", () => ({ toast }));
 
 // Page flows live in users.app.test.tsx; this covers return values and cache effects.
 
-const [, MORGAN] = SEED_USERS;
+const [, MORGAN, CASEY] = SEED_USERS;
 const listKey = createListUsersQueryOptions().queryKey;
 const detailKey = createUserByIDQueryOptions(MORGAN.id).queryKey;
 const unrelatedKey = ["roles"];
@@ -90,5 +90,50 @@ describe("useUserLifecycle", () => {
     expect(queryClient.getQueryData(detailKey)).toEqual(MORGAN);
     expect(isInvalidated(queryClient, listKey)).toBe(false);
     expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Update failed"));
+  });
+  it("enables users in a batch, writing each to its detail cache", async () => {
+    const { queryClient, result } = renderHookWithApp(() => useUserLifecycle());
+    seedCache(queryClient);
+
+    let outcome = null;
+    await act(async () => {
+      outcome = await result.current.setUsersEnabled([CASEY], true);
+    });
+
+    expect(outcome).toEqual({ successful: [{ ...CASEY, enabled: true }], failed: [] });
+    expect(db.users.get(CASEY.id)?.enabled).toBe(true);
+    expect(queryClient.getQueryData(createUserByIDQueryOptions(CASEY.id).queryKey)).toEqual({
+      ...CASEY,
+      enabled: true,
+    });
+    expect(isInvalidated(queryClient, listKey)).toBe(true);
+    expect(toast.success).toHaveBeenCalledWith("Enabled 1 user");
+  });
+
+  it("summarizes a partly failed batch in one toast", async () => {
+    mockApiError("put", `/users/${CASEY.id}`, 500);
+    const { result } = renderHookWithApp(() => useUserLifecycle());
+
+    let outcome: { successful: Array<unknown>; failed: Array<unknown> } | null = null;
+    await act(async () => {
+      outcome = await result.current.setUsersEnabled([MORGAN, CASEY], false);
+    });
+
+    expect(outcome!.successful).toEqual([{ ...MORGAN, enabled: false }]);
+    expect(outcome!.failed).toHaveLength(1);
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith("Disabled 1 user; failed 1 user");
+  });
+
+  it("returns an empty batch without requests or toasts", async () => {
+    const { result } = renderHookWithApp(() => useUserLifecycle());
+
+    let outcome = null;
+    await act(async () => {
+      outcome = await result.current.setUsersEnabled([], false);
+    });
+
+    expect(outcome).toEqual({ successful: [], failed: [] });
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });

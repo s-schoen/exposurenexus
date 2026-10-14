@@ -99,15 +99,39 @@ describe("custom fields list", () => {
 });
 
 describe("custom field detail", () => {
-  it("shows the definition and opens the edit page", async () => {
+  it("shows the definition and opens the edit page from the header menu", async () => {
     const { router, user } = renderApp({ path: `/settings/custom-fields/${PRIORITY.id}` });
 
     expect(await screen.findByRole("heading", { level: 1, name: PRIORITY.name })).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Edit custom field" }));
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit custom field" }));
 
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/settings/custom-fields/${PRIORITY.id}/edit`),
     );
+  });
+
+  it("deletes the field from its header menu and returns to the list", async () => {
+    const { router, user } = renderApp({ path: `/settings/custom-fields/${PRIORITY.id}` });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete custom field…" }));
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/custom-fields"));
+    expect(db.customFields.get(PRIORITY.id)).toBeUndefined();
+  });
+
+  it("deletes the field from the peek's menu and closes the peek", async () => {
+    const { router, user } = renderApp({ path: `/settings/custom-fields?selected=${PRIORITY.id}` });
+    const peek = await screen.findByRole("dialog", { name: "Custom field details" });
+
+    await user.click(await within(peek).findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete custom field…" }));
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty("selected"));
+    expect(db.customFields.get(PRIORITY.id)).toBeUndefined();
   });
 
   it("shows a select field's rules, allowed values, key and type", async () => {

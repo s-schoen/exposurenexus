@@ -777,6 +777,7 @@
                   "@/features/**",
                   "!@/features/users",
                   "!@/features/roles",
+                  "!@/features/auth",
                   "!@/features/users/**",
                   "!@/features/roles/**"
                 ],
@@ -820,6 +821,7 @@
                   "@/features/**",
                   "!@/features/users",
                   "!@/features/roles",
+                  "!@/features/auth",
                   "!@/features/users/**",
                   "!@/features/roles/**"
                 ],

@@ -3,7 +3,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { Plus, Server, ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
 
-import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DataList } from "@/components/data-list/data-list.tsx";
 import { DataListEmpty } from "@/components/data-list/empty-state.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -14,10 +13,9 @@ import {
   formatFindingAssignee,
 } from "@/features/findings/components/finding-list/columns.tsx";
 import { STATUS_ORDER } from "@/features/findings/components/finding-list/constants.ts";
-import { FindingContextMenu } from "@/features/findings/components/finding-list/context-menu.tsx";
 import { FindingStatusIcon } from "@/features/findings/components/finding-status-icon.tsx";
 import { useCreateFinding } from "@/features/findings/hooks/use-create-finding.ts";
-import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
+import { useDeleteFindings } from "@/features/findings/hooks/use-finding-record-actions.tsx";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
 import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
 import { UserAvatar, createListUsersQueryOptions, createUserProfileById } from "@/features/users";
@@ -60,7 +58,7 @@ export function FindingList({
 }: FindingListProps) {
   const navigate = useNavigate();
   const createFinding = useCreateFinding();
-  const findingLifecycle = useFindingLifecycle();
+  const deleteFindings = useDeleteFindings();
   const findingsQuery = useSuspenseQuery(createListFindingsQueryOptions());
   const assetsQuery = useSuspenseQuery(createListAssetsQueryOptions());
   const usersQuery = useSuspenseQuery(createListUsersQueryOptions());
@@ -144,19 +142,6 @@ export function FindingList({
     });
   };
 
-  const handleDeleteFindings = async (findings: Array<Finding>) => {
-    const confirmed = await ConfirmDialog.call({
-      title: "Delete findings",
-      description: "This action cannot be undone",
-      message: `Are you sure you want to delete ${findings.length} findings(s)?`,
-      confirmVariant: "destructive",
-    });
-
-    if (confirmed) {
-      await findingLifecycle.deleteFindings(findings);
-    }
-  };
-
   return (
     <DataList
       label="Findings"
@@ -174,16 +159,7 @@ export function FindingList({
       onRowClick={onSelectFinding}
       onRowDoubleClick={handleOpenFinding}
       isRowActive={(finding) => finding.id === selectedFindingId}
-      onRowDelete={handleDeleteFindings}
-      contextMenu={(findings, children, key) => (
-        <FindingContextMenu
-          key={key}
-          findings={findings}
-          onDelete={() => handleDeleteFindings(findings)}
-        >
-          {children}
-        </FindingContextMenu>
-      )}
+      onRowDelete={deleteFindings}
       emptyState={
         <DataListEmpty icon={ShieldAlert} message="No findings yet.">
           <Button variant="outline" onClick={() => void createFinding()}>
