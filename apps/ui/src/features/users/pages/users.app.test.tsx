@@ -10,6 +10,10 @@ import { renderApp } from "@/test/render-app.tsx";
 
 const [ROBIN, MORGAN, CASEY] = SEED_USERS;
 
+async function findRow(name: string) {
+  return (await screen.findByText(name)).closest("li")!;
+}
+
 async function openCreateDialog() {
   const view = renderApp({ path: "/settings/users" });
   await view.user.click(await screen.findByRole("button", { name: "New user" }));
@@ -69,6 +73,56 @@ describe("users list", () => {
     await waitFor(() => expect(router.state.location.search).not.toHaveProperty("selected"));
   });
 
+  it("edits a user from the peek's menu", async () => {
+    const { router, user } = renderApp({ path: `/settings/users?selected=${MORGAN.id}` });
+    const peek = await screen.findByRole("dialog", { name: "User details" });
+
+    await user.click(await within(peek).findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit user" }));
+
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/settings/users/${MORGAN.id}/edit`),
+    );
+  });
+
+  it("offers bulk Enable and Disable only for users they would change", async () => {
+    const { user } = renderApp({ path: "/settings/users" });
+
+    await user.click(within(await findRow(CASEY.displayName)).getByRole("checkbox"));
+    expect(screen.getByRole("button", { name: "Enable" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Disable" })).not.toBeInTheDocument();
+
+    await user.click(within(await findRow(MORGAN.displayName)).getByRole("checkbox"));
+    expect(screen.getByRole("button", { name: "Disable" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Enable" }));
+
+    await waitFor(() => expect(db.users.get(CASEY.id)?.enabled).toBe(true));
+    expect(db.users.get(MORGAN.id)?.enabled).toBe(true);
+    expect(await screen.findByText("Enabled 1 user")).toBeVisible();
+  });
+
+  it("skips your own account when disabling users in bulk", async () => {
+    const { user } = renderApp({ path: "/settings/users" });
+
+    await user.click(within(await findRow(ROBIN.displayName)).getByRole("checkbox"));
+    await user.click(within(await findRow(MORGAN.displayName)).getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "Disable" }));
+
+    await waitFor(() => expect(db.users.get(MORGAN.id)?.enabled).toBe(false));
+    expect(db.users.get(ROBIN.id)?.enabled).toBe(true);
+    expect(await screen.findByText("You can't disable your own account")).toBeVisible();
+  });
+
+  it("disables a user from the row context menu", async () => {
+    const { user } = renderApp({ path: "/settings/users" });
+
+    await user.pointer({ keys: "[MouseRight]", target: await findRow(MORGAN.displayName) });
+    expect(screen.queryByRole("menuitem", { name: "Enable" })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("menuitem", { name: "Disable" }));
+
+    await waitFor(() => expect(db.users.get(MORGAN.id)?.enabled).toBe(false));
+  });
+
   it("keeps a preview failure inside the dialog", async () => {
     mockApiError("get", "/users/:id", 500, "User request failed");
     renderApp({ path: `/settings/users?selected=${MORGAN.id}` });
@@ -86,10 +140,34 @@ describe("user detail", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: MORGAN.displayName }),
     ).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Edit user" }));
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit user" }));
 
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/settings/users/${MORGAN.id}/edit`),
+    );
+  });
+
+  it("disables and enables the user from the header menu", async () => {
+    const { user } = renderApp({ path: `/settings/users/${MORGAN.id}` });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Disable user" }));
+    await waitFor(() => expect(db.users.get(MORGAN.id)?.enabled).toBe(false));
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Enable user" }));
+    await waitFor(() => expect(db.users.get(MORGAN.id)?.enabled).toBe(true));
+  });
+
+  it("does not offer to disable your own account", async () => {
+    const { user } = renderApp({ path: `/settings/users/${ROBIN.id}` });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+
+    expect(await screen.findByRole("menuitem", { name: "Disable user" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
     );
   });
 

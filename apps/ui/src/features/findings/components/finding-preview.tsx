@@ -1,48 +1,30 @@
 import { useQuery } from "@tanstack/react-query";
-import { Ellipsis, Pencil } from "lucide-react";
-import { useState } from "react";
 
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu.tsx";
+import { RecordMenu } from "@/components/record-menu.tsx";
 import { createAssetByIDQueryOptions } from "@/features/assets";
 import { FindingDetailContent } from "@/features/findings/components/finding-detail-content.tsx";
-import { FindingDetailsDialog } from "@/features/findings/components/finding-details-dialog.tsx";
+import { useFindingRecordActions } from "@/features/findings/hooks/use-finding-record-actions.tsx";
 import { createFindingByIDQueryOptions } from "@/features/findings/queries/findings.ts";
 
 import type { Finding } from "@exposurenexus/contracts/model/finding";
 
-// The peek has no page header, so its ⋯ menu sits beside the title.
-function FindingPeekMenu({ finding }: { finding: Finding }) {
-  const [editingDetails, setEditingDetails] = useState(false);
+function FindingRecordMenu({ finding }: { finding: Finding }) {
+  const { actions, dialog } = useFindingRecordActions(finding);
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon" aria-label="More actions" />}
-        >
-          <Ellipsis strokeWidth={1.5} />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setEditingDetails(true)}>
-            <Pencil />
-            Edit details
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <FindingDetailsDialog
-        finding={finding}
-        open={editingDetails}
-        onOpenChange={setEditingDetails}
-      />
+      <RecordMenu actions={actions} />
+      {dialog}
     </>
   );
+}
+
+/** The peek header's ⋯ menu. It waits for the preview's fetch instead of fetching again. */
+export function FindingPeekMenu({ findingId }: { findingId: string }) {
+  const finding = useQuery({ ...createFindingByIDQueryOptions(findingId), enabled: false });
+
+  return finding.data ? <FindingRecordMenu finding={finding.data} /> : null;
 }
 
 export function FindingPreview({ findingId }: { findingId: string }) {
@@ -68,13 +50,7 @@ export function FindingPreview({ findingId }: { findingId: string }) {
           errorDescription="The selected finding's asset could not be loaded."
           missingMessage="The API did not return an asset record."
         >
-          {(assetData) => (
-            <FindingDetailContent
-              finding={findingData}
-              asset={assetData}
-              titleAction={<FindingPeekMenu finding={findingData} />}
-            />
-          )}
+          {(assetData) => <FindingDetailContent finding={findingData} asset={assetData} />}
         </DetailQueryBoundary>
       )}
     </DetailQueryBoundary>

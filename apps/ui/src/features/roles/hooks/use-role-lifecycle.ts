@@ -88,7 +88,10 @@ export function useRoleLifecycle(): RoleLifecycleActions {
   const roleUpdate = useUpdateRoleMutation();
   const roleDelete = useDeleteRoleMutation();
 
-  async function invalidateRoleReads(roleIds: Array<string>) {
+  async function invalidateRoleReads(
+    roleIds: Array<string>,
+    { deleted = false }: { deleted?: boolean } = {},
+  ) {
     await Promise.all([
       queryClient.invalidateQueries({
         queryKey: listQueryKey,
@@ -98,6 +101,9 @@ export function useRoleLifecycle(): RoleLifecycleActions {
         queryClient.invalidateQueries({
           queryKey: detailQueryKey(roleId),
           exact: true,
+          // A deleted record's open detail page would refetch it only to get a retried 404,
+          // delaying the navigation away. Mark it stale instead.
+          refetchType: deleted ? "none" : "active",
         }),
       ),
     ]);
@@ -154,7 +160,10 @@ export function useRoleLifecycle(): RoleLifecycleActions {
         console.error(failure.error);
       }
 
-      await invalidateRoleReads(roles.map((role) => role.id));
+      await invalidateRoleReads(
+        roles.map((role) => role.id),
+        { deleted: true },
+      );
       toastDeleteSummary(result);
 
       return result;

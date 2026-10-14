@@ -100,7 +100,10 @@ export function useFindingLifecycle(): FindingLifecycleActions {
     });
   }
 
-  async function invalidateFindingReads(findingIds: Array<string>) {
+  async function invalidateFindingReads(
+    findingIds: Array<string>,
+    { deleted = false }: { deleted?: boolean } = {},
+  ) {
     await Promise.all([
       queryClient.invalidateQueries({
         queryKey: listQueryKey,
@@ -114,6 +117,9 @@ export function useFindingLifecycle(): FindingLifecycleActions {
         queryClient.invalidateQueries({
           queryKey: detailQueryKey(id),
           exact: true,
+          // A deleted record's open detail page would refetch it only to get a retried 404,
+          // delaying the navigation away. Mark it stale instead.
+          refetchType: deleted ? "none" : "active",
         }),
       ),
     ]);
@@ -191,7 +197,10 @@ export function useFindingLifecycle(): FindingLifecycleActions {
         console.error(failure.error);
       }
 
-      await invalidateFindingReads(findings.map((finding) => finding.id));
+      await invalidateFindingReads(
+        findings.map((finding) => finding.id),
+        { deleted: true },
+      );
       toastDeleteSummary(result);
 
       return result;

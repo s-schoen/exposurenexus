@@ -4,8 +4,10 @@ import { useMemo } from "react";
 
 import { DetailPeek } from "@/components/detail-peek.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
+import { RecordMenu } from "@/components/record-menu.tsx";
 import { AssetDetailContent } from "@/features/assets/components/asset-detail-content.tsx";
 import { AssetList } from "@/features/assets/components/asset-list/index.tsx";
+import { useAssetRecordActions } from "@/features/assets/hooks/use-asset-record-actions.ts";
 import {
   createAssetListOptionsFromSearch,
   useAssetTableSearchState,
@@ -98,6 +100,7 @@ export function AssetsPage({
         selectedId={selectedSearch.selectedId}
         label="Asset details"
         getFullPageHref={(id) => `/assets/${id}`}
+        menu={(id) => <AssetPeekMenu assetId={id} />}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}
@@ -106,6 +109,17 @@ export function AssetsPage({
       </DetailPeek>
     </>
   );
+}
+
+function AssetRecordMenu({ asset }: { asset: Asset }) {
+  return <RecordMenu actions={useAssetRecordActions(asset)} />;
+}
+
+/** The peek header's ⋯ menu. It waits for the preview's fetch instead of fetching again. */
+function AssetPeekMenu({ assetId }: { assetId: string }) {
+  const asset = useQuery({ ...createAssetByIDQueryOptions(assetId), enabled: false });
+
+  return asset.data ? <AssetRecordMenu asset={asset.data} /> : null;
 }
 
 function AssetDetailPreview({

@@ -17,6 +17,7 @@ import {
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { Inplace } from "@/components/inplace.tsx";
 import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
 import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import {
@@ -73,7 +74,6 @@ import type {
   VulnerabilityCatalog,
   VulnerabilitySeverity,
 } from "@exposurenexus/contracts/model/vulnerability";
-import type { ReactNode } from "react";
 
 const unassignedValue = "__unassigned__";
 
@@ -409,21 +409,35 @@ function VulnerabilitiesSection({ finding }: { finding: Finding }) {
 interface FindingDetailContentProps {
   finding: Finding;
   asset: Asset;
-  /** Controls beside the title, such as the peek's ⋯ menu. */
-  titleAction?: ReactNode;
 }
 
-export function FindingDetailContent({ finding, asset, titleAction }: FindingDetailContentProps) {
+function FindingTitle({ finding }: { finding: Finding }) {
+  const findingLifecycle = useFindingLifecycle();
+
+  return (
+    <h2 className="min-w-0 text-2xl leading-tight font-semibold break-words text-foreground">
+      <Inplace
+        value={finding.title}
+        onSave={async (title) => {
+          // A finding needs a title; clearing it keeps the current one.
+          if (title.trim()) {
+            await findingLifecycle.correctFinding(finding.id, { title: title.trim() });
+          }
+        }}
+        displayElement={(title) => <span>{title}</span>}
+        editOnClick
+        showEditIcon={false}
+      />
+    </h2>
+  );
+}
+
+export function FindingDetailContent({ finding, asset }: FindingDetailContentProps) {
   return (
     <DetailLayout
       header={
         <>
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="min-w-0 text-2xl leading-tight font-semibold break-words text-foreground">
-              {finding.title}
-            </h2>
-            {titleAction}
-          </div>
+          <FindingTitle finding={finding} />
           {finding.mitigation ? (
             <SafeMarkdown className="mt-3">{finding.mitigation}</SafeMarkdown>
           ) : (

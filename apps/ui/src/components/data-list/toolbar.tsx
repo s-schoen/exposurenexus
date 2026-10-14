@@ -1,4 +1,4 @@
-import { Search, Trash2, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useState } from "react";
 
 import { DisplayPopover } from "@/components/data-list/display-popover.tsx";
@@ -12,6 +12,7 @@ import type {
   DataTableTable,
   GroupingOption,
 } from "@/components/data-table/types.ts";
+import type { PageAction } from "@/hooks/use-page-meta.tsx";
 import type { RowData } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 
@@ -22,7 +23,8 @@ interface DataListToolbarProps<TData extends RowData> {
   grouping: string | undefined;
   onGroupingChange: (grouping: string | undefined) => void;
   selectedCount: number;
-  onDeleteSelected?: () => void;
+  /** Actions on the selected rows, delete last. */
+  selectionActions: Array<PageAction>;
   onClearSelection: () => void;
 }
 
@@ -33,7 +35,7 @@ export function DataListToolbar<TData extends RowData>({
   grouping,
   onGroupingChange,
   selectedCount,
-  onDeleteSelected,
+  selectionActions,
   onClearSelection,
 }: DataListToolbarProps<TData>) {
   const filterColumns = table
@@ -65,12 +67,12 @@ export function DataListToolbar<TData extends RowData>({
             >
               <X />
             </Button>
-            {onDeleteSelected && (
-              <Button variant="outline" onClick={onDeleteSelected}>
-                <Trash2 />
-                Delete
+            {selectionActions.map((action) => (
+              <Button key={action.label} variant="outline" onClick={action.onClick}>
+                {action.icon && <action.icon />}
+                {action.label}
               </Button>
-            )}
+            ))}
           </>
         )}
         {filterColumns.length > 0 && <FiltersPopover columns={filterColumns} />}

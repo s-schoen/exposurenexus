@@ -163,13 +163,14 @@ describe("deleting roles", () => {
 });
 
 describe("role detail", () => {
-  it("shows a custom role with an edit action", async () => {
+  it("edits a custom role from its header menu", async () => {
     const { router, user } = renderApp({ path: `/settings/roles/${CUSTOM_AUDITOR_ROLE.id}` });
 
     expect(
       await screen.findByRole("heading", { level: 1, name: CUSTOM_AUDITOR_ROLE.name }),
     ).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Edit role" }));
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Edit role" }));
 
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/settings/roles/${CUSTOM_AUDITOR_ROLE.id}/edit`),
@@ -208,11 +209,58 @@ describe("role detail", () => {
     expect(await screen.findByText("No permissions granted.")).toBeVisible();
   });
 
-  it("offers no edit action for built-in roles", async () => {
-    renderApp({ path: `/settings/roles/${VIEWER_ROLE.id}` });
+  it("shows the header menu with its items disabled for built-in roles", async () => {
+    const { user } = renderApp({ path: `/settings/roles/${VIEWER_ROLE.id}` });
 
     expect(await screen.findByRole("heading", { level: 1, name: VIEWER_ROLE.name })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Edit role" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+
+    for (const name of ["Edit role", "Delete role…"]) {
+      expect(await screen.findByRole("menuitem", { name })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    }
+  });
+
+  it("deletes a custom role from its header menu and returns to the filtered list", async () => {
+    const role = buildRole({ name: "triager" });
+    db.roles.insert(role);
+    const { router, user } = renderApp({ path: `/settings/roles/${role.id}?kind=Custom` });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete role…" }));
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/roles"));
+    expect(router.state.location.search).toEqual({ kind: "Custom" });
+    expect(db.roles.get(role.id)).toBeUndefined();
+  });
+
+  it("stays on a role that fails to delete", async () => {
+    expectConsoleLog(`role ${CUSTOM_AUDITOR_ROLE.name} is still assigned to users`);
+    const { router, user } = renderApp({ path: `/settings/roles/${CUSTOM_AUDITOR_ROLE.id}` });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete role…" }));
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+
+    expect(await screen.findByText("Failed to delete 1 role")).toBeVisible();
+    expect(router.state.location.pathname).toBe(`/settings/roles/${CUSTOM_AUDITOR_ROLE.id}`);
+  });
+
+  it("deletes a role from the peek's menu and closes the peek", async () => {
+    const role = buildRole({ name: "triager" });
+    db.roles.insert(role);
+    const { router, user } = renderApp({ path: `/settings/roles?selected=${role.id}` });
+    const peek = await screen.findByRole("dialog", { name: "Role details" });
+
+    await user.click(await within(peek).findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete role…" }));
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty("selected"));
+    expect(db.roles.get(role.id)).toBeUndefined();
   });
 
   it("goes back to the list with its filters but without a selection", async () => {

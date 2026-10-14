@@ -30,6 +30,8 @@ interface DetailPeekProps {
   /** The panel's accessible name, such as "Finding details". */
   label: string;
   getFullPageHref: (id: string) => string;
+  /** The record's ⋯ menu in the header, the same actions as its detail page header. */
+  menu?: (id: string) => ReactNode;
   children: (id: string) => ReactNode;
   onClose: () => void;
 }
@@ -40,6 +42,7 @@ export function DetailPeek({
   selectedId,
   label,
   getFullPageHref,
+  menu,
   children,
   onClose,
 }: DetailPeekProps) {
@@ -106,16 +109,23 @@ export function DetailPeek({
                 </Link>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Copy link"
-              onClick={() => {
-                void copyLink();
-              }}
-            >
-              <Link2 strokeWidth={1.5} />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Copy link"
+                onClick={() => {
+                  void copyLink();
+                }}
+              >
+                <Link2 strokeWidth={1.5} />
+              </Button>
+              {menu && shownId && (
+                <Suspense key={shownId} fallback={null}>
+                  {menu(shownId)}
+                </Suspense>
+              )}
+            </div>
           </div>
           {/* Keyed by id, so switching rows fades the new content in. Full-bleed detail layouts
               bring their own padding. */}

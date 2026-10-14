@@ -181,6 +181,22 @@ describe("vulnerabilities list", () => {
   });
 });
 
+describe("vulnerability peek", () => {
+  it("deletes the entry from the peek's menu and closes the peek", async () => {
+    const { router, user } = renderApp({
+      path: `/vulnerabilities?selected=${ACCOUNT_TAKEOVER.id}`,
+    });
+    const peek = await screen.findByRole("dialog", { name: "Catalog entry details" });
+
+    await user.click(await within(peek).findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry…" }));
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty("selected"));
+    expect(db.vulnerabilities.get(ACCOUNT_TAKEOVER.id)).toBeUndefined();
+  });
+});
+
 describe("vulnerability detail", () => {
   it("shows the entry and opens the edit page from the ⋯ menu", async () => {
     const { router, user } = renderApp({ path: `/vulnerabilities/${ADMIN_ENDPOINT.id}` });
@@ -200,7 +216,7 @@ describe("vulnerability detail", () => {
     const { router, user } = renderApp({ path: `/vulnerabilities/${ADMIN_ENDPOINT.id}` });
 
     await user.click(await screen.findByRole("button", { name: "More actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry…" }));
     await user.click(await screen.findByRole("button", { name: "Confirm" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/vulnerabilities"));
@@ -212,10 +228,10 @@ describe("vulnerability detail", () => {
     const { router, user } = renderApp({ path: `/vulnerabilities/${ADMIN_ENDPOINT.id}` });
 
     await user.click(await screen.findByRole("button", { name: "More actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry…" }));
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
     await user.click(screen.getByRole("button", { name: "More actions" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete catalog entry…" }));
     await user.click(await screen.findByRole("button", { name: "Confirm" }));
 
     expect((await screen.findAllByText(/Failed to delete/)).length).toBeGreaterThan(0);

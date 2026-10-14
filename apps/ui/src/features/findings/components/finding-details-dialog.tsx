@@ -393,14 +393,10 @@ function ResourceFields({
   }
 }
 
-type FindingDetailsDraft = Pick<
-  UpdateFinding,
-  "title" | "mitigation" | "weakness" | "affectedResource"
->;
+type FindingDetailsDraft = Pick<UpdateFinding, "mitigation" | "weakness" | "affectedResource">;
 
 function detailsDraft(finding: Finding): FindingDetailsDraft {
   return {
-    title: finding.title,
     mitigation: finding.mitigation,
     weakness: finding.weakness,
     affectedResource: finding.affectedResource,
@@ -413,8 +409,8 @@ interface FindingDetailsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Edits the finding's descriptive fields. Status, severity, assignee and due date are edited in
-// place on the properties panel instead.
+// Edits the finding's mitigation and identity. The title, status, severity, assignee and due date
+// are edited in place instead.
 export function FindingDetailsDialog({ finding, open, onOpenChange }: FindingDetailsDialogProps) {
   const findingLifecycle = useFindingLifecycle();
   const [draft, setDraft] = useState(() => detailsDraft(finding));
@@ -468,14 +464,6 @@ export function FindingDetailsDialog({ finding, open, onOpenChange }: FindingDet
       >
         <FieldGroup>
           <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="correction-title">Title</FieldLabel>
-              <Input
-                id="correction-title"
-                value={draft.title ?? ""}
-                onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-              />
-            </Field>
             <Field>
               <FieldLabel htmlFor="correction-mitigation">Mitigation</FieldLabel>
               <Textarea

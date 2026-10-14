@@ -17,6 +17,11 @@ const UserPreview = lazy(() =>
     default: module.UserPreview,
   })),
 );
+const UserPeekMenu = lazy(() =>
+  import("@/features/users/components/user-preview.tsx").then((module) => ({
+    default: module.UserPeekMenu,
+  })),
+);
 
 interface UsersPageProps {
   search?: Record<string, unknown>;
@@ -72,6 +77,7 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
         selectedId={selectedSearch.selectedId}
         label="User details"
         getFullPageHref={(id) => `/settings/users/${id}`}
+        menu={(id) => <UserPeekMenu userId={id} />}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}

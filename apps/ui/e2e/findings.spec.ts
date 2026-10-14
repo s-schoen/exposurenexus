@@ -60,16 +60,22 @@ test("edits properties in place and details from the header menu", async ({ page
   await expect(dueDate).toHaveText(/2026/);
   await expect(dueDate).not.toHaveText(/Feb/);
 
-  await page.getByRole("button", { name: "More actions" }).click();
-  await page.getByRole("menuitem", { name: "Edit details" }).click();
-  const dialog = page.getByRole("dialog", { name: "Edit details" });
-  await dialog.getByLabel("Title").fill("Exposed admin console");
-  await dialog.getByRole("button", { name: "Save" }).click();
-
-  await expect(dialog).toBeHidden();
+  const title = pageContent(page).getByRole("heading", { level: 2 });
+  await title.getByRole("button", { name: ADMIN_ENDPOINT.title }).click();
+  await title.getByRole("textbox", { name: "Edit value" }).fill("Exposed admin console");
+  await page.keyboard.press("Enter");
   await expect(
     page.getByRole("heading", { level: 1, name: "Exposed admin console" }),
   ).toBeVisible();
+
+  await page.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Edit details…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit details" });
+  await dialog.getByLabel("Mitigation").fill("Restrict the admin endpoint.");
+  await dialog.getByRole("button", { name: "Save" }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(pageContent(page).getByText("Restrict the admin endpoint.")).toBeVisible();
 });
 
 test("links a catalog entry from the vulnerabilities section", async ({ page }) => {

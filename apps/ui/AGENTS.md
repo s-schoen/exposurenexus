@@ -96,6 +96,15 @@ AGPL-3.0: re-declare single values under our token names, never copy their files
 - **Building blocks:** lists use `src/components/data-list/` rows with property chips; detail pages use
   `src/components/properties-panel/` (`DetailLayout`, `DetailSection`, `PropertiesPanel`, `PropertySelect`); row clicks
   open `DetailPeek`; edit forms and the import form sit in `PageColumn`.
+- **Record actions:** every entity offers its actions in the same places. A detail page's header holds only a "⋯" menu
+  (`usePageMeta({ menu })`), and the peek header shows the same menu (`DetailPeek`'s `menu`), both built from the
+  feature's `use<X>RecordActions` hook: the edit item first, then destructive items such as "Delete X…" last behind a
+  separator (`RecordMenuItems`). Items that open a dialog or confirmation end in "…"; items that navigate don't. An
+  action that doesn't apply stays in the menu disabled, as on built-in roles, rather than leaving the header empty. The
+  primary header button is reserved for create on list pages. Every `DataList` with `onRowDelete` or `bulkActions` gets
+  selection and the same row context menu: Open, Open in new tab, then the bulk actions and "Delete", all with icons.
+  Single and bulk deletes share one `useDeleteX` hook, with one confirm dialog, which leaves the deleted record's page
+  or peek (`useLeaveDeletedRecords`). Users are disabled, never deleted, and nobody can disable their own account.
 - **Create flows:** every resource is created in a modal, never on a `/new` page. A feature's
   `components/create-<x>-dialog.tsx` wraps its form in `FormDialog` (`src/components/form-dialog.tsx`), runs the
   lifecycle create through `useFormDialogSubmit` so a failed create keeps the draft, and resolves to the created record.

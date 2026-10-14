@@ -4,7 +4,10 @@ import { Inbox } from "lucide-react";
 
 import { DetailPeek } from "@/components/detail-peek.tsx";
 import { FindingList } from "@/features/findings/components/finding-list/index.tsx";
-import { FindingPreview } from "@/features/findings/components/finding-preview.tsx";
+import {
+  FindingPeekMenu,
+  FindingPreview,
+} from "@/features/findings/components/finding-preview.tsx";
 import { useFindingTableSearchState } from "@/features/findings/hooks/use-finding-table-search-state.ts";
 import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -57,6 +60,7 @@ export function TriageFindingsPage({ search = {}, selected }: TriageFindingsPage
         selectedId={selectedSearch.selectedId}
         label="Finding details"
         getFullPageHref={(id) => `/findings/${id}`}
+        menu={(id) => <FindingPeekMenu findingId={id} />}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}

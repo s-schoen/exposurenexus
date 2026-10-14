@@ -1,11 +1,13 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { Plus, ShieldAlert, Upload } from "lucide-react";
+import { Plus, ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
 
 import { DetailPeek } from "@/components/detail-peek.tsx";
 import { FindingList } from "@/features/findings/components/finding-list/index.tsx";
-import { FindingPreview } from "@/features/findings/components/finding-preview.tsx";
+import {
+  FindingPeekMenu,
+  FindingPreview,
+} from "@/features/findings/components/finding-preview.tsx";
 import { useCreateFinding } from "@/features/findings/hooks/use-create-finding.ts";
 import { useFindingTableSearchState } from "@/features/findings/hooks/use-finding-table-search-state.ts";
 import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
@@ -20,7 +22,6 @@ interface FindingsPageProps {
 }
 
 export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
-  const navigate = useNavigate();
   const createFinding = useCreateFinding();
   const findings = useSuspenseQuery(createListFindingsQueryOptions());
   const { filterState, onFilterStateChange, grouping, onGroupingChange } =
@@ -47,25 +48,12 @@ export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
     ],
     [createFinding],
   );
-  const menu = useMemo(
-    () => [
-      {
-        label: "Import findings",
-        icon: Upload,
-        onClick: () => {
-          void navigate({ to: "/findings/import" });
-        },
-      },
-    ],
-    [navigate],
-  );
 
   usePageMeta({
     title: "Findings",
     icon: ShieldAlert,
     count: findings.data.length,
     actions,
-    menu,
   });
 
   return (
@@ -84,6 +72,7 @@ export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
         selectedId={selectedSearch.selectedId}
         label="Finding details"
         getFullPageHref={(id) => `/findings/${id}`}
+        menu={(id) => <FindingPeekMenu findingId={id} />}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}

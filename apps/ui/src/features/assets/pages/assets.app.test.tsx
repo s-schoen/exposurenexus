@@ -23,6 +23,15 @@ const [CATEGORY] = SEED_CUSTOM_FIELDS;
 const [ADMIN_ENDPOINT, , , WEAK_TLS] = SEED_FINDINGS;
 const [ROBIN] = SEED_USERS;
 
+// The API refuses to delete assets that findings reference.
+function removeFindingsOf(assetId: string) {
+  for (const finding of db.findings.all()) {
+    if (finding.assetId === assetId) {
+      db.findings.remove(finding.id);
+    }
+  }
+}
+
 async function findRow(name: string) {
   return (
     await within(await screen.findByRole("list", { name: "Assets" })).findByText(name)
@@ -210,12 +219,7 @@ describe("creating and deleting assets", () => {
   });
 
   it("deletes confirmed assets and keeps them when cancelled", async () => {
-    // The API refuses to delete assets that findings reference.
-    for (const finding of db.findings.all()) {
-      if (finding.assetId === CONTAINER_01.id) {
-        db.findings.remove(finding.id);
-      }
-    }
+    removeFindingsOf(CONTAINER_01.id);
     const { user } = renderApp({ path: "/assets" });
 
     await user.click(
@@ -244,6 +248,31 @@ describe("creating and deleting assets", () => {
 
     expect((await screen.findAllByText(/^Failed to delete/)).length).toBeGreaterThan(0);
     expect(db.assets.get(CONTAINER_01.id)).toBeDefined();
+  });
+
+  it("deletes an asset from its header menu and returns to the list", async () => {
+    removeFindingsOf(CONTAINER_01.id);
+    const { router, user } = renderApp({ path: `/assets/${CONTAINER_01.id}` });
+
+    await user.click(await screen.findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete asset…" }));
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/assets"));
+    expect(db.assets.get(CONTAINER_01.id)).toBeUndefined();
+  });
+
+  it("deletes an asset from the peek's menu and closes the peek", async () => {
+    removeFindingsOf(CONTAINER_01.id);
+    const { router, user } = renderApp({ path: `/assets?selected=${CONTAINER_01.id}` });
+    const peek = await screen.findByRole("dialog", { name: "Asset details" });
+
+    await user.click(await within(peek).findByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete asset…" }));
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty("selected"));
+    expect(db.assets.get(CONTAINER_01.id)).toBeUndefined();
   });
 });
 
