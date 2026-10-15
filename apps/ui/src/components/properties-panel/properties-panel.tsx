@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils.ts";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-const PropertyLabelContext = createContext<string | undefined>(undefined);
+/** Holds a row label's id. `PropertyRow` and `DetailField` provide it around their values. */
+export const PropertyLabelContext = createContext<string | undefined>(undefined);
 
-/** The id of the enclosing `PropertyRow`'s label, so a value control can name itself after it. */
+/** The id of the enclosing row's label, so a value control can name itself after it. */
 export function usePropertyLabelId() {
   return use(PropertyLabelContext);
 }

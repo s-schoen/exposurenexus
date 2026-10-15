@@ -305,6 +305,8 @@ describe("asset detail", () => {
       screen.getByRole("heading", { name: `Identifiers ${WEB_01.identifiers.length}` }),
     ).toBeVisible();
     expect(await screen.findByText(CATEGORY.name)).toBeVisible();
+    // A custom field value is named after its field, like the properties panel's pickers.
+    expect(screen.getByRole("button", { name: `${CATEGORY.name} Internet-facing` })).toBeVisible();
 
     // The asset's findings, most severe first, each linking to its page.
     const findings = within(

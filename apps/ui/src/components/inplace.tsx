@@ -1,6 +1,7 @@
 import { LucideCheck, PencilIcon, XIcon } from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 
+import { usePropertyLabelId } from "@/components/properties-panel/properties-panel.tsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select.tsx";
@@ -33,6 +34,8 @@ interface InplaceProps<T> {
   editOnClick?: boolean;
   showEditIcon?: boolean;
   onEditingChange?: (editing: boolean) => void;
+  /** The property the value belongs to, such as a custom field's name. Names the editor. */
+  label?: string;
 }
 
 export function Inplace<T>({
@@ -43,7 +46,10 @@ export function Inplace<T>({
   editOnClick = false,
   showEditIcon = true,
   onEditingChange,
+  label,
 }: InplaceProps<T>) {
+  const rowLabelId = usePropertyLabelId();
+  const valueId = useId();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<T>(value);
   const [hovered, setHovered] = useState(false);
@@ -126,7 +132,7 @@ export function Inplace<T>({
             void commit(typed);
           }}
         >
-          <SelectTrigger size="sm" className="min-w-32">
+          <SelectTrigger size="sm" className="min-w-32" aria-label={label}>
             <span className="min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
           </SelectTrigger>
           <SelectContent>
@@ -145,7 +151,7 @@ export function Inplace<T>({
       <Input
         ref={inputRef}
         type={editElement.inputType ?? "text"}
-        aria-label="Edit value"
+        aria-label={label ?? "Edit value"}
         value={String(draft)}
         onChange={(e) => {
           const raw = e.target.value;
@@ -199,7 +205,7 @@ export function Inplace<T>({
               onClick={() => enterEdit()}
               size="icon-sm"
               variant="ghost"
-              aria-label="Edit value"
+              aria-label={label ? `Edit ${label}` : "Edit value"}
               title="Edit"
             >
               <PencilIcon />
@@ -220,6 +226,11 @@ export function Inplace<T>({
     >
       {/* Only the closed value opens the editor: keys and clicks inside the open editor bubble here. */}
       <div
+        id={valueId}
+        // Inside a `DetailField` or `PropertyRow`, named "<row label> <value>" like a property picker.
+        aria-labelledby={
+          rowLabelId && editOnClick && !editing ? `${rowLabelId} ${valueId}` : undefined
+        }
         role={editOnClick && !editing ? "button" : undefined}
         tabIndex={editOnClick && !editing ? 0 : undefined}
         onClick={editOnClick && !editing ? enterEdit : undefined}
