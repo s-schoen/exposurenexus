@@ -30,7 +30,7 @@ export function CustomFieldPreview({ customFieldId }: { customFieldId: string })
       title="Custom field details"
       errorTitle="Unable to load custom field"
       errorDescription="The selected custom field could not be loaded."
-      missingMessage="The API did not return a custom field record."
+      missingMessage="This custom field doesn't exist or was deleted."
     >
       {(field) => <AssetCustomFieldDetailContent field={field} />}
     </DetailQueryBoundary>

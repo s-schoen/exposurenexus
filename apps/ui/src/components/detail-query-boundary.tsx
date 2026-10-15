@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { formatLoadError, isMissingRecordError } from "@/lib/format.ts";
 
 import type { ReactNode } from "react";
 
@@ -61,7 +62,11 @@ export function DetailQueryBoundary<TData>({
           <Alert variant="destructive">
             <CircleAlert />
             <AlertTitle>{errorTitle}</AlertTitle>
-            <AlertDescription>{query.error?.message ?? missingMessage}</AlertDescription>
+            <AlertDescription>
+              {!query.error || isMissingRecordError(query.error)
+                ? missingMessage
+                : formatLoadError(query.error)}
+            </AlertDescription>
           </Alert>
         </CardContent>
       </Card>

@@ -87,6 +87,10 @@ export function createRouterLoginRedirects(
 ): LoginRedirects {
   return createLoginRedirects({
     ...options,
-    isKnownRoutePath: (pathname) => router.getMatchedRoutes(pathname)[2] !== undefined,
+    // The not-found catch-all (`/$`) matches any path, so it doesn't make a path known.
+    isKnownRoutePath: (pathname) => {
+      const route = router.getMatchedRoutes(pathname)[2];
+      return route !== undefined && !String(route.fullPath).endsWith("$");
+    },
   });
 }

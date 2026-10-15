@@ -136,7 +136,7 @@ function AssetDetailPreview({
       title="Asset details"
       errorTitle="Unable to load asset"
       errorDescription="The selected asset could not be loaded."
-      missingMessage="The API did not return an asset record."
+      missingMessage="This asset doesn't exist or was deleted."
     >
       {(assetData) => <AssetDetailContent asset={assetData} findingsSection={findingsSection} />}
     </DetailQueryBoundary>

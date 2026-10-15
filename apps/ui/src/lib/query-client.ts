@@ -31,8 +31,11 @@ function shouldSkipUnauthorizedError(meta: unknown): boolean {
   );
 }
 
+// A 4xx won't change on retry: a missing record should fail fast. Network errors and 5xx may.
 function shouldRetryQuery(failureCount: number, error: unknown): boolean {
-  return !isUnauthorizedAPIError(error) && failureCount < 3;
+  const isClientError =
+    error instanceof APIError && error.statusCode >= 400 && error.statusCode < 500;
+  return !isClientError && failureCount < 3;
 }
 
 function notifyUnauthorizedAPIError(event: UnauthorizedAPIErrorEvent): void {

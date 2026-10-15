@@ -40,7 +40,7 @@ export function FindingPreview({ findingId }: { findingId: string }) {
       title="Finding details"
       errorTitle="Unable to load finding"
       errorDescription="The selected finding could not be loaded."
-      missingMessage="The API did not return a finding record."
+      missingMessage="This finding doesn't exist or was deleted."
     >
       {(findingData) => (
         <DetailQueryBoundary
@@ -48,7 +48,7 @@ export function FindingPreview({ findingId }: { findingId: string }) {
           title="Finding details"
           errorTitle="Unable to load asset"
           errorDescription="The selected finding's asset could not be loaded."
-          missingMessage="The API did not return an asset record."
+          missingMessage="This asset doesn't exist or was deleted."
         >
           {(assetData) => <FindingDetailContent finding={findingData} asset={assetData} />}
         </DetailQueryBoundary>

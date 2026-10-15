@@ -47,6 +47,18 @@ export function hasActiveFilters(state: DataTableFilterState) {
   return state.globalFilter.length > 0 || dataTableFilterStateToColumnFilters(state).length > 0;
 }
 
+function filterKey(state: DataTableFilterState): string {
+  const filters = dataTableFilterStateToColumnFilters(state)
+    .map(({ id, value }) => [id, Array.isArray(value) ? value.map(String).sort() : value] as const)
+    .sort(([left], [right]) => left.localeCompare(right));
+  return JSON.stringify([state.globalFilter, filters]);
+}
+
+/** Whether two filter states narrow a list the same way, ignoring empty filters and value order. */
+export function isSameFilterState(left: DataTableFilterState, right: DataTableFilterState) {
+  return filterKey(left) === filterKey(right);
+}
+
 export function dataTableFilterStateToColumnFilters(
   state: DataTableFilterState,
 ): ColumnFiltersState {

@@ -83,8 +83,19 @@ export function usePageMeta({
 }: UsePageMetaOptions) {
   const setMeta = useSetPageMeta();
 
+  // Resetting on unmount keeps a stale title and breadcrumbs off pending, error and not-found
+  // states, which publish no meta of their own.
   useEffect(() => {
     setMeta((previous) => ({ ...previous, title, heading, icon, breadcrumbs }));
+    return () => {
+      setMeta((previous) => ({
+        ...previous,
+        title: EMPTY_PAGE_META.title,
+        heading: undefined,
+        icon: undefined,
+        breadcrumbs: EMPTY_BREADCRUMBS,
+      }));
+    };
   }, [breadcrumbs, heading, icon, setMeta, title]);
 
   useEffect(() => {

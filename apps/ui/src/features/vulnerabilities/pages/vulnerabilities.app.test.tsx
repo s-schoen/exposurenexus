@@ -153,7 +153,9 @@ describe("vulnerabilities list", () => {
     renderApp({ path: `/vulnerabilities?selected=${ACCOUNT_TAKEOVER.id}` });
 
     const dialog = await screen.findByRole("dialog", { name: "Vulnerability details" });
-    expect(await within(dialog).findByText("Catalog request failed")).toBeVisible();
+    expect(
+      await within(dialog).findByText("The server ran into a problem. Try again in a moment."),
+    ).toBeVisible();
     expect(screen.getByText(OUTDATED_DEPENDENCY.title)).toBeInTheDocument();
   });
 

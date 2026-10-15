@@ -11,6 +11,7 @@ import {
   createFilterVariantMap,
   dataTableFilterStateToColumnFilters,
   hasActiveFilters,
+  isSameFilterState,
 } from "@/components/data-table/filter-state.ts";
 import { dataTableFeatures } from "@/components/data-table/types.ts";
 import { Button } from "@/components/ui/button.tsx";
@@ -92,6 +93,11 @@ interface DataListProps<TData extends RowData> {
   isRowActive?: (row: TData) => boolean;
   /** Shown when there is no data at all; filtered-out data gets a "Clear filters" state. */
   emptyState?: ReactNode;
+  /**
+   * The filters the page opens with, when they define what it lists, as Triage's status. Matching
+   * nothing under them shows `emptyState`, and "Clear filters" goes back to them.
+   */
+  defaultFilterState?: DataTableFilterState;
 }
 
 // Plane-style list rows over the headless data-table setup: a toolbar with search, filter chips
@@ -117,6 +123,7 @@ export function DataList<TData extends RowData>({
   bulkActions = NO_BULK_ACTIONS,
   isRowActive,
   emptyState,
+  defaultFilterState = EMPTY_FILTER_STATE,
 }: DataListProps<TData>) {
   const listRows = rows ?? query?.data ?? [];
   const isPending = query?.isPending ?? false;
@@ -400,9 +407,12 @@ export function DataList<TData extends RowData>({
     }
 
     if (topLevelRows.length === 0) {
-      return hasActiveFilters(resolvedFilterState) && listRows.length > 0 ? (
+      const isFiltered =
+        hasActiveFilters(resolvedFilterState) &&
+        !isSameFilterState(resolvedFilterState, defaultFilterState);
+      return isFiltered && listRows.length > 0 ? (
         <DataListEmpty icon={SearchX} message="No results match these filters.">
-          <Button variant="outline" onClick={() => updateFilterState(() => EMPTY_FILTER_STATE)}>
+          <Button variant="outline" onClick={() => updateFilterState(() => defaultFilterState)}>
             Clear filters
           </Button>
         </DataListEmpty>

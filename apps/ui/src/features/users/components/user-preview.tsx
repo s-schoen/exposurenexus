@@ -30,7 +30,7 @@ export function UserPreview({ userId }: { userId: string }) {
       title="User details"
       errorTitle="Unable to load user"
       errorDescription="The selected user could not be loaded."
-      missingMessage="The API did not return a user record."
+      missingMessage="This user doesn't exist or was deleted."
     >
       {(userData) => (
         <DetailQueryBoundary
@@ -38,7 +38,7 @@ export function UserPreview({ userId }: { userId: string }) {
           title="User details"
           errorTitle="Unable to load roles"
           errorDescription="Available roles could not be loaded."
-          missingMessage="The API did not return the required role data."
+          missingMessage="The roles couldn't be loaded."
         >
           {(roleData) => <UserDetailContent user={userData} roles={roleData} />}
         </DetailQueryBoundary>

@@ -181,6 +181,25 @@ describe("PageProvider and usePageMeta", () => {
     });
   });
 
+  it("resets the title and breadcrumbs when a page unmounts", async () => {
+    const { rerender } = renderPage({
+      meta: (
+        <PageMetaHarness title="security-auditor" breadcrumbs={[{ label: "Roles", to: "/" }]} />
+      ),
+    });
+
+    expect(await screen.findByRole("heading", { name: "security-auditor" })).toBeVisible();
+
+    rerender(
+      <PageProvider>
+        <PageConsumer />
+      </PageProvider>,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Untitled page" })).toBeVisible();
+    expect(screen.getByLabelText("Breadcrumbs")).toBeEmptyDOMElement();
+  });
+
   it("does not re-render a page that passes new actions on every render", async () => {
     const rendered = vi.fn<() => void>();
     function UnstableActionsPage() {

@@ -11,7 +11,7 @@ import {
   SEED_USERS,
   SEED_VULNERABILITIES,
 } from "@/mocks/fixtures/index.ts";
-import { db, holdApiResponses, mockApiError, recordApiRequests } from "@/test/msw.ts";
+import { db, holdApiResponses, mockApiError, recordApiRequests, seedScenario } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
 
 // Whole-app tests: real router, queries and lifecycle hooks against the MSW mock API.
@@ -228,7 +228,9 @@ describe("findings list", () => {
     renderApp({ path: `/findings?selected=${ROOT_CONTAINER.id}` });
 
     const dialog = await screen.findByRole("dialog", { name: "Finding details" });
-    expect(await within(dialog).findByText("Finding request failed")).toBeVisible();
+    expect(
+      await within(dialog).findByText("The server ran into a problem. Try again in a moment."),
+    ).toBeVisible();
     expect(screen.getByText(WEAK_TLS.title)).toBeInTheDocument();
   });
 
@@ -330,6 +332,32 @@ describe("triage queue", () => {
     await waitFor(() => expect(router.state.location.search).toMatchObject({ group: "none" }));
     expect(await screen.findByRole("list", { name: "Findings" })).toBeVisible();
   });
+
+  it.each([
+    ["there are no findings", "empty", () => {}],
+    [
+      "every finding is triaged",
+      "default",
+      () => {
+        for (const finding of db.findings.all()) {
+          db.findings.update(finding.id, { status: FindingStatus.Confirmed });
+        }
+      },
+    ],
+  ] as const)(
+    "says the queue is empty when %s, without a create action",
+    async (_, scenario, arrange) => {
+      seedScenario(scenario);
+      arrange();
+      renderApp({ path: "/findings/triage" });
+
+      // The sidebar's "New finding" button sits outside the page's main.
+      const page = (await screen.findAllByRole("main")).at(-1)!;
+      expect(await within(page).findByText("Nothing to triage.")).toBeVisible();
+      expect(within(page).queryByRole("button", { name: "New finding" })).not.toBeInTheDocument();
+      expect(within(page).queryByRole("button", { name: "Clear filters" })).not.toBeInTheDocument();
+    },
+  );
 
   it("keeps an explicit status filter", async () => {
     const { router } = renderApp({ path: "/findings/triage?status=mitigated" });

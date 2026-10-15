@@ -29,6 +29,7 @@ import { SEVERITY_ORDER, SeverityIcon, formatSeverity } from "@/features/vulnera
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
 import type { Finding, FindingStatus } from "@exposurenexus/contracts/model/finding";
 import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
+import type { ReactNode } from "react";
 
 const initialSorting = [{ id: "updatedAt", desc: true }];
 // Plane's default row: severity, title, then status, asset, due date and assignee.
@@ -51,6 +52,10 @@ interface FindingListProps {
   onFilterStateChange?: (state: DataTableFilterState) => void;
   selectedFindingId?: string;
   onSelectFinding?: (finding: Finding) => void;
+  /** Replaces "No findings yet." and its create button, as on Triage. */
+  emptyState?: ReactNode;
+  /** The filters that define the list, such as Triage's status. See `DataList`. */
+  defaultFilterState?: DataTableFilterState;
 }
 
 export function FindingList({
@@ -60,6 +65,8 @@ export function FindingList({
   onFilterStateChange,
   selectedFindingId,
   onSelectFinding,
+  emptyState,
+  defaultFilterState,
 }: FindingListProps) {
   const navigate = useNavigate();
   const createFinding = useCreateFinding();
@@ -167,13 +174,16 @@ export function FindingList({
       onRowDoubleClick={handleOpenFinding}
       isRowActive={(finding) => finding.id === selectedFindingId}
       onRowDelete={deleteFindings}
+      defaultFilterState={defaultFilterState}
       emptyState={
-        <DataListEmpty icon={ShieldAlert} message="No findings yet.">
-          <Button variant="outline" onClick={() => void createFinding()}>
-            <Plus />
-            New finding
-          </Button>
-        </DataListEmpty>
+        emptyState ?? (
+          <DataListEmpty icon={ShieldAlert} message="No findings yet.">
+            <Button variant="outline" onClick={() => void createFinding()}>
+              <Plus />
+              New finding
+            </Button>
+          </DataListEmpty>
+        )
       }
     />
   );
