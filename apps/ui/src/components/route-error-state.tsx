@@ -3,14 +3,13 @@ import { CircleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader } from "@/components/ui/card.tsx";
+import { formatLoadError } from "@/lib/format.ts";
 
 import type { ErrorComponentProps } from "@tanstack/react-router";
 
-const FALLBACK_ERROR_MESSAGE = "An unexpected error occurred.";
-
+// Fills whatever holds it: the shell's content area for a page, or the window for the shell itself.
 export function RouteErrorState({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
-  const message = error instanceof Error && error.message ? error.message : FALLBACK_ERROR_MESSAGE;
 
   async function handleRetry() {
     // Resetting the boundary alone rethrows the router's failed loader state.
@@ -19,7 +18,7 @@ export function RouteErrorState({ error, reset }: ErrorComponentProps) {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background p-6">
+    <div className="flex h-full items-center justify-center p-6">
       <Card variant="destructive" className="w-full max-w-lg">
         <CardHeader>
           <h1 className="flex items-center gap-2 text-base leading-normal font-medium text-destructive">
@@ -28,12 +27,12 @@ export function RouteErrorState({ error, reset }: ErrorComponentProps) {
           </h1>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm leading-6 text-muted-foreground">{message}</p>
+          <p className="text-sm leading-6 text-muted-foreground">{formatLoadError(error)}</p>
           <Button type="button" onClick={handleRetry}>
             Try again
           </Button>
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

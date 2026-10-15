@@ -32,11 +32,29 @@ describe("query client infrastructure", () => {
     unsubscribe();
   });
 
-  it("retries other query failures while the failure count is below three", async () => {
-    expectConsoleLog("Internal Server Error");
+  it.each([400, 403, 404, 409])("does not retry a query %i", async (status) => {
+    const failure = new APIError(status, "Client error");
+    expectConsoleLog((args) => args.includes(failure));
     const queryClient = createAppQueryClient();
     const queryFn = vi.fn(() => {
-      throw new APIError(500, "Internal Server Error");
+      throw failure;
+    });
+
+    await expect(
+      queryClient.fetchQuery({ queryKey: ["record"], queryFn, retryDelay: 0 }),
+    ).rejects.toBe(failure);
+
+    expect(queryFn).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["a 5xx", new APIError(500, "Internal Server Error")],
+    ["a network error", new TypeError("Failed to fetch")],
+  ])("retries %s while the failure count is below three", async (_, failure) => {
+    expectConsoleLog((args) => args.includes(failure));
+    const queryClient = createAppQueryClient();
+    const queryFn = vi.fn(() => {
+      throw failure;
     });
 
     await expect(
@@ -45,7 +63,7 @@ describe("query client infrastructure", () => {
         queryFn,
         retryDelay: 0,
       }),
-    ).rejects.toThrow("Internal Server Error");
+    ).rejects.toBe(failure);
 
     expect(queryFn).toHaveBeenCalledTimes(4);
   });

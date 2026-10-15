@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
+import { APIError } from "@/lib/api-client.ts";
 
 import type { DetailQueryBoundaryState } from "@/components/detail-query-boundary.tsx";
 
@@ -12,7 +13,7 @@ function renderBoundary(query: DetailQueryBoundaryState<{ displayName: string }>
       title="Asset details"
       errorTitle="Unable to load asset"
       errorDescription="The selected asset could not be loaded."
-      missingMessage="The API did not return an asset record."
+      missingMessage="This asset doesn't exist or was deleted."
     >
       {(asset) => <div>{asset.displayName}</div>}
     </DetailQueryBoundary>,
@@ -27,7 +28,7 @@ describe("DetailQueryBoundary", () => {
         title="Asset details"
         errorTitle="Unable to load asset"
         errorDescription="The selected asset could not be loaded."
-        missingMessage="The API did not return an asset record."
+        missingMessage="This asset doesn't exist or was deleted."
       >
         {(asset: { displayName: string }) => <div>{asset.displayName}</div>}
       </DetailQueryBoundary>,
@@ -37,15 +38,25 @@ describe("DetailQueryBoundary", () => {
     expect(container.querySelector('[data-slot="skeleton"]')).toBeTruthy();
   });
 
-  it("renders the query error when the primary detail query fails", () => {
+  it("renders a readable query error when the primary detail query fails", () => {
     renderBoundary({
       data: undefined,
-      error: new Error("Asset request failed"),
+      error: new APIError(500, "Internal Server Error"),
       isPending: false,
     });
 
     expect(screen.getByText("Unable to load asset")).toBeTruthy();
-    expect(screen.getByText("Asset request failed")).toBeTruthy();
+    expect(screen.getByText("The server ran into a problem. Try again in a moment.")).toBeTruthy();
+  });
+
+  it("renders the missing message when the record doesn't exist", () => {
+    renderBoundary({
+      data: undefined,
+      error: new APIError(404, "asset with id 1 does not exist"),
+      isPending: false,
+    });
+
+    expect(screen.getByText("This asset doesn't exist or was deleted.")).toBeTruthy();
   });
 
   it("renders the missing message when the query has no data or error", () => {
@@ -56,7 +67,7 @@ describe("DetailQueryBoundary", () => {
     });
 
     expect(screen.getByText("Unable to load asset")).toBeTruthy();
-    expect(screen.getByText("The API did not return an asset record.")).toBeTruthy();
+    expect(screen.getByText("This asset doesn't exist or was deleted.")).toBeTruthy();
   });
 
   it("passes non-null data to the success renderer", () => {

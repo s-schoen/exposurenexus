@@ -88,7 +88,7 @@ describe("finding critical-data loaders", () => {
     }).then(completed);
     expect(ensure.mock.calls).toEqual([[optionsLike(createFindingByIDQueryOptions("finding-1"))]]);
     finding.resolve({ id: "finding-1", assetId: "asset-1" });
-    await Promise.resolve();
+    await vi.waitFor(() => expect(ensure).toHaveBeenCalledTimes(2));
     expect(ensure.mock.calls).toEqual([
       [optionsLike(createFindingByIDQueryOptions("finding-1"))],
       [optionsLike(createAssetByIDQueryOptions("asset-1"))],

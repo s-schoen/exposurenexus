@@ -128,7 +128,9 @@ describe("users list", () => {
     renderApp({ path: `/settings/users?selected=${MORGAN.id}` });
 
     const dialog = await screen.findByRole("dialog", { name: "User details" });
-    expect(await within(dialog).findByText("User request failed")).toBeVisible();
+    expect(
+      await within(dialog).findByText("The server ran into a problem. Try again in a moment."),
+    ).toBeVisible();
     expect(screen.getByText(CASEY.displayName)).toBeInTheDocument();
   });
 });

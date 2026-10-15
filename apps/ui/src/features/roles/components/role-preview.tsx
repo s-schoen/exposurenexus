@@ -28,7 +28,7 @@ export function RolePreview({ roleId }: { roleId: string }) {
       title="Role details"
       errorTitle="Unable to load role"
       errorDescription="The selected role could not be loaded."
-      missingMessage="The API did not return a role record."
+      missingMessage="This role doesn't exist or was deleted."
     >
       {(data) => <RoleDetailContent role={data} />}
     </DetailQueryBoundary>

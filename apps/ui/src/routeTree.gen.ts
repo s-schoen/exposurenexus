@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from "./routes/__root";
 import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
 import { Route as LoginRouteImport } from "./routes/login";
 import { Route as AuthenticatedIndexRouteImport } from "./routes/_authenticated/index";
+import { Route as AuthenticatedSplatRouteImport } from "./routes/_authenticated/$";
 import { Route as AuthenticatedSettingsRouteImport } from "./routes/_authenticated/settings";
 import { Route as AuthenticatedAssetsIndexRouteImport } from "./routes/_authenticated/assets/index";
 import { Route as AuthenticatedAssetsIdRouteImport } from "./routes/_authenticated/assets/$id";
@@ -45,6 +46,11 @@ const LoginRoute = LoginRouteImport.update({
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: "/",
   path: "/",
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
+const AuthenticatedSplatRoute = AuthenticatedSplatRouteImport.update({
+  id: "/$",
+  path: "/$",
   getParentRoute: () => AuthenticatedRoute,
 } as any);
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -168,6 +174,7 @@ const AuthenticatedSettingsUsersIdEditRoute =
 export interface FileRoutesByFullPath {
   "/": typeof AuthenticatedIndexRoute;
   "/login": typeof LoginRoute;
+  "/$": typeof AuthenticatedSplatRoute;
   "/settings": typeof AuthenticatedSettingsRouteWithChildren;
   "/assets/$id": typeof AuthenticatedAssetsIdRoute;
   "/findings/$id": typeof AuthenticatedFindingsIdRoute;
@@ -191,6 +198,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/login": typeof LoginRoute;
+  "/$": typeof AuthenticatedSplatRoute;
   "/": typeof AuthenticatedIndexRoute;
   "/assets/$id": typeof AuthenticatedAssetsIdRoute;
   "/findings/$id": typeof AuthenticatedFindingsIdRoute;
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   "/_authenticated": typeof AuthenticatedRouteWithChildren;
   "/login": typeof LoginRoute;
+  "/_authenticated/$": typeof AuthenticatedSplatRoute;
   "/_authenticated/settings": typeof AuthenticatedSettingsRouteWithChildren;
   "/_authenticated/": typeof AuthenticatedIndexRoute;
   "/_authenticated/assets/$id": typeof AuthenticatedAssetsIdRoute;
@@ -243,6 +252,7 @@ export interface FileRouteTypes {
   fullPaths:
     | "/"
     | "/login"
+    | "/$"
     | "/settings"
     | "/assets/$id"
     | "/findings/$id"
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo;
   to:
     | "/login"
+    | "/$"
     | "/"
     | "/assets/$id"
     | "/findings/$id"
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | "__root__"
     | "/_authenticated"
     | "/login"
+    | "/_authenticated/$"
     | "/_authenticated/settings"
     | "/_authenticated/"
     | "/_authenticated/assets/$id"
@@ -339,6 +351,13 @@ declare module "@tanstack/react-router" {
       path: "/";
       fullPath: "/";
       preLoaderRoute: typeof AuthenticatedIndexRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/$": {
+      id: "/_authenticated/$";
+      path: "/$";
+      fullPath: "/$";
+      preLoaderRoute: typeof AuthenticatedSplatRouteImport;
       parentRoute: typeof AuthenticatedRoute;
     };
     "/_authenticated/settings": {
@@ -574,6 +593,7 @@ const AuthenticatedVulnerabilitiesIdRouteWithChildren =
   );
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedSplatRoute: typeof AuthenticatedSplatRoute;
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren;
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute;
   AuthenticatedAssetsIdRoute: typeof AuthenticatedAssetsIdRoute;
@@ -587,6 +607,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedSplatRoute: AuthenticatedSplatRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAssetsIdRoute: AuthenticatedAssetsIdRoute,

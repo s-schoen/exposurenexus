@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod/v4";
 
-import { formatCount, formatDate, formatDateTime, formatShortDate } from "@/lib/format.ts";
+import { APIError } from "@/lib/api-client.ts";
+import {
+  formatCount,
+  formatDate,
+  formatDateTime,
+  formatLoadError,
+  formatShortDate,
+  isMissingRecordError,
+} from "@/lib/format.ts";
+
+function zodError() {
+  const result = z.object({ id: z.string() }).safeParse({});
+  if (result.success) {
+    throw new Error("expected a parse failure");
+  }
+  return result.error;
+}
 
 describe("formatCount", () => {
   it("uses the singular label for one item", () => {
@@ -68,5 +85,37 @@ describe("formatShortDate", () => {
     expect(formatShortDate(date, { timeZone: "UTC", today })).toBe(
       date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }),
     );
+  });
+});
+
+describe("isMissingRecordError", () => {
+  it.each([
+    [new APIError(404, "missing"), true],
+    [new APIError(400, "bad id"), true],
+    [new APIError(403, "forbidden"), false],
+    [new Error("boom"), false],
+  ])("%s → %s", (error, expected) => {
+    expect(isMissingRecordError(error)).toBe(expected);
+  });
+});
+
+describe("formatLoadError", () => {
+  it.each([
+    [new APIError(404, "asset with id 1 does not exist"), "Asset with id 1 does not exist."],
+    [new APIError(409, "Already exists!"), "Already exists!"],
+    [new APIError(403, "Forbidden"), "You don't have permission to view this."],
+    [new APIError(502, "Bad Gateway"), "The server ran into a problem. Try again in a moment."],
+    [
+      new TypeError("Failed to fetch"),
+      "Couldn't reach the server. Check your connection and try again.",
+    ],
+    [zodError(), "The server sent a reply the app doesn't understand."],
+    [
+      new Error("Cannot read properties of undefined"),
+      "Something went wrong while loading this page.",
+    ],
+    ["nope", "Something went wrong while loading this page."],
+  ])("%s", (error, message) => {
+    expect(formatLoadError(error)).toBe(message);
   });
 });

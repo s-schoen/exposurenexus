@@ -53,7 +53,10 @@ describe("roles list", () => {
     renderApp({ path: "/settings/roles" });
 
     expect(await screen.findByText("Unable to load this page")).toBeVisible();
-    expect(screen.getByText("Roles request failed")).toBeVisible();
+    expect(screen.getByText("The server ran into a problem. Try again in a moment.")).toBeVisible();
+    // The error sits inside the shell, so the navigation stays.
+    expect(screen.getByRole("link", { name: "Leave settings" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 
   it("keeps the search filter in the URL", async () => {
@@ -93,7 +96,9 @@ describe("roles list", () => {
     renderApp({ path: `/settings/roles?selected=${CUSTOM_AUDITOR_ROLE.id}` });
 
     const dialog = await screen.findByRole("dialog", { name: "Role details" });
-    expect(await within(dialog).findByText("Role request failed")).toBeVisible();
+    expect(
+      await within(dialog).findByText("The server ran into a problem. Try again in a moment."),
+    ).toBeVisible();
     expect(screen.getByText(VIEWER_ROLE.name)).toBeInTheDocument();
   });
 });

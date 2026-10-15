@@ -1,3 +1,7 @@
+import { ZodError } from "zod/v4";
+
+import { APIError } from "@/lib/api-client.ts";
+
 export function capitalizeFirstLetter(val: string) {
   return String(val).charAt(0).toUpperCase() + String(val).slice(1);
 }
@@ -35,4 +39,42 @@ export function formatShortDate(
     year: year(date) === year(today) ? undefined : "numeric",
     timeZone,
   });
+}
+
+const FALLBACK_LOAD_ERROR = "Something went wrong while loading this page.";
+
+/**
+ * Whether a read failed because the record isn't there: a 404, or the 400 the API answers a
+ * malformed id with.
+ */
+export function isMissingRecordError(error: unknown): boolean {
+  return error instanceof APIError && (error.statusCode === 404 || error.statusCode === 400);
+}
+
+/** One readable sentence for a failed read, without HTTP or parser jargon. */
+export function formatLoadError(error: unknown): string {
+  if (error instanceof APIError) {
+    if (error.statusCode === 403) {
+      return "You don't have permission to view this.";
+    }
+    if (error.statusCode >= 500) {
+      return "The server ran into a problem. Try again in a moment.";
+    }
+    if (!error.message.trim()) {
+      return FALLBACK_LOAD_ERROR;
+    }
+    const message = capitalizeFirstLetter(error.message.trim());
+    return /[.!?]$/.test(message) ? message : `${message}.`;
+  }
+
+  if (error instanceof ZodError) {
+    return "The server sent a reply the app doesn't understand.";
+  }
+
+  // fetch() rejects with a TypeError when the request never reaches the server.
+  if (error instanceof TypeError) {
+    return "Couldn't reach the server. Check your connection and try again.";
+  }
+
+  return FALLBACK_LOAD_ERROR;
 }

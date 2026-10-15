@@ -9,6 +9,7 @@ import {
   SEED_USERS,
   SEED_VULNERABILITIES,
 } from "@/mocks/fixtures/index.ts";
+import { expectConsoleLog } from "@/test/console.ts";
 import { renderApp } from "@/test/render-app.tsx";
 
 // Route wiring and the authenticated shell, against the MSW mock API. Feature behavior lives in
@@ -193,5 +194,66 @@ describe("settings area", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "Users" })).toBeVisible();
     expect(router.state.location.pathname).toBe("/settings/users");
+  });
+});
+
+describe("not found", () => {
+  const MISSING_ID = "00000000-0000-4000-8000-000000000000";
+
+  it("shows an unknown URL inside the shell, with a way back to the dashboard", async () => {
+    const { router, user } = renderApp({ path: "/does-not-exist" });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Not found" })).toBeVisible();
+    expect(screen.getByText("This page doesn't exist.")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeVisible();
+
+    await user.click(screen.getByRole("link", { name: "Go to dashboard" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  it.each([
+    [`/assets/${MISSING_ID}`, "asset", "Assets", "/assets"],
+    [`/findings/${MISSING_ID}`, "finding", "Findings", "/findings"],
+    [`/vulnerabilities/${MISSING_ID}`, "vulnerability", "Vulnerabilities", "/vulnerabilities"],
+    [`/vulnerabilities/${MISSING_ID}/edit`, "vulnerability", "Vulnerabilities", "/vulnerabilities"],
+    [`/settings/users/${MISSING_ID}`, "user", "Users", "/settings/users"],
+    [`/settings/roles/${MISSING_ID}/edit`, "role", "Roles", "/settings/roles"],
+    [
+      `/settings/custom-fields/${MISSING_ID}`,
+      "custom field",
+      "Custom fields",
+      "/settings/custom-fields",
+    ],
+  ])("shows %s as a missing %s under its list", async (path, noun, list, listPath) => {
+    expectConsoleLog("does not exist");
+    renderApp({ path });
+
+    expect(await screen.findByText(`This ${noun} doesn't exist or was deleted.`)).toBeVisible();
+    const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(within(breadcrumb).getByRole("link", { name: list })).toHaveAttribute("href", listPath);
+    expect(within(breadcrumb).getByText("Not found")).toBeVisible();
+    expect(screen.getByRole("link", { name: `Back to ${list.toLowerCase()}` })).toHaveAttribute(
+      "href",
+      listPath,
+    );
+    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+  });
+
+  it("drops the previous page's title and breadcrumbs", async () => {
+    expectConsoleLog("does not exist");
+    const { router } = renderApp({ path: `/settings/roles/${CUSTOM_AUDITOR_ROLE.id}` });
+    expect(
+      await screen.findByRole("heading", { level: 1, name: CUSTOM_AUDITOR_ROLE.name }),
+    ).toBeVisible();
+
+    await router.navigate({ to: "/assets/$id", params: { id: MISSING_ID } });
+
+    const breadcrumb = await screen.findByRole("navigation", { name: "Breadcrumb" });
+    await waitFor(() =>
+      expect(within(breadcrumb).getByRole("link", { name: "Assets" })).toBeVisible(),
+    );
+    expect(screen.queryByText(CUSTOM_AUDITOR_ROLE.name)).not.toBeInTheDocument();
+    expect(within(breadcrumb).queryByRole("link", { name: "Roles" })).not.toBeInTheDocument();
   });
 });

@@ -80,7 +80,9 @@ describe("custom fields list", () => {
     renderApp({ path: `/settings/custom-fields?selected=${PRIORITY.id}` });
 
     const dialog = await screen.findByRole("dialog", { name: "Custom field details" });
-    expect(await within(dialog).findByText("Custom field request failed")).toBeVisible();
+    expect(
+      await within(dialog).findByText("The server ran into a problem. Try again in a moment."),
+    ).toBeVisible();
     expect(screen.getByText(CATEGORY.name)).toBeInTheDocument();
   });
 
