@@ -1,3 +1,6 @@
+import { useId } from "react";
+
+import { PropertyLabelContext } from "@/components/properties-panel/properties-panel.tsx";
 import { cn } from "@/lib/utils.ts";
 
 import type { ReactNode } from "react";
@@ -49,11 +52,15 @@ interface DetailFieldProps {
  * detail sections line up with the properties panel's.
  */
 export function DetailField({ label, children, actions }: DetailFieldProps) {
+  const labelId = useId();
+
   return (
     <div className={cn(rowClassName, actions && "hover:bg-accent")}>
-      <dt className="w-32 shrink-0 truncate text-13 text-muted-foreground">{label}</dt>
+      <dt id={labelId} className="w-32 shrink-0 truncate text-13 text-muted-foreground">
+        {label}
+      </dt>
       <dd className="flex min-w-0 flex-1 items-center gap-1.5 px-2.5 py-2 text-13 break-words text-foreground">
-        {children}
+        <PropertyLabelContext value={labelId}>{children}</PropertyLabelContext>
       </dd>
       {actions && <RowActions>{actions}</RowActions>}
     </div>

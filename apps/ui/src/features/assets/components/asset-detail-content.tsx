@@ -393,6 +393,7 @@ function AssetCustomFieldRow({ field, onDetach, onReset, onSave }: AssetCustomFi
       <div className="min-w-0 flex-1">
         <Inplace
           value={getAssetCustomFieldDraftValue(field)}
+          label={field.name}
           onSave={(value) => onSave(field, value)}
           displayElement={() => (
             <span

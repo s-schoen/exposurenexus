@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Inplace } from "@/components/inplace.tsx";
+import { DetailField, DetailFields } from "@/components/properties-panel/detail-rows.tsx";
 
 import type { ReactNode } from "react";
 
@@ -100,6 +101,23 @@ describe("Inplace", () => {
     fireEvent.click(screen.getByText("api-01"));
 
     expect(screen.getByRole("textbox")).toBeTruthy();
+  });
+
+  it("names the value after its row, and its editor and edit icon after the label", () => {
+    render(
+      <DetailFields>
+        <DetailField label="Category">
+          <Inplace value="Internet-facing" label="Category" onSave={vi.fn()} editOnClick />
+        </DetailField>
+      </DetailFields>,
+    );
+
+    expect(screen.getByRole("button", { name: "Category Internet-facing" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Edit Category" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Category Internet-facing" }));
+
+    expect(screen.getByRole("textbox", { name: "Category" })).toBeTruthy();
   });
 
   it("does not save unchanged values", async () => {
