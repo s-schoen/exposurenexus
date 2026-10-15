@@ -1,13 +1,21 @@
 "use client";
 
 import { useNavigate } from "@tanstack/react-router";
+import { useTheme } from "next-themes";
 
+import { THEME_OPTIONS } from "@/components/theme-provider.tsx";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
@@ -23,6 +31,7 @@ interface AccountMenuProps {
 
 export function AccountMenu({ renderAvatar }: AccountMenuProps) {
   const { logout, status, user } = useAuth();
+  const { theme = "system", setTheme } = useTheme();
   const navigate = useNavigate();
 
   const onSignOut = async () => {
@@ -53,8 +62,21 @@ export function AccountMenu({ renderAvatar }: AccountMenuProps) {
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
           <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
-          <DropdownMenuItem onClick={onSignOut}>Sign out</DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Theme</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                {THEME_OPTIONS.map((option) => (
+                  <DropdownMenuRadioItem key={option.value} value={option.value}>
+                    {option.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onSignOut}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
