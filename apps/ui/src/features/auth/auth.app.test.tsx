@@ -1,6 +1,7 @@
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { THEME_STORAGE_KEY } from "@/components/theme-provider.tsx";
 import { CUSTOM_AUDITOR_ROLE, SEED_USERS } from "@/mocks/fixtures/index.ts";
 import { db } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
@@ -61,6 +62,31 @@ describe("authentication", () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(db.session).toBeNull();
+  });
+
+  it("switches the theme from the account menu and keeps it across reloads", async () => {
+    const { user, unmount } = renderApp({ path: "/settings/roles" });
+    const openTheme = async () => {
+      await user.click(await screen.findByRole("button", { name: ROBIN.displayName }));
+      await user.click(await screen.findByRole("menuitem", { name: "Theme" }));
+    };
+
+    await openTheme();
+    expect(await screen.findByRole("menuitemradio", { name: "System" })).toBeChecked();
+    // Base UI sets pointer-events: none on the submenu while it opens; click it directly.
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Dark" }));
+
+    await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
+
+    unmount();
+    renderApp({ path: "/settings/roles" });
+    await openTheme();
+    expect(await screen.findByRole("menuitemradio", { name: "Dark" })).toBeChecked();
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Light" }));
+
+    await waitFor(() => expect(document.documentElement).toHaveClass("light"));
+    expect(document.documentElement).not.toHaveClass("dark");
   });
 
   it("returns to the login page when the session expires mid-visit", async () => {

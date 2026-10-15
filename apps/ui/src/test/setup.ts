@@ -26,6 +26,10 @@ afterEach(async () => {
   server.resetHandlers();
   db.reset();
   resetFixtureSequences();
+  // The theme choice lives in the browser; start each test on the default.
+  localStorage.clear();
+  document.documentElement.removeAttribute("class");
+  document.documentElement.removeAttribute("style");
   // Last, since it throws on unexpected logs.
   restoreConsole();
 });

@@ -3,6 +3,7 @@ import { useEffect, useMemo } from "react";
 
 import { RouteErrorState } from "@/components/route-error-state.tsx";
 import { RoutePendingState } from "@/components/route-pending-state.tsx";
+import { ThemeProvider } from "@/components/theme-provider.tsx";
 import {
   AuthProvider,
   createRouterLoginRedirects,
@@ -77,13 +78,15 @@ function InnerApp({ router }: { router: AppRouter }) {
   return <RouterProvider router={router} context={{ auth, redirects }} />;
 }
 
-/** The app below the QueryClientProvider: auth, page meta and the router. */
+/** The app below the QueryClientProvider: theme, auth, page meta and the router. */
 export function App({ router }: { router: AppRouter }) {
   return (
-    <AuthProvider>
-      <PageProvider>
-        <InnerApp router={router} />
-      </PageProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <PageProvider>
+          <InnerApp router={router} />
+        </PageProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

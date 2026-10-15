@@ -110,6 +110,11 @@ body {
   --finding-status-duplicate: oklch(0.6067 0.0441 266.41);
   --finding-status-out-of-scope: oklch(0.6067 0.0441 266.41);
   --finding-status-inactive: oklch(0.626 0.0129 264.48);
+  /* Plane's slate-tinted elevation, mapped to shadow-raised, -overlay and -peek below. */
+  --elevation-raised: 0 1px 2px -1px rgb(41 47 61 / 0.06), 0 1px 3px rgb(41 47 61 / 0.05);
+  --elevation-overlay:
+    0 10px 10px -10px rgb(41 47 61 / 0.04), 0 30px 60px -12px rgb(41 47 61 / 0.1);
+  --elevation-peek: -10px 0 30px -5px rgb(41 47 61 / 0.02), -5px 0 80px -5px rgb(41 47 61 / 0.04);
 }
 
 .dark {
@@ -156,6 +161,10 @@ body {
   --severity-low: oklch(0.7532 0.1273 258.52);
   --severity-info: oklch(0.6372 0.0158 254.65);
   --severity-unlit: oklch(0.4607 0.0157 251.71);
+  /* Slate shadows vanish on the dark canvas; black ones at higher opacity still lift a surface. */
+  --elevation-raised: 0 1px 2px -1px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.25);
+  --elevation-overlay: 0 10px 10px -10px rgb(0 0 0 / 0.3), 0 30px 60px -12px rgb(0 0 0 / 0.6);
+  --elevation-peek: -10px 0 30px -5px rgb(0 0 0 / 0.2), -5px 0 80px -5px rgb(0 0 0 / 0.4);
 }
 
 @theme {
@@ -165,9 +174,6 @@ body {
   --text-13: 0.8125rem;
   --text-13--line-height: 1.54;
   --text-sm--line-height: 1.54;
-  --shadow-raised: 0 1px 2px -1px rgb(41 47 61 / 0.06), 0 1px 3px rgb(41 47 61 / 0.05);
-  --shadow-overlay: 0 10px 10px -10px rgb(41 47 61 / 0.04), 0 30px 60px -12px rgb(41 47 61 / 0.1);
-  --shadow-peek: -10px 0 30px -5px rgb(41 47 61 / 0.02), -5px 0 80px -5px rgb(41 47 61 / 0.04);
   /* Motion timings re-declared from Twenty's twenty-ui (PRD A7). Durations use Tailwind's 75/150/300. */
   --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
   --animate-nav-enter: nav-enter 180ms var(--ease-snappy);
@@ -197,6 +203,9 @@ body {
 }
 
 @theme inline {
+  --shadow-raised: var(--elevation-raised);
+  --shadow-overlay: var(--elevation-overlay);
+  --shadow-peek: var(--elevation-peek);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-foreground-secondary: var(--foreground-secondary);
