@@ -5,7 +5,9 @@ import { THEME_STORAGE_KEY } from "@/components/theme-provider.tsx";
 import indexHtml from "../../index.html?raw";
 
 // index.html applies the stored theme before React loads, so a reload never flashes the other one.
-const inlineScript = /<script>([\s\S]*?)<\/script>/.exec(indexHtml)?.[1] ?? "";
+const inlineScript =
+  new DOMParser().parseFromString(indexHtml, "text/html").querySelector("script:not([src])")
+    ?.textContent ?? "";
 const originalMatchMedia = window.matchMedia;
 
 function runWith({ stored, osDark }: { stored: string | null; osDark: boolean }) {
