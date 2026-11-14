@@ -1,14 +1,13 @@
-import * as matchers from "@testing-library/jest-dom/matchers";
+// Registers the jest-dom matchers and adds their types to vitest's `Assertion`.
+import "@testing-library/jest-dom/vitest";
 import { cleanup, configure } from "@testing-library/react";
-import { afterAll, afterEach, beforeAll, beforeEach, expect } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 
 import { resetFixtureSequences } from "@/mocks/fixtures/ids.ts";
 import { db, server } from "@/mocks/node.ts";
 import { filterConsole, restoreConsole } from "@/test/console.ts";
 import { cancelTestQueries } from "@/test/harness.tsx";
 import "@/test/dom-polyfills.ts";
-
-expect.extend(matchers);
 
 // Whole-app renders chain several mock API requests; give findBy*/waitFor room under a busy,
 // parallel suite.

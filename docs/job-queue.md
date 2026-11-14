@@ -162,10 +162,9 @@ that the configured exchange already exists, so it must be provisioned before
 the application starts.
 
 ```ts
-import pino from "pino";
-
 import { createJobEvent, JobType } from "@exposurenexus/jobs";
 import { createJobProducer } from "@exposurenexus/jobs/producer";
+import pino from "pino";
 
 const connectionOptions = process.env.AMQP_URL;
 if (!connectionOptions) {
@@ -230,10 +229,9 @@ one delivery at a time per worker replica. Handlers must be idempotent because
 a delivery can run more than once.
 
 ```ts
-import pino from "pino";
-
 import { JobType } from "@exposurenexus/jobs";
 import { createJobConsumer } from "@exposurenexus/jobs/consumer";
+import pino from "pino";
 
 const connectionOptions = process.env.AMQP_URL;
 if (!connectionOptions) {
