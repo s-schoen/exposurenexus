@@ -52,14 +52,13 @@ it.each(["debug", "warn"])("uses the provided %s level for all API and module lo
   }
 
   expect(logs.map((line) => JSON.parse(line))).toEqual(
-    ["api", "audit/api", "infrastructure", "db", "container", "backend", "events"].flatMap(
-      (name) =>
-        level === "debug"
-          ? [
-              expect.objectContaining({ name, level: 20, msg: "debug message" }),
-              expect.objectContaining({ name, level: 40, msg: "warn message" }),
-            ]
-          : [expect.objectContaining({ name, level: 40, msg: "warn message" })],
+    ["api", "audit/api", "infrastructure", "db", "container", "backend", "events"].flatMap((name) =>
+      level === "debug"
+        ? [
+            expect.objectContaining({ name, level: 20, msg: "debug message" }),
+            expect.objectContaining({ name, level: 40, msg: "warn message" }),
+          ]
+        : [expect.objectContaining({ name, level: 40, msg: "warn message" })],
     ),
   );
 });
